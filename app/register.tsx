@@ -1,4 +1,7 @@
 import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system/legacy";
 import {
     ActivityIndicator,
     Button,
@@ -40,7 +43,34 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [profilePicture, setProfilePicture] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const chooseProfilePicture = async () => {
+  const permission =
+    await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (!permission.granted) {
+    alert("Please allow access to your photos.");
+    return;
+  }
+
+  const result =
+    await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+if (!result.canceled) {
+  const imageUri = result.assets[0].uri;
+
+  setProfilePicture(imageUri);
+
+  console.log("Profile picture selected!");
+}
+};
 
   const signUp = async () => {
     console.log("Sign Up button pressed");
@@ -81,6 +111,56 @@ export default function Register() {
       });
 
       console.log("User profile saved successfully!");
+      // Save profile picture if the user selected one
+if (profilePicture) {
+  console.log("Saving profile picture...");
+
+  const manipulatedImage =
+    await ImageManipulator.manipulateAsync(
+      profilePicture,
+      [
+        {
+          resize: {
+            width: 300,
+            height: 300,
+          },
+        },
+      ],
+      {
+        compress: 0.5,
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+
+  // Convert the image to Base64
+  const base64Image =
+    await FileSystem.readAsStringAsync(
+      manipulatedImage.uri,
+      {
+        encoding: FileSystem.EncodingType.Base64,
+      }
+    );
+
+  // Add the image format
+  const imageData =
+    `data:image/jpeg;base64,${base64Image}`;
+
+  // Save the picture in its own Firestore document
+  await setDoc(
+    doc(
+      firestore,
+      "users",
+      uid,
+      "private",
+      "avatarData"
+    ),
+    {
+      imageData: imageData,
+    }
+  );
+
+  console.log("Profile picture saved successfully!");
+}
 
       console.log("Sending verification email...");
 
@@ -144,14 +224,27 @@ export default function Register() {
 
       console.log("Google account created/signed in successfully!");
 
+      // Get the user's Firebase information
+      const user = userCredential.user;
+
       // Get the user's unique Firebase ID
-      const uid = userCredential.user.uid;
+      const uid = user.uid;
+
+      // Get the Google display name
+      const displayName = user.displayName || "";
+
+      // Get only the first name
+      const firstName = displayName.split(" ")[0];
+
+      // Get the Google profile picture
+      const profilePictureUrl = user.photoURL || "";
 
       // Save the user's profile information to Firestore
       await setDoc(doc(firestore, "users", uid), {
-        name: name,
+        name: firstName,
         height: height,
         weight: weight,
+        profilePictureUrl: profilePictureUrl,
       });
 
       console.log("Google user profile saved successfully!");
@@ -172,6 +265,24 @@ export default function Register() {
     <View style={Styles.container}>
       <KeyboardAvoidingView behavior="padding">
         <Text style={Styles.title}>Register</Text>
+        <Pressable onPress={chooseProfilePicture}>
+          <Image
+            source={
+              profilePicture
+                ? { uri: profilePicture }
+                : require("../assets/default-profile.png")
+            }
+            style={Styles.profilePicture}
+          />
+        </Pressable>
+
+        <Text style={Styles.profilePictureLabel}>
+          Profile Picture (Optional)
+        </Text>
+
+        <Text style={Styles.profilePictureHint}>
+          Tap the image to choose a profile picture
+        </Text>
 
         <Text style={Styles.label}>Name (Optional)</Text>
         <TextInput
@@ -180,7 +291,7 @@ export default function Register() {
           onChangeText={setName}
         />
 
-        <Text style={Styles.label}>Height (Optional)</Text>
+        <Text style={Styles.label}>Height (cm) (Optional)</Text>
         <TextInput
           style={Styles.input}
           value={height}
@@ -188,7 +299,7 @@ export default function Register() {
           keyboardType="numeric"
         />
 
-        <Text style={Styles.label}>Weight (Optional)</Text>
+        <Text style={Styles.label}>Weight (kg) (Optional)</Text>
         <TextInput
           style={Styles.input}
           value={weight}
@@ -284,4 +395,25 @@ const Styles = StyleSheet.create({
     height: 50,
     resizeMode: "contain",
   },
+
+  profilePicture: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  alignSelf: "center",
+  marginBottom: 20,
+},
+
+profilePictureLabel: {
+  fontSize: 15,
+  textAlign: "center",
+  marginBottom: 2,
+},
+
+profilePictureHint: {
+  fontSize: 13,
+  color: "#666",
+  textAlign: "center",
+  marginBottom: 10,
+},
 });
