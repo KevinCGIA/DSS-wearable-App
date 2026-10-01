@@ -22,8 +22,11 @@ import {
   View,
 } from "react-native";
 
+import { useBle } from "../../services/ble/BleContext";
+
 export default function Home() {
   const router = useRouter();
+  const { connection } = useBle();
   const [profilePictureData, setProfilePictureData] =
     useState("");
 
@@ -128,26 +131,38 @@ export default function Home() {
       {/* Device and activity */}
       <View style={Styles.middleSection}>
 
-        {/* Galaxy Watch */}
-        <View style={Styles.deviceSection}>
+        {/* Wearable - tap to scan and connect */}
+        <Pressable
+          style={Styles.deviceSection}
+          onPress={() => router.push("/(auth)/devices")}
+        >
           <View style={Styles.watchCircle}>
             <Text style={Styles.watchText}>
-              Galaxy
-            </Text>
-
-            <Text style={Styles.watchText}>
-              Watch 8
+              {connection.deviceName ?? "No Device"}
             </Text>
           </View>
 
-          <Text style={Styles.deviceStatus}>
-            ● Connected
-          </Text>
+          {connection.status === "connected" ? (
+            <Text style={Styles.deviceStatus}>
+              ● Connected
+            </Text>
+          ) : connection.status === "disconnected" ? (
+            <Text style={Styles.deviceStatusOff}>
+              Tap to connect
+            </Text>
+          ) : (
+            <Text style={Styles.deviceStatusPending}>
+              Connecting...
+            </Text>
+          )}
 
-          <Text style={Styles.battery}>
-            🔋 85%
-          </Text>
-        </View>
+          {connection.status === "connected" &&
+            connection.batteryLevel !== null && (
+              <Text style={Styles.battery}>
+                🔋 {connection.batteryLevel}%
+              </Text>
+            )}
+        </Pressable>
 
         {/* Activity */}
         <View style={Styles.activitySection}>
@@ -306,12 +321,26 @@ const Styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
+    paddingHorizontal: 10,
   },
 
   deviceStatus: {
     marginTop: 8,
     fontSize: 14,
     color: "green",
+  },
+
+  deviceStatusOff: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#666",
+  },
+
+  deviceStatusPending: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#b26a00",
   },
 
   battery: {
