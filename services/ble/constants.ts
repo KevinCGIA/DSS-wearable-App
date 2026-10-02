@@ -25,3 +25,9 @@ export const MAX_AUTO_RECONNECT_ATTEMPTS = 3;
 
 // Larger MTU means fewer packets per read on Android. iOS negotiates this itself.
 export const REQUESTED_MTU = 185;
+
+// Heart rate monitors notify about once a second. Saving every value would
+// cost ~86k Firestore writes per day of wear (free tier: 20k writes/day), and
+// the 24-hour trend chart reads every saved reading (free tier: 50k reads/day).
+// One reading a minute is ~1.4k per day and still plenty for the chart.
+export const HEART_RATE_SAVE_INTERVAL_MS = 60000;
