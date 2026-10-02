@@ -22,6 +22,8 @@ import {
   View,
 } from "react-native";
 
+import HeartRateDisplay from "../../components/HeartRateDisplay";
+import StepsDisplay from "../../components/StepsDisplay";
 import { useBle } from "../../services/ble/BleContext";
 
 export default function Home() {
@@ -115,17 +117,7 @@ export default function Home() {
 
       {/* Heart rate */}
       <View style={Styles.heartRate}>
-        <Text style={Styles.heartRateTitle}>
-          ❤️ Heart Rate
-        </Text>
-
-        <Text style={Styles.heartRateValue}>
-          72
-        </Text>
-
-        <Text style={Styles.heartRateUnit}>
-          BPM
-        </Text>
+        <HeartRateDisplay variant="compact" />
       </View>
 
       {/* Device and activity */}
@@ -170,9 +162,7 @@ export default function Home() {
             Activity
           </Text>
 
-          <Text style={Styles.activityText}>
-            👟 6,842 Steps
-          </Text>
+          <StepsDisplay variant="compact" />
 
           <Text style={Styles.activityText}>
             🚶 4.8 km
@@ -278,22 +268,6 @@ const Styles = StyleSheet.create({
   heartRate: {
     alignItems: "center",
     marginTop: 25,
-  },
-
-  heartRateTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-
-  heartRateValue: {
-    fontSize: 42,
-    fontWeight: "bold",
-    marginTop: 5,
-  },
-
-  heartRateUnit: {
-    fontSize: 14,
-    color: "#666",
   },
 
   middleSection: {

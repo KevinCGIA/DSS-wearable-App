@@ -30,6 +30,8 @@ import {
   updateDoc,
 } from "@react-native-firebase/firestore";
 
+import DeviceSettingsSection from "../../components/DeviceSettingsSection";
+
 export default function Settings() {
   const [name, setName] = useState("");
   const [height, setHeight] = useState("");
@@ -415,6 +417,8 @@ export default function Settings() {
           onPress={saveProfile}
         />
       </View>
+
+      <DeviceSettingsSection />
 
       <Text style={Styles.sectionTitle}>
         Account & Security

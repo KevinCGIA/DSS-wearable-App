@@ -80,6 +80,8 @@ class BleService {
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
   private scanCallbacks: ScanCallbacks | null = null;
   private disconnectSubscription: Subscription | null = null;
+  private heartRateSubscription: Subscription | null = null;
+  private heartRateListeners = new Set<(bpm: number) => void>();
   private connection: ConnectionState = INITIAL_CONNECTION;
   private listeners = new Set<(state: ConnectionState) => void>();
 
@@ -194,6 +196,16 @@ class BleService {
     };
   }
 
+  // Called with each heart rate value (bpm) from a connected device that
+  // has the standard Heart Rate service. Returns an unsubscribe function.
+  onHeartRate(listener: (bpm: number) => void): () => void {
+    this.heartRateListeners.add(listener);
+
+    return () => {
+      this.heartRateListeners.delete(listener);
+    };
+  }
+
   private setConnection(update: Partial<ConnectionState>) {
     this.connection = { ...this.connection, ...update };
     this.listeners.forEach((listener) => listener(this.connection));
@@ -219,6 +231,7 @@ class BleService {
     const token = ++this.connectionToken;
 
     this.clearDisconnectSubscription();
+    this.stopHeartRateMonitor();
 
     // Android connects much less reliably while a scan is running
     await this.stopScan();
@@ -242,6 +255,7 @@ class BleService {
 
     this.connectionToken++;
     this.clearDisconnectSubscription();
+    this.stopHeartRateMonitor();
 
     if (!deviceId) {
       return;
@@ -280,6 +294,7 @@ class BleService {
         return true;
       } catch (e) {
         lastError = e;
+        this.stopHeartRateMonitor();
         console.log(
           `BLE handshake attempt ${attempt}/${maxAttempts} failed:`,
           e
@@ -336,6 +351,8 @@ class BleService {
     const batteryLevel = await this.readBatteryLevel(deviceId);
     this.throwIfStale(token);
 
+    await this.startHeartRateMonitor(deviceId);
+
     this.watchForDisconnect(deviceId, token);
 
     this.setConnection({
@@ -352,6 +369,7 @@ class BleService {
     this.disconnectSubscription =
       this.getManager().onDeviceDisconnected(deviceId, (error) => {
         this.clearDisconnectSubscription();
+        this.stopHeartRateMonitor();
 
         // The app disconnected on purpose
         if (this.isStale(token)) {
@@ -370,6 +388,46 @@ class BleService {
           "reconnecting"
         );
       });
+  }
+
+  // Subscribes to Heart Rate Measurement notifications if the device has
+  // the standard Heart Rate service. Devices without it are left alone.
+  private async startHeartRateMonitor(deviceId: string) {
+    this.stopHeartRateMonitor();
+
+    const services = await this.getManager().servicesForDevice(deviceId);
+    const hasHeartRate = services.some(
+      (service) => service.uuid.toLowerCase() === GATT.HEART_RATE_SERVICE
+    );
+
+    if (!hasHeartRate) {
+      return;
+    }
+
+    this.heartRateSubscription =
+      this.getManager().monitorCharacteristicForDevice(
+        deviceId,
+        GATT.HEART_RATE_SERVICE,
+        GATT.HEART_RATE_MEASUREMENT,
+        (error, characteristic) => {
+          // Errors here mean the link dropped or monitoring was stopped,
+          // which the disconnect handling already deals with
+          if (error || !characteristic?.value) {
+            return;
+          }
+
+          const bpm = parseHeartRateMeasurement(characteristic.value);
+
+          if (bpm !== null) {
+            this.heartRateListeners.forEach((listener) => listener(bpm));
+          }
+        }
+      );
+  }
+
+  private stopHeartRateMonitor() {
+    this.heartRateSubscription?.remove();
+    this.heartRateSubscription = null;
   }
 
   // Standard Battery Level characteristic. Returns null if the device
@@ -418,6 +476,30 @@ class BleService {
       throw new StaleConnectionError("Connection cancelled");
     }
   }
+}
+
+// Decodes a Heart Rate Measurement value (Bluetooth SIG spec 0x2A37).
+// Byte 0 is flags; bit 0 says whether the bpm is 1 byte or 2 bytes
+// (little-endian) starting at byte 1. Returns null for 0, which sensors
+// send when they aren't in contact with skin.
+export function parseHeartRateMeasurement(base64: string): number | null {
+  const bytes = atob(base64);
+
+  if (bytes.length < 2) {
+    return null;
+  }
+
+  const is16Bit = (bytes.charCodeAt(0) & 0x01) !== 0;
+
+  if (is16Bit && bytes.length < 3) {
+    return null;
+  }
+
+  const bpm = is16Bit
+    ? bytes.charCodeAt(1) | (bytes.charCodeAt(2) << 8)
+    : bytes.charCodeAt(1);
+
+  return bpm > 0 ? bpm : null;
 }
 
 function toScannedDevice(device: Device): ScannedDevice | null {
