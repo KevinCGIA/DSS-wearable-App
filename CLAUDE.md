@@ -179,7 +179,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
 - [x] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
 - [x] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
-- [ ] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
+- [x] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
 - [ ] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
 
 ### Task 4: Polish and sign-off
@@ -807,3 +807,13 @@ Android bugs: see `ANDROID_BUGS.md`.
   - Scopes mean a dirty screen underneath (e.g. Settings) doesn't prompt when you leave a clean sub-screen on top of it.
 - **Using it:** Alert Thresholds (its own dialog removed; now shared), and the **Settings profile form** (name/height/weight differ from the saved profile: "Your profile changes haven't been saved."). Preferences will use it when built.
 - **Not guarded (by design):** Log Out, and pushing a sub-screen on top (the tab stays mounted, so edits survive).
+
+### 2026-10-04 — Task 3, screen 6: Notifications (done, awaiting review) — **iOS only, no backend yet**
+- **`NotificationsScreen`** (props-only, `NotificationsScreenProps`). Blue hero with back + a white trash `IconButton` ("Clear all alerts", shown only when there are alerts).
+  - Alerts are **grouped by day** (Today / Yesterday / "Wed, Sep 30"). Each row has a type icon (red ↑ high, amber ↓ low), "High/Low heart rate", the message, the value in BPM (coloured by type) and the time.
+  - **Empty state:** "No alerts yet" + **Set alert thresholds** → `alert-thresholds`. Loading, error + Retry.
+  - `__DEV__` "Add Test Alert".
+- **`src/lib/alerts/alertHistory.ts`:** an in-memory stand-in for the Phase 2 alert history (e.g. `users/{uid}/alerts`) with `subscribeToAlerts` / `addAlert` / `clearAlerts`. **The Phase 2 alert engine writes here; this screen only reads.** It starts empty in the real flow.
+- **`useNotifications.ts`:** subscribes, "Clear all" confirm dialog. The dev "Add Test Alert" uses the **saved thresholds** from `lib/alerts/thresholds.ts` (e.g. above 130 if Max was saved as 130), simulating what the engine will write.
+- **Preview** `notifications.preview.tsx`: Empty, Loading, Error, Filled (4 alerts over 3 days). Visual check via temporary web screenshot (entry restored).
+- **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.

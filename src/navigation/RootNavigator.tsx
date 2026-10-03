@@ -7,7 +7,7 @@ import { DevicesContainer } from '@/features/devices/DevicesContainer';
 import { FitnessContainer } from '@/features/fitness/FitnessContainer';
 import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
 import { HomeContainer } from '@/features/home/HomeContainer';
-import { NotificationsScreen } from '@/features/notifications/NotificationsScreen';
+import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
 import { PreferencesScreen } from '@/features/preferences/PreferencesScreen';
 import { PreviewsScreen } from '@/features/previews/PreviewsScreen';
 import { previewEntries } from '@/features/previews/registry';
@@ -134,7 +134,12 @@ function renderStackRoute(route: StackRoute, navigation: Navigation) {
     case 'alert-thresholds':
       return <AlertThresholdsContainer onBack={navigation.back} />;
     case 'notifications':
-      return <NotificationsScreen onBack={navigation.back} />;
+      return (
+        <NotificationsContainer
+          onBack={navigation.back}
+          onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+        />
+      );
     case 'preferences':
       return <PreferencesScreen onBack={navigation.back} />;
     case 'previews':
