@@ -45,6 +45,9 @@ export const colors = {
   textMuted: palette.ink500,
   textInverse: palette.white,
   textOnAccent: palette.white,
+  textOnAccentMuted: 'rgba(255, 255, 255, 0.82)',
+  onAccentSurface: 'rgba(255, 255, 255, 0.14)',
+  onAccentBorder: 'rgba(255, 255, 255, 0.55)',
 
   accent: palette.blue500,
   accentPressed: palette.blue600,

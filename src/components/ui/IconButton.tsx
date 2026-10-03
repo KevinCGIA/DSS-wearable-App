@@ -3,7 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, ViewStyle } from 'react-
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, layout, radius } from '@/theme';
 
-type Variant = 'filled' | 'outlined';
+type Variant = 'filled' | 'outlined' | 'onAccent';
 
 type Props = {
   accessibilityLabel: string;
@@ -47,7 +47,8 @@ export function IconButton({
   }, [spinning, rotation]);
 
   const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const tint = disabled ? colors.disabledText : colors.text;
+  const onAccent = variant === 'onAccent';
+  const tint = disabled ? colors.disabledText : onAccent ? colors.textOnAccent : colors.text;
 
   return (
     <Pressable
@@ -58,8 +59,8 @@ export function IconButton({
       accessibilityState={{ disabled, busy: spinning }}
       style={({ pressed }) => [
         styles.base,
-        variant === 'outlined' ? styles.outlined : styles.filled,
-        pressed && styles.pressed,
+        styles[variant],
+        pressed && (onAccent ? styles.pressedOnAccent : styles.pressed),
         style,
       ]}
     >
@@ -94,6 +95,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
+  onAccent: {
+    backgroundColor: colors.onAccentSurface,
+    borderWidth: 1.5,
+    borderColor: colors.onAccentBorder,
+  },
   pressed: { backgroundColor: colors.surfaceSunken },
+  pressedOnAccent: { backgroundColor: colors.onAccentBorder },
   glyph: { fontFamily: fonts.uiBold, fontSize: 17 },
 });
