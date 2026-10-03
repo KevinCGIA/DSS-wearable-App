@@ -874,3 +874,13 @@ Android bugs: see `ANDROID_BUGS.md`.
 ### 2026-10-04 — Task 3 complete (approved)
 - Every Task 3 screen is approved after phone testing: Settings → Profile/Settings split, Devices, Fitness, Heart Rate, Alert Thresholds, Notifications, Preferences.
 - Two units gaps were moved into Task 4's checklist: Register cm/kg vs Imperial, and the Home distance "km" label.
+
+### 2026-10-04 — Home device status and profile wired to the shared providers
+- **Gap from earlier tasks:** Home's device card and profile were left as placeholders "until the Devices screen". Devices and the Profile split are done now, so Home is wired (data hook only, layout untouched).
+- **`useHomeData`** now reads:
+  - **`useBle().connection`**: same simulated Bluetooth as Devices/Settings. Galaxy Watch8 · CONNECTED · 85%, CONNECTING (attempt n), SYNCING, FAILED · Tap to retry, plus the green dot on the avatar.
+  - **`useProfile()`**: the photo and name from Profile show on Home's avatar and greeting. It falls back to the sign-in name while loading.
+- **Sync button:**
+  - Connected: brief SYNCING spin, as before.
+  - FAILED: retries the most recent paired device (like Android's auto-connect).
+- **Not added:** the simulated watch doesn't generate heart-rate readings while connected (Android saves one every 60 s from a real watch). The Heart Rate card still uses the test buttons until Phase 2.
