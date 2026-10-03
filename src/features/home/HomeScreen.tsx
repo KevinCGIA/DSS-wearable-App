@@ -11,6 +11,7 @@ import type {
   UserProfile,
 } from '@/data/types';
 import { formatShortDate, greetingFor } from '@/lib/time';
+import type { Units } from '@/lib/measures';
 import type { TabKey } from '@/navigation/routes';
 import { colors, spacing, type } from '@/theme';
 import { ActiveCaloriesCard } from './ActiveCaloriesCard';
@@ -31,6 +32,7 @@ export type HomeScreenProps = {
   restingRange: RestingRange | null;
   steps: LatestReadingState;
   activity: DailyActivityExtras;
+  units: Units;
   sleep: SleepSummary | null;
   bottomInset: number;
   onRefresh: () => void;
@@ -49,6 +51,7 @@ export function HomeScreen({
   restingRange,
   steps,
   activity,
+  units,
   sleep,
   bottomInset,
   onRefresh,
@@ -107,6 +110,7 @@ export function HomeScreen({
         onRefresh={onRefresh}
         stepsToday={stepsTodayFrom(steps.reading, now)}
         activity={activity}
+        units={units}
         onOpenDevices={onOpenDevices}
         onOpenFitness={() => onOpenTab('fitness')}
       />

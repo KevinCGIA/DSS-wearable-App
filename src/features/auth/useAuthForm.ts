@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { parseMeasure } from '@/lib/measures';
+import { usePreferences } from '@/features/preferences/PreferencesProvider';
+import { heightToCm, parseMeasure, weightToKg } from '@/lib/measures';
 import { pickSquareImage } from '@/lib/pickImage';
 import { describeAuthError, isValidEmail, validateAuthInput } from './authErrors';
 import type {
@@ -32,6 +33,8 @@ type Options = {
 };
 
 export function useAuthForm({ onPreview }: Options) {
+  // Saved on the phone, so Register follows Imperial too; stored values stay cm/kg like Android.
+  const { units } = usePreferences().preferences;
   const [mode, setModeState] = useState<AuthMode>('login');
   const [values, setValues] = useState<AuthFormValues>(emptyValues);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export function useAuthForm({ onPreview }: Options) {
 
   const signUp = async () => {
     clearMessages();
-    const errors = validateAuthInput('register', values);
+    const errors = validateAuthInput('register', values, units);
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
 
@@ -94,8 +97,8 @@ export function useAuthForm({ onPreview }: Options) {
         name: values.name.trim(),
         email: values.email.trim(),
         password: values.password,
-        height: parseMeasure(values.height),
-        weight: parseMeasure(values.weight),
+        height: heightToCm(units, parseMeasure(values.height)),
+        weight: weightToKg(units, parseMeasure(values.weight)),
         avatarUri,
       });
       setConfirmation({ kind: 'verification-sent', email: values.email.trim() });
@@ -168,6 +171,7 @@ export function useAuthForm({ onPreview }: Options) {
     notice,
     confirmation,
     busy,
+    units,
     previewMode: authService.mode === 'preview',
     onChangeMode: setMode,
     onChangeValue: setValue,

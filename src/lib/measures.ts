@@ -65,3 +65,9 @@ export function weightRangeFor(units: Units) {
 
 export const unitLabels = (units: Units) =>
   units === 'imperial' ? { height: 'in', weight: 'lb', distance: 'mi' } : { height: 'cm', weight: 'kg', distance: 'km' };
+
+const KM_PER_MI = 1.609344;
+
+export function distanceFor(units: Units, km: number | null): number | null {
+  return km === null ? null : units === 'imperial' ? km / KM_PER_MI : km;
+}
