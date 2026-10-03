@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   hint: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
   divider: { width: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.lg },
   activity: { flex: 1.15, padding: spacing.lg, justifyContent: 'center' },
-  eyebrow: { color: colors.textMuted, letterSpacing: 0.8, marginBottom: spacing.sm },
+  eyebrow: { color: colors.textMuted, letterSpacing: 0.8, marginBottom: spacing.sm, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'baseline',
