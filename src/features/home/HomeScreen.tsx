@@ -66,6 +66,7 @@ export function HomeScreen({
       <View style={styles.topBar}>
         <Text style={[type.label, styles.date]}>{formatShortDate(new Date(now))}</Text>
         <View style={styles.topActions}>
+          <IconButton glyph="?" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
           <IconButton
             icon="refresh-cw"
             accessibilityLabel={refreshing ? 'Refreshing device' : 'Refresh device'}
@@ -90,7 +91,6 @@ export function HomeScreen({
           </Text>
           <Text style={[type.body, styles.subtitle]}>Here is your daily summary</Text>
         </View>
-        <IconButton glyph="?" variant="onAccent" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
       </View>
 
       <HeartRateCard
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     ...elevation.hero,
   },
-  headerText: { flex: 1, marginRight: spacing.md },
+  headerText: { flex: 1 },
   title: { color: colors.textOnAccent },
   subtitle: { color: colors.textOnAccentMuted, marginTop: spacing.xs },
 });
