@@ -5,7 +5,7 @@ import { AlertThresholdsScreen } from '@/features/alerts/AlertThresholdsScreen';
 import { BleProvider } from '@/features/devices/BleProvider';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
 import { FitnessContainer } from '@/features/fitness/FitnessContainer';
-import { HeartRateScreen } from '@/features/heart-rate/HeartRateScreen';
+import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
 import { HomeContainer } from '@/features/home/HomeContainer';
 import { NotificationsScreen } from '@/features/notifications/NotificationsScreen';
 import { PreferencesScreen } from '@/features/preferences/PreferencesScreen';
@@ -69,7 +69,12 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
               onOpenTab={navigation.openTab}
             />
           ) : null}
-          {tab === 'heart-rate' ? <HeartRateScreen bottomInset={tabBarBaseHeight} /> : null}
+          {tab === 'heart-rate' ? (
+            <HeartRateContainer
+              bottomInset={tabBarBaseHeight}
+              onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+            />
+          ) : null}
           {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
           {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
           {tab === 'settings' ? (
