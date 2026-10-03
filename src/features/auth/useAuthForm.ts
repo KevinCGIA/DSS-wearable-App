@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { parseMeasure } from '@/lib/measures';
+import { pickSquareImage } from '@/lib/pickImage';
 import { describeAuthError, isValidEmail, validateAuthInput } from './authErrors';
 import type {
   AuthBusy,
@@ -33,7 +34,7 @@ type Options = {
 export function useAuthForm({ onPreview }: Options) {
   const [mode, setModeState] = useState<AuthMode>('login');
   const [values, setValues] = useState<AuthFormValues>(emptyValues);
-  const [avatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -140,12 +141,15 @@ export function useAuthForm({ onPreview }: Options) {
     }
   };
 
-  // Phase 2: Android's chooseProfilePicture (expo-image-picker + resize to 300×300).
-  const chooseProfilePicture = () => {
-    setNotice({
-      tone: 'info',
-      message: 'Choosing a photo is added with the shared Firebase setup. You can add one later in Settings.',
-    });
+  // Android: chooseProfilePicture in app/register.tsx
+  const chooseProfilePicture = async () => {
+    setNotice(null);
+    const picked = await pickSquareImage();
+    if (picked.status === 'denied') {
+      setNotice({ tone: 'warning', message: 'Please allow access to your photos.' });
+    } else if (picked.status === 'picked') {
+      setAvatarUri(picked.uri);
+    }
   };
 
   const dismissConfirmation = () => {

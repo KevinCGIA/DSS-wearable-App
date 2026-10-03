@@ -768,3 +768,19 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **New primitive `TimeLineChart`:** a line drawn with rotated Views (no `react-native-svg`), y-range padded to tens, 6-hour ticks, gaps on null buckets, one accessibility summary.
 - **Preview** `heartRate.preview.tsx`: No data, Loading, Error, Live (BPM ticking via `useLiveHeartRate`, + resting trends), Stale (42 min old). Checked visually via a temporary web-export screenshot (entry restored).
 - **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
+
+### 2026-10-04 — Heart Rate approved (tested on phone) + fix, shared readings, image picker
+1. **Bug fix: test data was labelled as the watch.** Readings now always carry `source` (`'ble' | 'manual'`, as on Android). "Add Test Reading" / "Add Test Steps" store `deviceName: 'Test data'`, and "Add 24h of Sample Data" stores `'Sample data'` (Android's names), all `source: 'manual'`. Display goes through `src/lib/sensors/sourceLabel.ts`: any `manual` reading shows **"from Test data"**; only `ble` readings show the device name.
+2. **Shared readings store (mock, Android interface):**
+   - `src/lib/sensors/readings.ts` ← Android `services/sensors/readings.ts`: same functions (`subscribeToLatestReading`, `subscribeToReadingsSince`, `addSensorReading`, `addSampleDay`) and arguments (`uid`, `type`, …), in memory instead of Firestore. **Phase 2 swaps only this file.**
+   - `src/lib/sensors/useSensorReadings.ts` ← Android `useLatestSensorReading.ts` + `useSensorHistory.ts`: same hooks and states (`SENSOR_UID` placeholder until `getAuth().currentUser`). `useSensorHistory` keeps a reading stamped exactly at the window end inside the last bucket; Android's `windowEnd = max(end, latest)` drops it (minor, Android has the same edge).
+   - **Heart Rate tab, Fitness tab and Home's heart rate card** (via `useHomeData` only; Home layout untouched) all read the same store, so test readings show on Home and the Heart Rate tab together. Home's resting range now comes from the store's 24 h heart-rate history.
+   - Home's steps, connection and profile are still mocks (not requested).
+   - Sample data is now Android's random `addSampleDay` (adds both heart rate and steps), replacing the deterministic mock for the real flow. Previews still use `mocks.ts`.
+3. **`expo-image-picker ~57.0.20`** (`npx expo install`; included in Expo Go). `src/lib/pickImage.ts` uses Android's permission request + options (`mediaTypes: ['images']`, `allowsEditing`, `aspect [1,1]`, `quality 1`).
+   - **Register:** the chosen photo shows in the avatar. If denied: "Please allow access to your photos." (Android).
+   - **Settings:** it saves straight away like Android → avatar updates, "Profile picture updated successfully!". If denied: an error banner.
+   - **Phase 2:**
+     - Resize to 300×300 JPEG → base64 → `users/{uid}/private/avatarData`.
+     - **The iOS permission strings go in the Phase 2 `app.json` `ios` block:** `NSPhotoLibraryUsageDescription` + `NSCameraUsageDescription`, via the `expo-image-picker` plugin (`photosPermission`, `cameraPermission`). No `app.json` change now (Rule 8).
+- **Checks:** typecheck clean, iOS + Android bundles build. Only `features/home/useHomeData.ts` changed in Home.
