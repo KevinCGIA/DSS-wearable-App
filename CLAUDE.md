@@ -176,7 +176,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
   - Scan / Stop Scanning (disabled while busy). Scan results sorted by RSSI with an HR-capable marker, signal bars + label, and "Current" / "Connect". Empty text for scanning and idle.
   - Auto-connect toggle and Paired devices (Connect / Forget with confirm) — the same components as Settings
   - Props: `onStartScan`, `onStopScan`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onBack`
-- [ ] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
+- [x] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
 - [ ] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
 - [ ] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
 - [ ] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
@@ -742,4 +742,17 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **`devices.preview.tsx`** has 12 states: Idle, Scanning, Results, Connecting, Setting up, Connected, Reconnecting, Disconnecting, Failed, Bluetooth off, Permission denied, No paired.
 - **Shared code:** `devices/bluetoothText.ts` (Bluetooth messages, signal strength, `isBusy`, `confirmForget`, now also used by Settings). New primitive `SignalBars`.
 - The mock BLE is always `PoweredOn`, so the Bluetooth banners are only visible in Previews until Phase 2.
+- **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
+
+### 2026-10-04 — Task 3, screen 3: Fitness (done, awaiting review; Devices approved)
+- **`FitnessScreen`** (props-only, `FitnessScreenProps`; Android `app/(auth)/fitness.tsx`). Blue hero "Fitness", then:
+  - **Steps Today card** (Android `StepsDisplay` large): big number, "of 10,000 step goal", progress bar (green when reached), and a % pill. Then "No step data yet. Connect your wearable to start tracking." / "Goal reached!" (icon, no emoji) / "Updated x ago". States: loading, error.
+  - **Steps per Hour card** (Android `SensorTrendChart` steps): Total, 24 hourly bars, 6-hour time ticks. Empty "No step data in the last 24 hours.", loading, error.
+  - **`__DEV__` Development card:** "Add Test Steps" / "Add 24h of Sample Data", same as Android's dev buttons, in memory.
+- **`useFitnessData.ts`:** mock, starts empty (no device). Dev actions update both the latest reading and the history. `FitnessContainer` feeds the screen.
+- **Ported:** `src/lib/trends.ts` ← Android `services/sensors/trends.ts` (`averageByBucket`, `stepsByBucket`, same maths) + chart helpers (`niceCeil`, `sixHourTicks`, `formatHour`) adapted from `components/SensorTrendChart.tsx`. `DAILY_STEP_GOAL = 10000` ← `components/StepsDisplay.tsx`.
+- **New primitive** `TimeBarChart` (hourly bars, axis max/0, gridlines, ticks; one accessibility summary). New token `layout.chartHeight`.
+- **Mock fix:** `heartRateHistory`/`stepsHistory` readings now sit strictly inside the 24 h window. A reading at exactly "now" fell outside the last bucket and was dropped from totals.
+- **Preview** `fitness.preview.tsx`: No data, Loading, Error, Filled, Goal reached. Checked visually via a temporary web-export screenshot (entry file restored afterwards).
+- **Known:** at night the mock still puts the full "today" total into the hours after midnight (one tall bar). Real data won't.
 - **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.

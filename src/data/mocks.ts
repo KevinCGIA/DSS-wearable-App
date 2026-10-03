@@ -163,7 +163,7 @@ export function heartRateHistory(): HistoryState {
   const start = end - DAY;
   const readings: SensorReading[] = [];
   let index = 0;
-  for (let t = start; t <= end; t += 15 * MINUTE) {
+  for (let t = start + MINUTE; t < end; t += 15 * MINUTE) {
     const hour = new Date(t).getHours();
     const asleep = hour < 7 || hour >= 23;
     const value = (asleep ? 58 : 76) + wave(index, 9);
@@ -181,7 +181,7 @@ export function stepsHistory(todayTotal = 6842): HistoryState {
   midnight.setHours(0, 0, 0, 0);
 
   const hours: number[] = [];
-  for (let t = start; t <= end; t += HOUR) hours.push(t);
+  for (let t = start + MINUTE; t < end; t += HOUR) hours.push(t);
 
   const active = (t: number) => {
     const hour = new Date(t).getHours();
