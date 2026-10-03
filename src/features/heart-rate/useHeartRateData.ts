@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { RestingHrTrends } from '@/data/types';
 import { addSampleDay, addSensorReading } from '@/lib/sensors/readings';
+import { addSampleSleep } from '@/lib/sensors/testExtras';
 import { SENSOR_UID, useLatestSensorReading, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 
@@ -20,6 +21,7 @@ export function useHeartRateData() {
 
   const addSampleData = useCallback(() => {
     addSampleDay(SENSOR_UID);
+    addSampleSleep();
   }, []);
 
   return {

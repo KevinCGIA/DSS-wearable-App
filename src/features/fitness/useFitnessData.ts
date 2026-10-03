@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { addSampleDay, addSensorReading } from '@/lib/sensors/readings';
+import { addSampleSleep } from '@/lib/sensors/testExtras';
 import { SENSOR_UID, useLatestSensorReading, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { isSameDay } from '@/lib/time';
 import { useNow } from '@/lib/useNow';
@@ -22,6 +23,7 @@ export function useFitnessData() {
 
   const addSampleData = useCallback(() => {
     addSampleDay(SENSOR_UID);
+    addSampleSleep();
   }, []);
 
   return {
