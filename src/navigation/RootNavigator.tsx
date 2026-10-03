@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
-import { AlertThresholdsScreen } from '@/features/alerts/AlertThresholdsScreen';
+import { AlertThresholdsContainer } from '@/features/alerts/AlertThresholdsContainer';
 import { BleProvider } from '@/features/devices/BleProvider';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
 import { FitnessContainer } from '@/features/fitness/FitnessContainer';
@@ -107,7 +107,7 @@ function renderStackRoute(route: StackRoute, navigation: Navigation) {
     case 'devices':
       return <DevicesContainer onBack={navigation.back} />;
     case 'alert-thresholds':
-      return <AlertThresholdsScreen onBack={navigation.back} />;
+      return <AlertThresholdsContainer onBack={navigation.back} />;
     case 'notifications':
       return <NotificationsScreen onBack={navigation.back} />;
     case 'preferences':
