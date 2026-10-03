@@ -199,6 +199,8 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [ ] Replace the default Expo app icon and splash with the DSS icon (the accent-blue chevron matching the Home design), and check the app name shows as "DSS Wearables" on the iPhone home screen.
   - Status: icons were generated on 2026-10-04 by `scripts/generate-logo.mjs` (`icon.png`, `splash-icon.png`, Android adaptive icons, favicon).
   - Still to do: wire the splash in `app.json` (needs OK, Rule 8), and verify both the icon and the name in a real build. Expo Go shows its own icon.
+- [ ] **Units gap 1: Register.** Read the saved Preferences units (`usePreferences()`; `PreferencesProvider` already wraps sign-in) and show Height (in) / Weight (lb) with the converted ranges. Convert back with `heightToCm` / `weightToKg` before `signUp`, so storage stays cm/kg like Android.
+- [ ] **Units gap 2: Home distance label.** Show "mi" instead of the hard-coded "km" when Imperial is set, converting the value (km → mi), in `DeviceActivityCard`'s distance row. Label and value only, no layout change. It matters for Phase 2 real distance, and for test data now (test steps already fill Distance in km).
 - [ ] No typecheck errors and no yellow-box warnings
 - [ ] Write a **UI Sign-off** section in the Progress Log listing every screen, its props type, and its container/hook
 - [ ] **Stop. Wait for me to say "start Phase 2".**
@@ -868,3 +870,7 @@ Android bugs: see `ANDROID_BUGS.md`.
   - `testActivityFrom(stepsReading, now)`: when today's steps come from the dev buttons (`source: 'manual'`), Distance (steps × 0.762 m), Floors (1 per 700 steps) and Active Calories (0.045 kcal/step, target 600) are derived from **those same steps**. That keeps them consistent and avoids Android's "0 steps next to 4.8 km" (ANDROID_BUGS #5). Real `ble` readings keep "--" (no Android source).
   - `addSampleSleep()` / `useSampleSleep()`: "Add 24h of Sample Data" (on Heart Rate or Fitness) also adds a sample night (`mockSleep`, 7h 42m, 86 "Optimal") + week/month trends. Home's Sleep & Recovery card and the **Sleep tab** show it. Otherwise both stay "No sleep data yet".
 - **Changed:** only `useHomeData` / `useSleepData` / the two dev-action hooks. Home and Sleep layouts are untouched. Phase 2: remove `testExtras` once real sources exist.
+
+### 2026-10-04 — Task 3 complete (approved)
+- Every Task 3 screen is approved after phone testing: Settings → Profile/Settings split, Devices, Fitness, Heart Rate, Alert Thresholds, Notifications, Preferences.
+- Two units gaps were moved into Task 4's checklist: Register cm/kg vs Imperial, and the Home distance "km" label.
