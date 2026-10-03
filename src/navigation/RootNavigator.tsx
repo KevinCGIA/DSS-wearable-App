@@ -11,7 +11,7 @@ import { PreferencesScreen } from '@/features/preferences/PreferencesScreen';
 import { PreviewsScreen } from '@/features/previews/PreviewsScreen';
 import { previewEntries } from '@/features/previews/registry';
 import { SettingsContainer } from '@/features/settings/SettingsContainer';
-import { SleepScreen } from '@/features/sleep/SleepScreen';
+import { SleepContainer } from '@/features/sleep/SleepContainer';
 import { colors } from '@/theme';
 import type { Navigation, StackRoute, TabKey } from './routes';
 
@@ -69,7 +69,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
         ) : null}
         {tab === 'heart-rate' ? <HeartRateScreen bottomInset={tabBarBaseHeight} /> : null}
         {tab === 'fitness' ? <FitnessScreen bottomInset={tabBarBaseHeight} /> : null}
-        {tab === 'sleep' ? <SleepScreen bottomInset={tabBarBaseHeight} /> : null}
+        {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
         {tab === 'settings' ? (
           <SettingsContainer
             bottomInset={tabBarBaseHeight}

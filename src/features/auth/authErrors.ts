@@ -12,7 +12,8 @@ const messages: Record<string, string> = {
   'auth/too-many-requests': 'Too many attempts. Wait a moment before trying again.',
   'auth/network-request-failed': 'No connection. Check your network and try again.',
   'auth/operation-not-allowed': 'Email sign-in is turned off for this project.',
-  'firebase/not-configured': 'The app is not connected to Firebase yet. Add your project keys to .env.',
+  'auth/google-unavailable': 'Google sign-in arrives with the shared Firebase setup. Use email for now.',
+  'firebase/not-configured': 'The app is not connected to Firebase yet.',
 };
 
 export function describeAuthError(error: unknown): string {
@@ -26,21 +27,64 @@ export function describeAuthError(error: unknown): string {
   return messages[code] ?? 'Something went wrong. Try again in a moment.';
 }
 
-export function validateAuthInput(
-  mode: 'login' | 'register',
-  values: { name: string; email: string; password: string },
-): Partial<Record<'name' | 'email' | 'password', string>> {
-  const errors: Partial<Record<'name' | 'email' | 'password', string>> = {};
+export type AuthMode = 'login' | 'register';
 
-  if (mode === 'register' && values.name.trim().length < 2) {
-    errors.name = 'Tell us what to call you.';
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+export type AuthFormValues = {
+  name: string;
+  height: string;
+  weight: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+export type AuthFieldErrors = Partial<Record<keyof AuthFormValues, string>>;
+
+export type Notice = { tone: 'warning' | 'info' | 'error'; message: string };
+export type AuthConfirmation = { kind: 'verification-sent' | 'reset-sent'; email: string };
+export type AuthBusy = 'email' | 'google' | 'reset' | null;
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL.test(email.trim());
+}
+
+export function parseMeasure(value: string): number | null {
+  const trimmed = value.trim().replace(',', '.');
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function checkRange(value: string, min: number, max: number, label: string): string | undefined {
+  const parsed = parseMeasure(value);
+  if (parsed === null) return undefined;
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) return `${label} between ${min} and ${max}.`;
+  return undefined;
+}
+
+export function validateAuthInput(mode: AuthMode, values: AuthFormValues): AuthFieldErrors {
+  const errors: AuthFieldErrors = {};
+
+  if (!isValidEmail(values.email)) {
     errors.email = "That email address doesn't look right.";
   }
+  if (mode === 'login') {
+    if (!values.password) errors.password = 'Enter your password.';
+    return errors;
+  }
+
   if (values.password.length < 6) {
     errors.password = 'Use at least 6 characters.';
   }
+  if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Passwords do not match.';
+  }
+  const height = checkRange(values.height, 50, 250, 'Enter a height in cm');
+  if (height) errors.height = height;
+  const weight = checkRange(values.weight, 20, 300, 'Enter a weight in kg');
+  if (weight) errors.weight = weight;
 
   return errors;
 }

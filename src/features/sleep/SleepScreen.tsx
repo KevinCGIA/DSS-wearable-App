@@ -1,77 +1,121 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { BarChart } from '@/components/ui/BarChart';
 import { Card } from '@/components/ui/Card';
-import { Pill } from '@/components/ui/Pill';
+import { CardTitle } from '@/components/ui/CardTitle';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
+import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { StageTrack } from '@/components/ui/StageTrack';
 import { StatReadout } from '@/components/ui/StatReadout';
-import { colors, radius, spacing, type } from '@/theme';
-import {
-  lastNight,
-  sleepStages,
-  weeklyRestingHr,
-  weeklySleepHours,
-  weeklySleepScore,
-} from '@/data/sleep';
+import type { SleepSummary, SleepTrends } from '@/data/types';
+import { formatDuration } from '@/lib/time';
+import { colors, layout, radius, spacing, type } from '@/theme';
+import { stageMeta, stageOrder } from './sleepStages';
 
 type Range = 'week' | 'month';
 
-const monthlySleepScore = [
-  { label: 'W1', value: 82 },
-  { label: 'W2', value: 74 },
-  { label: 'W3', value: 88 },
-  { label: 'W4', value: 79 },
-];
+export type SleepScreenProps = {
+  sleep: SleepSummary | null;
+  trends: SleepTrends | null;
+  loading: boolean;
+  error: string | null;
+  bottomInset: number;
+  onRetry?: () => void;
+};
 
-const monthlySleepHours = [
-  { label: 'W1', value: 7.4 },
-  { label: 'W2', value: 6.8 },
-  { label: 'W3', value: 7.9 },
-  { label: 'W4', value: 7.2 },
-];
-
-const monthlyRestingHr = [
-  { label: 'W1', value: 59 },
-  { label: 'W2', value: 62 },
-  { label: 'W3', value: 57 },
-  { label: 'W4', value: 60 },
-];
-
-type Props = { bottomInset: number };
-
-export function SleepScreen({ bottomInset }: Props) {
-  const [range, setRange] = useState<Range>('week');
-
-  const data = useMemo(
-    () =>
-      range === 'week'
-        ? { score: weeklySleepScore, hours: weeklySleepHours, hr: weeklyRestingHr }
-        : { score: monthlySleepScore, hours: monthlySleepHours, hr: monthlyRestingHr },
-    [range],
-  );
-
-  const avgScore = Math.round(
-    data.score.reduce((sum, bar) => sum + bar.value, 0) / data.score.length,
-  );
-  const avgHours = data.hours.reduce((sum, bar) => sum + bar.value, 0) / data.hours.length;
-  const avgHr = Math.round(data.hr.reduce((sum, bar) => sum + bar.value, 0) / data.hr.length);
-
-  const totalStageMinutes = sleepStages.reduce((sum, stage) => sum + stage.minutes, 0);
-
+export function SleepScreen({ sleep, trends, loading, error, bottomInset, onRetry }: SleepScreenProps) {
   return (
     <Screen
       scroll
       bottomInset={bottomInset}
-      hero={
-        <HeroHeader
-          title="Sleep"
-          subtitle="Trends across your recorded sessions, drawn from the paired band."
-        />
-      }
+      hero={<HeroHeader title="Sleep" subtitle="Last night and your recent trends, from your watch." />}
     >
+      {loading ? (
+        <Card style={styles.first}>
+          <ActivityIndicator color={colors.accent} style={styles.spinner} />
+        </Card>
+      ) : error ? (
+        <ErrorBanner message={error} actionLabel={onRetry ? 'Retry' : undefined} onAction={onRetry} style={styles.first} />
+      ) : !sleep ? (
+        <Card style={styles.first}>
+          <EmptyState
+            icon="moon"
+            title="No sleep data yet"
+            message="Wear your watch to bed. Your sleep, stages and trends will appear here once it syncs."
+          />
+        </Card>
+      ) : (
+        <>
+          <LastNightCard sleep={sleep} />
+          {trends ? <TrendsSection trends={trends} /> : null}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function LastNightCard({ sleep }: { sleep: SleepSummary }) {
+  const total = sleep.stages.reduce((sum, s) => sum + s.minutes, 0) || 1;
+  const stages = stageOrder
+    .map((key) => sleep.stages.find((s) => s.key === key))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+  return (
+    <Card style={styles.first}>
+      <CardTitle icon="moon" title="Last night" right={<Pill label={sleep.rating} tier="good" />} />
+
+      <View style={styles.columns}>
+        <View style={styles.column}>
+          <Text style={[type.statLarge, styles.value]}>{formatDuration(sleep.totalMinutes)}</Text>
+          <Text style={[type.caption, styles.muted]}>Sleep Duration</Text>
+        </View>
+        <View style={styles.column}>
+          <Text style={[type.statLarge, styles.value]}>
+            {sleep.score}
+            <Text style={[type.unit, styles.muted]}> /100</Text>
+          </Text>
+          <Text style={[type.caption, styles.muted]}>Sleep Score</Text>
+        </View>
+      </View>
+
+      <Text style={[type.caption, styles.window]}>
+        {sleep.start} – {sleep.end}
+      </Text>
+
+      <View style={styles.composition} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {stages.map((s) => (
+          <View key={s.key} style={{ flex: s.minutes / total, backgroundColor: stageMeta[s.key].color }} />
+        ))}
+      </View>
+
+      <View style={styles.stages}>
+        {stages.map((s) => (
+          <StageTrack
+            key={s.key}
+            label={stageMeta[s.key].label}
+            duration={formatDuration(s.minutes)}
+            color={stageMeta[s.key].color}
+            segments={s.segments}
+          />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function TrendsSection({ trends }: { trends: SleepTrends }) {
+  const [range, setRange] = useState<Range>('week');
+  const data = trends[range];
+
+  const average = (points: { value: number }[]) =>
+    points.length ? points.reduce((sum, p) => sum + p.value, 0) / points.length : 0;
+
+  return (
+    <>
       <SegmentedControl
         value={range}
         onChange={setRange}
@@ -84,101 +128,60 @@ export function SleepScreen({ bottomInset }: Props) {
 
       <View style={styles.summaryRow}>
         <Card style={styles.summaryCard} padding={spacing.lg}>
-          <StatReadout value={avgScore} label="Avg score" icon="moon" size="medium" />
+          <StatReadout value={Math.round(average(data.score))} label="Avg score" icon="moon" size="medium" />
         </Card>
         <Card style={styles.summaryCard} padding={spacing.lg}>
-          <StatReadout value={avgHours.toFixed(1)} unit="h" label="Avg sleep" icon="clock" size="medium" />
-        </Card>
-        <Card style={styles.summaryCard} padding={spacing.lg}>
-          <StatReadout value={avgHr} unit="bpm" label="Resting" icon="heart" size="medium" />
+          <StatReadout value={average(data.hours).toFixed(1)} unit="h" label="Avg sleep" icon="clock" size="medium" />
         </Card>
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={[type.heading, styles.sectionTitle]}>Sleep score</Text>
-        <Pill label={range === 'week' ? 'Last 7 nights' : 'Last 4 weeks'} tier="neutral" />
-      </View>
-      <Card style={styles.chartCard}>
-        <BarChart data={data.score} highlightLast />
+      <Card style={styles.card}>
+        <CardTitle
+          icon="bar-chart-2"
+          title="Sleep score"
+          right={<Pill label={range === 'week' ? 'Last 7 nights' : 'Last 4 weeks'} tier="neutral" />}
+        />
+        <BarChart data={data.score} highlightLast style={styles.chart} />
         <Text style={[type.caption, styles.caption]}>
           Green is 85 and above, amber 65 to 84, red below 65.
         </Text>
       </Card>
 
-      <View style={styles.sectionHeader}>
-        <Text style={[type.heading, styles.sectionTitle]}>Hours asleep</Text>
-        <Pill label="Target 8h" tier="live" dot />
-      </View>
-      <Card style={styles.chartCard}>
+      <Card style={styles.card}>
+        <CardTitle icon="clock" title="Hours asleep" right={<Pill label="Target 8h" tier="live" dot />} />
         <BarChart
           data={data.hours}
           max={9}
           colorFor={(value) => (value >= 7.5 ? colors.sleep.deep : colors.sleep.light)}
+          style={styles.chart}
         />
       </Card>
-
-      <View style={styles.sectionHeader}>
-        <Text style={[type.heading, styles.sectionTitle]}>Resting heart rate</Text>
-        <Pill label="Lower is better" tier="neutral" />
-      </View>
-      <Card style={styles.chartCard}>
-        <BarChart data={data.hr} max={80} colorFor={() => colors.accent} />
-      </Card>
-
-      <View style={styles.sectionHeader}>
-        <Text style={[type.heading, styles.sectionTitle]}>Stage breakdown</Text>
-        <Pill label={lastNight.totalLabel} tier="session" icon="moon" />
-      </View>
-      <Card style={styles.chartCard}>
-        <View style={styles.composition}>
-          {sleepStages.map((stage) => (
-            <View
-              key={stage.key}
-              style={{
-                flex: stage.minutes / totalStageMinutes,
-                backgroundColor: stage.color,
-              }}
-            />
-          ))}
-        </View>
-        <View style={styles.stages}>
-          {sleepStages.map((stage) => (
-            <StageTrack
-              key={stage.key}
-              label={stage.label}
-              duration={stage.duration}
-              color={stage.color}
-              segments={stage.segments}
-            />
-          ))}
-        </View>
-        <Text style={[type.caption, styles.caption]}>
-          Bands show when each stage occurred between {lastNight.start} and {lastNight.end}.
-        </Text>
-      </Card>
-    </Screen>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  range: { marginTop: spacing.xl },
-  summaryRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
-  summaryCard: { flex: 1 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxxl,
-  },
-  sectionTitle: { color: colors.text },
-  chartCard: { marginTop: spacing.lg },
-  caption: { color: colors.textMuted, marginTop: spacing.lg },
+  first: { marginTop: spacing.xl },
+  card: { marginTop: spacing.lg },
+  spinner: { marginVertical: spacing.huge },
+  columns: { flexDirection: 'row', marginTop: spacing.lg },
+  column: { flex: 1 },
+  value: { color: colors.text },
+  muted: { color: colors.textMuted },
+  window: { color: colors.textMuted, marginTop: spacing.md },
   composition: {
     flexDirection: 'row',
-    height: 12,
+    height: layout.stageBarHeight,
     borderRadius: radius.pill,
     overflow: 'hidden',
+    gap: spacing.xs / 2,
+    marginTop: spacing.lg,
     marginBottom: spacing.xl,
   },
   stages: { gap: spacing.lg },
+  range: { marginTop: spacing.xl },
+  summaryRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  summaryCard: { flex: 1 },
+  chart: { marginTop: spacing.lg },
+  caption: { color: colors.textMuted, marginTop: spacing.lg },
 });

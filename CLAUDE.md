@@ -155,7 +155,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] Set `ios.supportsTablet` to false
 
 ### Task 2: Refactor the built screens to Rule 1
-- [ ] **Auth:** move the Firebase calls into `useAuthForm.ts`. `AuthScreen` becomes props-only.
+- [x] **Auth:** move the Firebase calls into `useAuthForm.ts`. `AuthScreen` becomes props-only.
   - Login: email, password, `onSignIn`, `onSignInWithGoogle`, "Please verify your email" state, **Forgot password?** (`onSendPasswordReset`, same reset-email logic as Change Password) with a reset-sent confirmation
   - Register (match Android): avatar (optional, `onChooseProfilePicture`), name, height (cm), weight (kg), email, password, **confirm password** ("Passwords do not match."), `onSignUp`, plus a **separate Google sign-up button** (`onSignUpWithGoogle`), then a "Verification email sent" state
 - [x] **Home (UI change 2, reference layout):** rebuild to match the Home dashboard table:
@@ -165,7 +165,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
   - Remove the old area tiles, the bell, the zone label and Log Out
   - Previews: no device, connecting, connected + syncing, connected with full mock data (+ failed)
   - Log Out moves to Settings with a confirm
-- [ ] **Sleep tab (from Analytics):** take `SleepSummary | null` and its series as props from a container. The default container returns no data, which gives the "No sleep data yet" state. Move the resting HR chart to the Heart Rate tab.
+- [x] **Sleep tab (from Analytics):** take `SleepSummary | null` and its series as props from a container. The default container returns no data, which gives the "No sleep data yet" state. Move the resting HR chart to the Heart Rate tab.
 
 ### Task 3: Build the missing and placeholder screens (in this order)
 - [ ] **Settings** (one page, per the Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
@@ -513,3 +513,35 @@ Android bugs: see `ANDROID_BUGS.md`.
   - New `Screen` prop `heroOverlap` (default off): only Home overlaps cards onto the blue edge. Other pages start below it, so text never sits on the edge.
   - Not applied to Auth (pre-login) or the dev Previews tool.
   - **Rule for new screens:** use `Screen hero={<HeroHeader … />}` instead of a title Text or `Header`.
+
+### 2026-10-04 — Task 2: Auth + Sleep refactors (done; Home approved and untouched)
+
+**Auth** (`features/auth/`):
+- **Files:**
+  - `AuthScreen.tsx`: props-only (`AuthScreenProps`), no Firebase. Blue hero (brand mark, title, blurb) + one white card with the Log in/Register switch and the form, or a confirmation card.
+  - `useAuthForm.ts`: all state and validation. Handlers named after Android's: `onSignIn`/`signIn`, `onSignInWithGoogle`, `onSignUp`, `onSignUpWithGoogle`, `onSendPasswordReset`, `onChooseProfilePicture`.
+  - `AuthContainer.tsx` and `auth.preview.tsx` (9 states).
+  - `authService.ts`: the only auth file importing `firebase/auth` (plus the existing `useAuthSession`).
+- **Login:**
+  - Email and password.
+  - Unverified accounts get Android's "Please verify your email before signing in." as an inline warning banner, not `alert()`.
+  - "Forgot password?" sends the same reset email as Android's `changePassword` and shows a "Password reset email sent" card. With no email typed, it shows a field error.
+  - "Sign in with Google" button.
+- **Register:** Android's fields. Optional avatar (large `Avatar` with initials), optional name, height (cm) and weight (kg) side by side (validated 50–250 / 20–300, decimals allowed), email, password (≥ 6), confirm password ("Passwords do not match."). "Sign up" then shows a "Verification email sent" card with "Back to log in" (email kept). Separate "Sign up with Google".
+- **Two auth services behind one interface:**
+  - **Firebase** (JS SDK, only if keys exist): sign-in checks `emailVerified` and signs out if not. Sign-up sends verification, then signs out. Height, weight and avatar are not stored until Phase 2 (Android's Firestore helpers).
+  - **Preview** (current, no keys): simulates delays. Any email containing "unverified" triggers the verify-email state. Sign in / Google enters the app with a name from the email.
+  - Google returns `auth/google-unavailable` with the Firebase JS SDK (needs Android's native Google Sign-In in Phase 2).
+- **Avatar picker:** a Phase 1 stub showing an info banner. Adding a real picker needs `expo-image-picker` (Expo Go–compatible, and Android uses it). Not added yet; awaiting your OK.
+- **Primitive changes:** `Button` gained an `ionicon` prop (Google logo). Auth types (`AuthFormValues`, `Notice`, `AuthConfirmation`, `AuthBusy`) live in `authErrors.ts`.
+
+**Sleep** (`features/sleep/`):
+- `SleepScreen.tsx` is props-only (`sleep: SleepSummary | null`, `trends: SleepTrends | null`, `loading`, `error`, `onRetry?`), with a blue hero "Sleep" and white cards:
+  - **Last night:** rating pill, duration + score, window, stage composition bar and stage tracks
+  - **Week/Month switch:** Avg score and Avg sleep cards, Sleep score chart card, Hours asleep chart card
+  - **States:** empty "No sleep data yet" card, loading card, error banner with Retry
+- `useSleepData.ts` returns no data, since there's no source (Android's Sleep tab is a placeholder). `SleepContainer.tsx` feeds the screen. `sleep.preview.tsx` has Empty, Loading, Error and Filled. `sleepStages.ts` holds stage labels and colours.
+- **Resting HR chart removed from Sleep.** Its series is now `mockRestingHrTrends` in `mocks.ts`, for the Heart Rate tab in Task 3.
+- `src/data/sleep.ts` deleted. Its series moved to `mockSleepTrends` (+ `TrendPoint`, `SleepTrends`, `RestingHrTrends` types).
+
+**Checks:** `npm run typecheck` is clean, `npx expo export` bundles for iOS and Android, and `git diff` shows no change to `features/home`, `Screen` or `HeroHeader`. Not yet clicked through on a device.

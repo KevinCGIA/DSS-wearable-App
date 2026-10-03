@@ -120,3 +120,12 @@ export type DailyActivityExtras = {
   activeCalories: number | null;
   calorieTarget: number;
 };
+
+export type TrendPoint = { label: string; value: number };
+
+export type SleepTrends = {
+  week: { score: TrendPoint[]; hours: TrendPoint[] };
+  month: { score: TrendPoint[]; hours: TrendPoint[] };
+};
+
+export type RestingHrTrends = { week: TrendPoint[]; month: TrendPoint[] };

@@ -1,205 +1,302 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
-import { colors, radius, spacing, type } from '@/theme';
-import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase';
-import { describeAuthError, validateAuthInput } from './authErrors';
+import { colors, layout, radius, spacing, type } from '@/theme';
+import type {
+  AuthBusy,
+  AuthConfirmation,
+  AuthFieldErrors,
+  AuthFormValues,
+  AuthMode,
+  Notice,
+} from './authErrors';
 
-type Mode = 'login' | 'register';
-
-type Props = {
-  onPreview?: (displayName: string) => void;
+export type AuthScreenProps = {
+  mode: AuthMode;
+  values: AuthFormValues;
+  avatarUri: string | null;
+  fieldErrors: AuthFieldErrors;
+  formError: string | null;
+  notice: Notice | null;
+  confirmation: AuthConfirmation | null;
+  busy: AuthBusy;
+  previewMode: boolean;
+  onChangeMode: (mode: AuthMode) => void;
+  onChangeValue: (field: keyof AuthFormValues, value: string) => void;
+  onSignIn: () => void;
+  onSignInWithGoogle: () => void;
+  onSignUp: () => void;
+  onSignUpWithGoogle: () => void;
+  onSendPasswordReset: () => void;
+  onChooseProfilePicture: () => void;
+  onDismissConfirmation: () => void;
+  onPreview?: () => void;
 };
 
-export function AuthScreen({ onPreview }: Props) {
-  const [mode, setMode] = useState<Mode>('login');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'password', string>>>({});
-  const [formError, setFormError] = useState('');
-  const [busy, setBusy] = useState(false);
+const copy = {
+  login: { title: 'Welcome back', blurb: 'Log in to see your heart rate, activity and sleep.' },
+  register: { title: 'Create your account', blurb: 'Pair your watch and keep your health history in one place.' },
+};
 
-  const copy = useMemo(
-    () =>
-      mode === 'login'
-        ? { title: 'Welcome back', blurb: 'Sign in to pick up where your last session left off.', cta: 'Log in' }
-        : { title: 'Start tracking', blurb: 'Create an account to pair your band and keep your history in one place.', cta: 'Create account' },
-    [mode],
-  );
-
-  function switchMode(next: Mode) {
-    setMode(next);
-    setFieldErrors({});
-    setFormError('');
-  }
-
-  async function submit() {
-    const values = { name, email, password };
-    const errors = validateAuthInput(mode, values);
-    setFieldErrors(errors);
-    setFormError('');
-
-    if (Object.keys(errors).length > 0) return;
-
-    setBusy(true);
-    try {
-      const auth = getFirebaseAuth();
-      if (mode === 'register') {
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        await updateProfile(credential.user, { displayName: name.trim() });
-      } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
-      }
-    } catch (error) {
-      setFormError(describeAuthError(error));
-    } finally {
-      setBusy(false);
-    }
-  }
+export function AuthScreen(props: AuthScreenProps) {
+  const { mode, confirmation, previewMode, onPreview } = props;
 
   return (
-    <Screen scroll background={colors.surface}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.brandRow}>
-          <LinearGradient
-            colors={[...colors.accentGradient]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.mark}
-          >
-            <Feather name="activity" size={22} color={colors.textOnAccent} />
-          </LinearGradient>
-          <Text style={[type.heading, styles.brandName]}>DSS Wearables</Text>
-        </View>
-
-        <Text style={[type.title, styles.title]}>{copy.title}</Text>
-        <Text style={[type.body, styles.blurb]}>{copy.blurb}</Text>
-
-        <SegmentedControl
-          value={mode}
-          onChange={switchMode}
-          options={[
-            { value: 'login', label: 'Log in' },
-            { value: 'register', label: 'Register' },
-          ]}
-          style={styles.toggle}
-        />
-
-        <View style={styles.form}>
-          {mode === 'register' ? (
-            <TextField
-              label="Name"
-              value={name}
-              onChangeText={setName}
-              placeholder="Alex Chen"
-              icon="user"
-              autoCapitalize="words"
-              autoComplete="name"
-              error={fieldErrors.name}
-            />
-          ) : null}
-
-          <TextField
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@latrobe.edu.au"
-            icon="mail"
-            keyboardType="email-address"
-            autoComplete="email"
-            error={fieldErrors.email}
-          />
-
-          <TextField
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder={mode === 'register' ? 'At least 6 characters' : 'Your password'}
-            icon="lock"
-            secure
-            autoComplete={mode === 'register' ? 'new-password' : 'password'}
-            error={fieldErrors.password}
-          />
-
-          {formError ? (
-            <View style={styles.formError}>
-              <Feather name="alert-circle" size={16} color={colors.danger} />
-              <Text style={[type.bodyStrong, styles.formErrorText]}>{formError}</Text>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Screen
+        scroll
+        hero={
+          <View>
+            <View style={styles.brandRow}>
+              <View style={styles.mark}>
+                <Feather name="activity" size={20} color={colors.textOnAccent} />
+              </View>
+              <Text style={[type.subheading, styles.brand]}>DSS Wearables</Text>
             </View>
-          ) : null}
-
-          <Button label={copy.cta} onPress={submit} loading={busy} fullWidth style={styles.submit} />
-
-          {mode === 'login' ? (
-            <Button label="Forgot your password?" variant="ghost" size="md" fullWidth />
-          ) : (
-            <Text style={[type.caption, styles.legal]}>
-              By registering you agree to let DSS Wearables store your health metrics so you can review them later.
+            <Text style={[type.title, styles.title]} accessibilityRole="header">
+              {confirmation ? 'Check your email' : copy[mode].title}
             </Text>
-          )}
-        </View>
+            <Text style={[type.body, styles.blurb]}>
+              {confirmation ? 'One more step before you can log in.' : copy[mode].blurb}
+            </Text>
+          </View>
+        }
+      >
+        {confirmation ? <ConfirmationCard {...props} confirmation={confirmation} /> : <FormCard {...props} />}
 
-        {!isFirebaseConfigured && onPreview ? (
+        {previewMode && onPreview ? (
           <View style={styles.previewBlock}>
-            <Pill
-              label="Firebase keys missing — add them to .env"
-              tier="alert"
-              icon="alert-triangle"
-              style={styles.configNotice}
-            />
+            <Pill label="Preview mode · no Firebase connected" tier="neutral" icon="info" />
             <Button
               label="Preview the dashboard"
               variant="secondary"
               icon="eye"
               size="md"
               fullWidth
-              onPress={() => onPreview(name.trim() || 'Tarun')}
+              onPress={onPreview}
               style={styles.previewButton}
             />
-            <Text style={[type.caption, styles.previewHint]}>
-              Design preview only — no account is created.
-            </Text>
           </View>
         ) : null}
-      </KeyboardAvoidingView>
-    </Screen>
+      </Screen>
+    </KeyboardAvoidingView>
+  );
+}
+
+function ConfirmationCard({
+  confirmation,
+  onDismissConfirmation,
+}: AuthScreenProps & { confirmation: AuthConfirmation }) {
+  const verification = confirmation.kind === 'verification-sent';
+  return (
+    <Card style={styles.card}>
+      <EmptyState
+        icon={verification ? 'mail' : 'key'}
+        title={verification ? 'Verification email sent' : 'Password reset email sent'}
+        message={
+          verification
+            ? `We sent a verification link to ${confirmation.email}. Open it, then log in.`
+            : `We sent a password reset link to ${confirmation.email}. Follow it to choose a new password.`
+        }
+      />
+      <Button label="Back to log in" onPress={onDismissConfirmation} fullWidth />
+    </Card>
+  );
+}
+
+function FormCard(props: AuthScreenProps) {
+  const {
+    mode,
+    values,
+    avatarUri,
+    fieldErrors,
+    formError,
+    notice,
+    busy,
+    onChangeMode,
+    onChangeValue,
+    onSignIn,
+    onSignInWithGoogle,
+    onSignUp,
+    onSignUpWithGoogle,
+    onSendPasswordReset,
+    onChooseProfilePicture,
+  } = props;
+  const register = mode === 'register';
+  const locked = busy !== null;
+
+  return (
+    <Card style={styles.card}>
+      <SegmentedControl
+        value={mode}
+        onChange={(next) => !locked && onChangeMode(next)}
+        options={[
+          { value: 'login', label: 'Log in' },
+          { value: 'register', label: 'Register' },
+        ]}
+      />
+
+      <View style={styles.form}>
+        {notice ? <ErrorBanner message={notice.message} tone={notice.tone} /> : null}
+
+        {register ? (
+          <>
+            <View style={styles.avatarBlock}>
+              <Avatar
+                uri={avatarUri}
+                name={values.name}
+                size={layout.avatarLarge}
+                onPress={onChooseProfilePicture}
+                accessibilityLabel="Choose a profile picture (optional)"
+              />
+              <Text style={[type.caption, styles.muted]}>Profile picture (optional)</Text>
+            </View>
+            <TextField
+              label="Name (optional)"
+              value={values.name}
+              onChangeText={(v) => onChangeValue('name', v)}
+              placeholder="Alex Chen"
+              icon="user"
+              autoCapitalize="words"
+              autoComplete="name"
+              error={fieldErrors.name}
+            />
+            <View style={styles.row}>
+              <TextField
+                label="Height (cm)"
+                value={values.height}
+                onChangeText={(v) => onChangeValue('height', v)}
+                placeholder="Optional"
+                keyboardType="decimal-pad"
+                error={fieldErrors.height}
+                style={styles.half}
+              />
+              <TextField
+                label="Weight (kg)"
+                value={values.weight}
+                onChangeText={(v) => onChangeValue('weight', v)}
+                placeholder="Optional"
+                keyboardType="decimal-pad"
+                error={fieldErrors.weight}
+                style={styles.half}
+              />
+            </View>
+          </>
+        ) : null}
+
+        <TextField
+          label="Email"
+          value={values.email}
+          onChangeText={(v) => onChangeValue('email', v)}
+          placeholder="you@latrobe.edu.au"
+          icon="mail"
+          keyboardType="email-address"
+          autoComplete="email"
+          error={fieldErrors.email}
+        />
+        <TextField
+          label="Password"
+          value={values.password}
+          onChangeText={(v) => onChangeValue('password', v)}
+          placeholder={register ? 'At least 6 characters' : 'Your password'}
+          icon="lock"
+          secure
+          autoComplete={register ? 'new-password' : 'password'}
+          error={fieldErrors.password}
+        />
+        {register ? (
+          <TextField
+            label="Confirm password"
+            value={values.confirmPassword}
+            onChangeText={(v) => onChangeValue('confirmPassword', v)}
+            placeholder="Type it again"
+            icon="lock"
+            secure
+            autoComplete="new-password"
+            error={fieldErrors.confirmPassword}
+          />
+        ) : null}
+
+        {formError ? <ErrorBanner message={formError} /> : null}
+
+        <Button
+          label={register ? 'Sign up' : 'Log in'}
+          onPress={register ? onSignUp : onSignIn}
+          loading={busy === 'email'}
+          disabled={locked}
+          fullWidth
+        />
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={[type.caption, styles.muted]}>or</Text>
+          <View style={styles.line} />
+        </View>
+
+        <Button
+          label={register ? 'Sign up with Google' : 'Sign in with Google'}
+          variant="secondary"
+          ionicon="logo-google"
+          onPress={register ? onSignUpWithGoogle : onSignInWithGoogle}
+          loading={busy === 'google'}
+          disabled={locked}
+          fullWidth
+        />
+
+        {register ? (
+          <Text style={[type.caption, styles.legal]}>
+            By registering you agree to let DSS Wearables store your health metrics so you can review them later.
+          </Text>
+        ) : (
+          <Button
+            label="Forgot password?"
+            variant="ghost"
+            size="md"
+            onPress={onSendPasswordReset}
+            loading={busy === 'reset'}
+            disabled={locked}
+            fullWidth
+          />
+        )}
+      </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xxxl },
+  flex: { flex: 1 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
   mark: {
-    width: 40,
-    height: 40,
+    width: layout.minTouch - spacing.xs,
+    height: layout.minTouch - spacing.xs,
     borderRadius: radius.md,
+    backgroundColor: colors.onAccentSurface,
+    borderWidth: 1,
+    borderColor: colors.onAccentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandName: { color: colors.text, marginLeft: spacing.md },
-  title: { color: colors.text, marginTop: spacing.huge },
-  blurb: { color: colors.textSecondary, marginTop: spacing.sm },
-  toggle: { marginTop: spacing.xxl },
-  form: { marginTop: spacing.xxl, gap: spacing.xl },
-  formError: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.dangerSurface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-  },
-  formErrorText: { color: colors.danger, marginLeft: spacing.md, flex: 1 },
-  submit: { marginTop: spacing.xs },
+  brand: { color: colors.textOnAccent, marginLeft: spacing.md },
+  title: { color: colors.textOnAccent, marginTop: spacing.xxl },
+  blurb: { color: colors.textOnAccentMuted, marginTop: spacing.xs },
+  card: { marginTop: spacing.xl },
+  form: { marginTop: spacing.xl, gap: spacing.lg },
+  avatarBlock: { alignItems: 'center', gap: spacing.sm },
+  row: { flexDirection: 'row', gap: spacing.md },
+  half: { flex: 1 },
+  muted: { color: colors.textMuted },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  line: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   legal: { color: colors.textMuted, textAlign: 'center' },
-  previewBlock: { marginTop: spacing.xxl, alignItems: 'center' },
-  configNotice: { alignSelf: 'center' },
-  previewButton: { marginTop: spacing.lg },
-  previewHint: { color: colors.textMuted, marginTop: spacing.sm },
+  previewBlock: { marginTop: spacing.xl, alignItems: 'center' },
+  previewButton: { marginTop: spacing.md },
 });
