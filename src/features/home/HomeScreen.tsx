@@ -65,6 +65,7 @@ export function HomeScreen({
     <Screen
       scroll
       bottomInset={bottomInset}
+      heroOverlap
       hero={
         <>
           <View style={styles.topBar}>

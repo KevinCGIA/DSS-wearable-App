@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BarChart } from '@/components/ui/BarChart';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { StageTrack } from '@/components/ui/StageTrack';
@@ -61,12 +62,16 @@ export function SleepScreen({ bottomInset }: Props) {
   const totalStageMinutes = sleepStages.reduce((sum, stage) => sum + stage.minutes, 0);
 
   return (
-    <Screen scroll bottomInset={bottomInset}>
-      <Text style={[type.title, styles.title]}>Sleep</Text>
-      <Text style={[type.body, styles.blurb]}>
-        Trends across your recorded sessions, drawn from the paired band.
-      </Text>
-
+    <Screen
+      scroll
+      bottomInset={bottomInset}
+      hero={
+        <HeroHeader
+          title="Sleep"
+          subtitle="Trends across your recorded sessions, drawn from the paired band."
+        />
+      }
+    >
       <SegmentedControl
         value={range}
         onChange={setRange}
@@ -156,8 +161,6 @@ export function SleepScreen({ bottomInset }: Props) {
 }
 
 const styles = StyleSheet.create({
-  title: { color: colors.text, marginTop: spacing.lg },
-  blurb: { color: colors.textSecondary, marginTop: spacing.xs },
   range: { marginTop: spacing.xl },
   summaryRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
   summaryCard: { flex: 1 },

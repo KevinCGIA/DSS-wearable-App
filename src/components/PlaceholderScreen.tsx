@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Header } from '@/components/ui/Header';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
+import { spacing } from '@/theme';
 
 type Props = {
   title: string;
@@ -16,17 +17,14 @@ type Props = {
 
 export function PlaceholderScreen({ title, blurb, icon, bottomInset = 0, onBack }: Props) {
   return (
-    <Screen bottomInset={bottomInset}>
-      <Header title={title} onBack={onBack} />
-      <View style={styles.wrap}>
-        <Card>
-          <EmptyState icon={icon} title="Coming soon" message={blurb} />
-        </Card>
-      </View>
+    <Screen scroll bottomInset={bottomInset} hero={<HeroHeader title={title} onBack={onBack} />}>
+      <Card style={styles.card}>
+        <EmptyState icon={icon} title="Coming soon" message={blurb} />
+      </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, justifyContent: 'center' },
+  card: { marginTop: spacing.xl },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Card } from '@/components/ui/Card';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { colors, spacing, type } from '@/theme';
@@ -25,11 +26,7 @@ export function SettingsScreen({
   onOpenPreviews,
 }: Props) {
   return (
-    <Screen scroll bottomInset={bottomInset}>
-      <Text style={[type.title, styles.title]} accessibilityRole="header">
-        Settings
-      </Text>
-
+    <Screen scroll bottomInset={bottomInset} hero={<HeroHeader title="Settings" />}>
       <Text style={[type.label, styles.section]}>Devices</Text>
       <Card padding={0}>
         <ListRow icon="bluetooth" label="Pair a New Device" onPress={onOpenDevices} />
@@ -60,7 +57,6 @@ export function SettingsScreen({
 }
 
 const styles = StyleSheet.create({
-  title: { color: colors.text, marginTop: spacing.lg },
   section: {
     color: colors.textMuted,
     textTransform: 'uppercase',
