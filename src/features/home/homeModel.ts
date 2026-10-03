@@ -42,7 +42,7 @@ export function deviceViewFrom(connection: ConnectionState, refreshing: boolean)
     case 'connected':
       return refreshing
         ? { tone: 'active', name, status: 'SYNCING', battery: connection.batteryLevel, hint: 'Syncing…' }
-        : { tone: 'active', name, status: 'CONNECTED', battery: connection.batteryLevel, hint: '✓ Tap to sync' };
+        : { tone: 'active', name, status: 'CONNECTED', battery: connection.batteryLevel, hint: 'Tap to sync' };
     case 'discovering':
       return { tone: 'pending', name, status: 'SYNCING', battery: null, hint: 'Setting up device…' };
     case 'connecting':

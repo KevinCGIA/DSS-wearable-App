@@ -10,7 +10,7 @@ import type {
   SleepSummary,
   UserProfile,
 } from '@/data/types';
-import { formatShortDate } from '@/lib/time';
+import { formatShortDate, greetingFor } from '@/lib/time';
 import type { TabKey } from '@/navigation/routes';
 import { colors, elevation, radius, spacing, type } from '@/theme';
 import { ActiveCaloriesCard } from './ActiveCaloriesCard';
@@ -64,15 +64,13 @@ export function HomeScreen({
   return (
     <Screen scroll bottomInset={bottomInset}>
       <View style={styles.topBar}>
-        <Text style={[type.label, styles.date]}>{formatShortDate(new Date(now))}</Text>
+        <Text style={[type.label, styles.date]} numberOfLines={1}>
+          <Text style={styles.greeting}>{greetingFor(new Date(now))}</Text>
+          {' · '}
+          {formatShortDate(new Date(now))}
+        </Text>
         <View style={styles.topActions}>
           <IconButton glyph="?" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
-          <IconButton
-            icon="refresh-cw"
-            accessibilityLabel={refreshing ? 'Refreshing device' : 'Refresh device'}
-            spinning={refreshing}
-            onPress={onRefresh}
-          />
           <Avatar
             uri={profile?.avatarData ?? null}
             name={profile?.name}
@@ -102,6 +100,8 @@ export function HomeScreen({
 
       <DeviceActivityCard
         device={deviceViewFrom(connection, refreshing)}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         stepsToday={stepsTodayFrom(steps.reading, now)}
         activity={activity}
         onOpenDevices={onOpenDevices}
@@ -124,7 +124,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.md,
   },
-  date: { color: colors.textMuted },
+  date: { flex: 1, color: colors.textMuted, marginRight: spacing.md },
+  greeting: { color: colors.textSecondary },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   header: {
     flexDirection: 'row',
