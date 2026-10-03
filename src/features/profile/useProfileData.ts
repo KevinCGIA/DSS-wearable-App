@@ -127,7 +127,9 @@ export function useProfileData() {
       const email = await accountService.changePassword();
       setAccountNotice({
         tone: 'success',
-        message: `Password reset email sent to ${email}. Click the link to choose a new password.`,
+        message: email
+          ? `Password reset email sent to ${email}. Click the link to choose a new password.`
+          : 'Password reset email sent. Click the link in it to choose a new password.',
       });
     } catch (error) {
       setAccountNotice({ tone: 'error', message: `Failed to send password reset email: ${describeAuthError(error)}` });
