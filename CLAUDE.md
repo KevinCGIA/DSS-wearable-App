@@ -839,3 +839,4 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Previews:** new **Profile** (Default, Loading, Load error, Unsaved changes, Saving, Errors, Account notices). Settings preview updated (Default, Profile loading, Connected, Connecting, Failed/no devices).
 - Home's avatar/greeting still use the session display name (Home profile stays a placeholder), so a photo or name changed in Profile doesn't show on Home yet.
 - **Checks:** typecheck clean, iOS + Android bundles build.
+- Follow-up: removed the made-up `tarun@example.com` from the mock profile (`mockProfile.email` is now `''`). In preview mode, Profile shows no email under the header, the password hint says "your account email", the Settings Profile row shows just the name, and Change Password says "Password reset email sent." without an address. A real signed-in account still shows its own email. (Form-input examples in the Auth and primitives previews are unchanged.)

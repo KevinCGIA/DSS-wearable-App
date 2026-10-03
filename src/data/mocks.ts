@@ -33,7 +33,7 @@ function wave(index: number, spread: number): number {
 export const mockProfile: UserProfile = {
   uid: 'preview-uid',
   name: 'Tarun',
-  email: 'tarun@example.com',
+  email: '',
   emailVerified: true,
   height: 178,
   weight: 72,
