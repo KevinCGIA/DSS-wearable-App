@@ -40,7 +40,7 @@ The Android app is already wired up. **My UI keeps its own visual design but cop
 | Top bar, right: refresh | Round icon button, spins while `refreshing` | — | `onRefresh` (reconnect/refresh device) |
 | Top bar, right: avatar | Photo, or initials. Small green dot when a device is connected. | "?" with no name | **Settings tab** (Android) |
 | Header | "Welcome!" or "Welcome, {first name}!" + muted "Here is your daily summary" | "Welcome!" | — |
-| Header, right: help | Round outlined "?" button | — | Opens a static **Help sheet** (how to pair, what the connection states mean) |
+| Top bar, right: help (left of refresh) | Round "?" button, same style as refresh | — | Opens a static **Help sheet** (how to pair, what the connection states mean) |
 | Card 1: Heart Rate | Heart icon in a soft accent circle, "Heart Rate", "Live" pill (≤ 2 min old) or "Last seen x ago". Hero BPM (Barlow) + "BPM" in accent. "Resting: low–high bpm · Normal" (from 24h data, "Normal" in calm). Waveform bars that pulse while live and stay still otherwise. | "--" BPM + "No readings yet. Connect your wearable to start tracking.", no waveform | Heart Rate tab *(iOS)* |
 | Card 2 left: Device | Ring (accent border, soft fill) + watch icon, device name, uppercase status: CONNECTED / SYNCING (discovering or refreshing) / CONNECTING / RECONNECTING / DISCONNECTING / FAILED (+ battery when connected). "✓ Tap to sync" when connected. | Grey ring, "No Device", "Tap to connect" | **Devices** screen (Android) |
 | Card 2 right: Today's Activity | "TODAY'S ACTIVITY" label, then Steps / Distance (km) / Floors rows, values right-aligned and bold, units muted | Steps 0. Distance and Floors "--" (no data source). | Fitness tab *(iOS)* |
@@ -506,3 +506,4 @@ Android bugs: see `ANDROID_BUGS.md`.
 - The Home header ("Welcome, {name}!", "Here is your daily summary", **?** help button) now sits on a solid `colors.accent` bar (the same blue as the Fitness tab button, "BPM", Live pill dot and progress bars). It uses `radius.xl` and `elevation.hero`, white title and 82%-white subtitle.
 - `IconButton` gained an `onAccent` variant (translucent white fill, white outline, white glyph) for buttons on blue.
 - New tokens: `colors.textOnAccentMuted`, `colors.onAccentSurface`, `colors.onAccentBorder`.
+- Follow-up: the **?** help button moved off the blue bar into the top bar (order: ? · refresh · avatar), styled like refresh. The blue bar now holds only the greeting and subtitle. The `onAccent` IconButton variant stays available for future buttons on blue.
