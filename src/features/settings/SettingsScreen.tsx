@@ -1,19 +1,71 @@
 import React from 'react';
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { StyleSheet, Text } from 'react-native';
+import { Card } from '@/components/ui/Card';
+import { ListRow } from '@/components/ui/ListRow';
+import { Screen } from '@/components/ui/Screen';
+import { colors, spacing, type } from '@/theme';
 
 type Props = {
   bottomInset: number;
-  onSignOut: () => void;
+  onOpenDevices: () => void;
+  onOpenAlertThresholds: () => void;
+  onOpenNotifications: () => void;
+  onOpenPreferences: () => void;
+  onLogout: () => void;
+  onOpenPreviews?: () => void;
 };
 
-export function SettingsScreen({ bottomInset, onSignOut }: Props) {
+export function SettingsScreen({
+  bottomInset,
+  onOpenDevices,
+  onOpenAlertThresholds,
+  onOpenNotifications,
+  onOpenPreferences,
+  onLogout,
+  onOpenPreviews,
+}: Props) {
   return (
-    <PlaceholderScreen
-      title="Account & configuration"
-      blurb="Profile, goals, and paired-device settings live here."
-      icon="settings"
-      bottomInset={bottomInset}
-      onSignOut={onSignOut}
-    />
+    <Screen scroll bottomInset={bottomInset}>
+      <Text style={[type.title, styles.title]} accessibilityRole="header">
+        Settings
+      </Text>
+
+      <Text style={[type.label, styles.section]}>Devices</Text>
+      <Card padding={0}>
+        <ListRow icon="bluetooth" label="Pair a New Device" onPress={onOpenDevices} />
+      </Card>
+
+      <Text style={[type.label, styles.section]}>Alerts</Text>
+      <Card padding={0}>
+        <ListRow icon="bell" label="Alert Thresholds" onPress={onOpenAlertThresholds} />
+        <ListRow icon="inbox" label="Notifications" onPress={onOpenNotifications} divider />
+        <ListRow icon="sliders" label="Preferences" onPress={onOpenPreferences} divider />
+      </Card>
+
+      <Text style={[type.label, styles.section]}>Account</Text>
+      <Card padding={0}>
+        <ListRow icon="log-out" label="Log Out" onPress={onLogout} destructive chevron={false} />
+      </Card>
+
+      {onOpenPreviews ? (
+        <>
+          <Text style={[type.label, styles.section]}>Development</Text>
+          <Card padding={0}>
+            <ListRow icon="eye" label="Previews" hint="Every screen in every state" onPress={onOpenPreviews} />
+          </Card>
+        </>
+      ) : null}
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  title: { color: colors.text, marginTop: spacing.lg },
+  section: {
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginTop: spacing.xxl,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
+  },
+});

@@ -23,6 +23,11 @@ export const layout = {
   hitSlop: { top: 8, bottom: 8, left: 8, right: 8 },
   controlHeight: 54,
   tabBarHeight: 64,
+  minTouch: 44,
+  rowHeight: 52,
+  iconBadge: 32,
+  avatar: 44,
+  avatarLarge: 96,
 } as const;
 
 export const elevation = {

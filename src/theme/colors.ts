@@ -27,6 +27,8 @@ const palette = {
   peak: '#F0A02C',
   alert: '#D93A44',
   alertSurface: '#FDECEE',
+  peakSurface: '#FEF4E4',
+  peakText: '#8A5300',
 } as const;
 
 export const colors = {
@@ -89,6 +91,8 @@ export const colors = {
 
   danger: palette.alert,
   dangerSurface: palette.alertSurface,
+  warning: palette.peakText,
+  warningSurface: palette.peakSurface,
 
   disabledSurface: palette.ink200,
   disabledText: palette.ink400,
