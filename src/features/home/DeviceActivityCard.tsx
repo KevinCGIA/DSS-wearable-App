@@ -2,14 +2,17 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
+import { IconButton } from '@/components/ui/IconButton';
 import type { DailyActivityExtras } from '@/data/types';
 import { colors, layout, radius, spacing, type } from '@/theme';
 import type { DeviceTone, DeviceView } from './homeModel';
 
 type Props = {
   device: DeviceView;
+  refreshing: boolean;
   stepsToday: number;
   activity: DailyActivityExtras;
+  onRefresh: () => void;
   onOpenDevices: () => void;
   onOpenFitness: () => void;
 };
@@ -21,32 +24,59 @@ const ringTones: Record<DeviceTone, { border: string; fill: string; icon: string
   failed: { border: colors.danger, fill: colors.dangerSurface, icon: colors.danger, status: colors.danger },
 };
 
-export function DeviceActivityCard({ device, stepsToday, activity, onOpenDevices, onOpenFitness }: Props) {
+export function DeviceActivityCard({
+  device,
+  refreshing,
+  stepsToday,
+  activity,
+  onRefresh,
+  onOpenDevices,
+  onOpenFitness,
+}: Props) {
   const tone = ringTones[device.tone];
   const statusLine = device.status
     ? `${device.status}${device.battery !== null ? ` · ${device.battery}%` : ''}`
     : null;
+  const canSync = device.tone === 'active' || device.tone === 'failed';
 
   return (
     <Card padding={0} style={styles.card}>
       <View style={styles.columns}>
-        <Pressable
-          onPress={onOpenDevices}
-          style={({ pressed }) => [styles.device, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={[device.name, statusLine, device.hint].filter(Boolean).join(', ')}
-        >
-          <View style={[styles.ring, { borderColor: tone.border, backgroundColor: tone.fill }]}>
-            <Feather name="watch" size={30} color={tone.icon} />
-          </View>
-          <Text style={[type.subheading, styles.name]} numberOfLines={2}>
-            {device.name}
-          </Text>
-          {statusLine ? (
-            <Text style={[type.label, styles.status, { color: tone.status }]}>{statusLine}</Text>
+        <View style={styles.deviceColumn}>
+          <Pressable
+            onPress={onOpenDevices}
+            style={({ pressed }) => [styles.device, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={[device.name, statusLine, canSync ? null : device.hint]
+              .filter(Boolean)
+              .join(', ')}
+            accessibilityHint="Opens Devices"
+          >
+            <View style={[styles.ring, { borderColor: tone.border, backgroundColor: tone.fill }]}>
+              <Feather name="watch" size={30} color={tone.icon} />
+            </View>
+            <Text style={[type.subheading, styles.name]} numberOfLines={2}>
+              {device.name}
+            </Text>
+            {statusLine ? (
+              <Text style={[type.label, styles.status, { color: tone.status }]}>{statusLine}</Text>
+            ) : null}
+            {device.hint && !canSync ? <Text style={[type.caption, styles.hint]}>{device.hint}</Text> : null}
+          </Pressable>
+          {canSync ? (
+            <View style={styles.syncRow}>
+              <IconButton
+                icon="refresh-cw"
+                spinning={refreshing}
+                onPress={onRefresh}
+                accessibilityLabel={
+                  device.tone === 'failed' ? 'Retry connection' : refreshing ? 'Syncing device' : 'Sync device'
+                }
+              />
+              {device.hint ? <Text style={[type.caption, styles.syncText]}>{device.hint}</Text> : null}
+            </View>
           ) : null}
-          {device.hint ? <Text style={[type.caption, styles.hint]}>{device.hint}</Text> : null}
-        </Pressable>
+        </View>
 
         <View style={styles.divider} />
 
@@ -86,7 +116,16 @@ const styles = StyleSheet.create({
   card: { marginTop: spacing.lg, overflow: 'hidden' },
   columns: { flexDirection: 'row' },
   pressed: { backgroundColor: colors.surfaceSunken },
-  device: { flex: 1, alignItems: 'center', padding: spacing.lg },
+  deviceColumn: { flex: 1, paddingBottom: spacing.md },
+  device: { alignItems: 'center', padding: spacing.lg, paddingBottom: spacing.sm },
+  syncRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  syncText: { color: colors.textMuted, flexShrink: 1 },
   ring: {
     width: layout.deviceRing,
     height: layout.deviceRing,

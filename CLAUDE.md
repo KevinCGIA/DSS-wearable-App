@@ -36,13 +36,12 @@ The Android app is already wired up. **My UI keeps its own visual design but cop
 
 | Element | Shows | Empty / no-device state | Tap action |
 |---|---|---|---|
-| Top bar, left | Today's real date, e.g. "Sat, Oct 3" (muted) | — | — |
-| Top bar, right: refresh | Round icon button, spins while `refreshing` | — | `onRefresh` (reconnect/refresh device) |
+| Top bar, left | Time-of-day greeting + today's real date, e.g. "Good evening · Sat, Oct 3" (morning 5–12, afternoon 12–17, evening 17–21, night 21–5) | — | — |
 | Top bar, right: avatar | Photo, or initials. Small green dot when a device is connected. | "?" with no name | **Settings tab** (Android) |
 | Header | "Welcome!" or "Welcome, {first name}!" + muted "Here is your daily summary" | "Welcome!" | — |
 | Top bar, right: help (left of refresh) | Round "?" button, same style as refresh | — | Opens a static **Help sheet** (how to pair, what the connection states mean) |
 | Card 1: Heart Rate | Heart icon in a soft accent circle, "Heart Rate", "Live" pill (≤ 2 min old) or "Last seen x ago". Hero BPM (Barlow) + "BPM" in accent. "Resting: low–high bpm · Normal" (from 24h data, "Normal" in calm). Waveform bars that pulse while live and stay still otherwise. | "--" BPM + "No readings yet. Connect your wearable to start tracking.", no waveform | Heart Rate tab *(iOS)* |
-| Card 2 left: Device | Ring (accent border, soft fill) + watch icon, device name, uppercase status: CONNECTED / SYNCING (discovering or refreshing) / CONNECTING / RECONNECTING / DISCONNECTING / FAILED (+ battery when connected). "✓ Tap to sync" when connected. | Grey ring, "No Device", "Tap to connect" | **Devices** screen (Android) |
+| Card 2 left: Device | Ring (accent border, soft fill) + watch icon, device name, uppercase status: CONNECTED / SYNCING (discovering or refreshing) / CONNECTING / RECONNECTING / DISCONNECTING / FAILED (+ battery when connected). Round **sync** button (, spins while ) beside "Tap to sync" when connected, or "Tap to retry" when FAILED. The ring and name open Devices. | Grey ring, "No Device", "Tap to connect" | **Devices** screen (Android) |
 | Card 2 right: Today's Activity | "TODAY'S ACTIVITY" label, then Steps / Distance (km) / Floors rows, values right-aligned and bold, units muted | Steps 0. Distance and Floors "--" (no data source). | Fitness tab *(iOS)* |
 | Card 3: Sleep & Recovery | Moon icon, title, status pill (e.g. "Optimal"). Duration (big) + "Sleep Duration", score "86 /100" + "Sleep Score". Segmented Deep/REM/Light bar with labels and durations. | Empty state "No sleep data yet" (no data source) | Sleep tab *(iOS)* |
 | Card 4: Active Calories | Flame icon, title, "Target: 600" pill. Big kcal + muted "kcal", "{n}% achieved" in accent, rounded progress bar. | "--" kcal, empty bar (no data source) | Fitness tab *(iOS)* |
@@ -507,3 +506,4 @@ Android bugs: see `ANDROID_BUGS.md`.
 - `IconButton` gained an `onAccent` variant (translucent white fill, white outline, white glyph) for buttons on blue.
 - New tokens: `colors.textOnAccentMuted`, `colors.onAccentSurface`, `colors.onAccentBorder`.
 - Follow-up: the **?** help button moved off the blue bar into the top bar (order: ? · refresh · avatar), styled like refresh. The blue bar now holds only the greeting and subtitle. The `onAccent` IconButton variant stays available for future buttons on blue.
+- Follow-up: the top bar now reads "{Good morning|afternoon|evening|night} · {date}" (`greetingFor` in `lib/time.ts`). The refresh/sync button moved from the top bar into card 2's device column. It shows only when connected (sync) or failed (retry), with the hint beside it, and is a separate control from the ring (which opens Devices) so VoiceOver can reach both. The top bar right is now **?** · avatar.
