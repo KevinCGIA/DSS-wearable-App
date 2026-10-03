@@ -1,0 +1,49 @@
+import React from 'react';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { colors, radius, spacing, type } from '@/theme';
+
+type Tier = 'live' | 'session' | 'neutral' | 'alert';
+
+type Props = {
+  label: string;
+  tier?: Tier;
+  icon?: keyof typeof Feather.glyphMap;
+  dot?: boolean;
+  style?: ViewStyle;
+};
+
+const tiers: Record<Tier, { bg: string; fg: string; border: string }> = {
+  live: { bg: colors.live.surfaceSoft, fg: colors.live.textSoft, border: colors.live.border },
+  session: { bg: colors.session.surface, fg: colors.session.text, border: colors.session.surface },
+  neutral: { bg: colors.surfaceSunken, fg: colors.textSecondary, border: 'transparent' },
+  alert: { bg: colors.dangerSurface, fg: colors.danger, border: 'transparent' },
+};
+
+export function Pill({ label, tier = 'neutral', icon, dot = false, style }: Props) {
+  const t = tiers[tier];
+
+  return (
+    <View style={[styles.base, { backgroundColor: t.bg, borderColor: t.border }, style]}>
+      {dot ? <View style={[styles.dot, { backgroundColor: t.fg }]} /> : null}
+      {icon ? <Feather name={icon} size={13} color={t.fg} style={styles.icon} /> : null}
+      <Text style={[type.label, { color: t.fg }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  dot: { width: 7, height: 7, borderRadius: radius.pill, marginRight: spacing.sm },
+  icon: { marginRight: spacing.xs + 2 },
+});
