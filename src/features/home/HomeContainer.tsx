@@ -6,19 +6,19 @@ import { useHomeData } from './useHomeData';
 type Props = {
   displayName: string;
   bottomInset: number;
-  onOpenSettings: () => void;
+  onOpenProfile: () => void;
   onOpenDevices: () => void;
   onOpenTab: (tab: TabKey) => void;
 };
 
-export function HomeContainer({ displayName, bottomInset, onOpenSettings, onOpenDevices, onOpenTab }: Props) {
+export function HomeContainer({ displayName, bottomInset, onOpenProfile, onOpenDevices, onOpenTab }: Props) {
   const data = useHomeData(displayName);
 
   return (
     <HomeScreen
       {...data}
       bottomInset={bottomInset}
-      onOpenSettings={onOpenSettings}
+      onOpenProfile={onOpenProfile}
       onOpenDevices={onOpenDevices}
       onOpenTab={onOpenTab}
     />
