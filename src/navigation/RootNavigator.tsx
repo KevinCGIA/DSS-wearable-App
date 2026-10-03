@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import { AlertThresholdsContainer } from '@/features/alerts/AlertThresholdsContainer';
@@ -15,6 +15,11 @@ import { SettingsContainer } from '@/features/settings/SettingsContainer';
 import { SleepContainer } from '@/features/sleep/SleepContainer';
 import { colors } from '@/theme';
 import type { Navigation, StackRoute, TabKey } from './routes';
+import { confirmLeave, GuardScope } from './unsavedChanges';
+import type { GuardRegistry } from './unsavedChanges';
+
+const tabScope = (tab: TabKey) => `tab:${tab}`;
+const stackScope = (index: number, route: StackRoute) => `stack:${index}:${route}`;
 
 type Props = {
   displayName: string;
@@ -25,29 +30,45 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
   const [tab, setTab] = useState<TabKey>('home');
   const [stack, setStack] = useState<StackRoute[]>([]);
 
+  const registry = useRef<GuardRegistry>(new Map()).current;
+  const tabRef = useRef(tab);
+  const stackRef = useRef(stack);
+  tabRef.current = tab;
+  stackRef.current = stack;
+
+  // Every way of leaving a screen goes through confirmLeave, so unsaved edits ask "Discard changes?".
   const navigation = useMemo<Navigation>(
     () => ({
       openTab: (next) => {
-        setStack([]);
-        setTab(next);
+        const scopes = stackRef.current.map((route, i) => stackScope(i, route));
+        if (next !== tabRef.current) scopes.push(tabScope(tabRef.current));
+        confirmLeave(registry, scopes, () => {
+          setStack([]);
+          setTab(next);
+        });
       },
       push: (route) => setStack((prev) => [...prev, route]),
-      back: () => setStack((prev) => prev.slice(0, -1)),
+      back: () => {
+        const current = stackRef.current;
+        if (current.length === 0) return;
+        const i = current.length - 1;
+        confirmLeave(registry, [stackScope(i, current[i])], () => setStack((prev) => prev.slice(0, -1)));
+      },
     }),
-    [],
+    [registry],
   );
 
   const handleHardwareBack = useCallback(() => {
-    if (stack.length > 0) {
+    if (stackRef.current.length > 0) {
       navigation.back();
       return true;
     }
-    if (tab !== 'home') {
-      setTab('home');
+    if (tabRef.current !== 'home') {
+      navigation.openTab('home');
       return true;
     }
     return false;
-  }, [stack.length, tab, navigation]);
+  }, [navigation]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
@@ -60,41 +81,45 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
     <BleProvider>
       <View style={styles.shell}>
         <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
-          {tab === 'home' ? (
-            <HomeContainer
-              displayName={displayName}
-              bottomInset={tabBarBaseHeight}
-              onOpenSettings={() => navigation.openTab('settings')}
-              onOpenDevices={() => navigation.push('devices')}
-              onOpenTab={navigation.openTab}
-            />
-          ) : null}
-          {tab === 'heart-rate' ? (
-            <HeartRateContainer
-              bottomInset={tabBarBaseHeight}
-              onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-            />
-          ) : null}
-          {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
-          {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
-          {tab === 'settings' ? (
-            <SettingsContainer
-              bottomInset={tabBarBaseHeight}
-              displayName={displayName}
-              signOut={onSignOut}
-              onOpenDevices={() => navigation.push('devices')}
-              onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-              onOpenNotifications={() => navigation.push('notifications')}
-              onOpenPreferences={() => navigation.push('preferences')}
-              onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
-            />
-          ) : null}
+          <GuardScope scope={tabScope(tab)} registry={registry}>
+            {tab === 'home' ? (
+              <HomeContainer
+                displayName={displayName}
+                bottomInset={tabBarBaseHeight}
+                onOpenSettings={() => navigation.openTab('settings')}
+                onOpenDevices={() => navigation.push('devices')}
+                onOpenTab={navigation.openTab}
+              />
+            ) : null}
+            {tab === 'heart-rate' ? (
+              <HeartRateContainer
+                bottomInset={tabBarBaseHeight}
+                onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+              />
+            ) : null}
+            {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
+            {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
+            {tab === 'settings' ? (
+              <SettingsContainer
+                bottomInset={tabBarBaseHeight}
+                displayName={displayName}
+                signOut={onSignOut}
+                onOpenDevices={() => navigation.push('devices')}
+                onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+                onOpenNotifications={() => navigation.push('notifications')}
+                onOpenPreferences={() => navigation.push('preferences')}
+                onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
+              />
+            ) : null}
+          </GuardScope>
           <TabBar active={tab} onChange={navigation.openTab} />
         </View>
 
         {top ? (
           <View style={styles.overlay} accessibilityViewIsModal>
-            {renderStackRoute(top, navigation)}
+            <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
+              {renderStackRoute(top, navigation)}
+            </GuardScope>
           </View>
         ) : null}
       </View>

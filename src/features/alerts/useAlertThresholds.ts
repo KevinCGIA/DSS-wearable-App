@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
 import { mockAlertThresholds } from '@/data/mocks';
 import type { AlertThresholds } from '@/data/types';
 import { saveAlertThresholds, subscribeToAlertThresholds, validateThresholds } from '@/lib/alerts/thresholds';
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
+import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
 
 type Notice = { tone: 'success' | 'error'; message: string };
 
@@ -58,16 +58,7 @@ export function useAlertThresholds(onBack: () => void) {
     }
   };
 
-  const back = useCallback(() => {
-    if (!dirty) {
-      onBack();
-      return;
-    }
-    Alert.alert('Discard changes?', "Your new thresholds haven't been saved.", [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: onBack },
-    ]);
-  }, [dirty, onBack]);
+  useUnsavedChangesGuard(dirty, "Your new thresholds haven't been saved.");
 
   return {
     draft,
@@ -85,6 +76,6 @@ export function useAlertThresholds(onBack: () => void) {
       setLoadError(null);
       setAttempt((n) => n + 1);
     },
-    onBack: back,
+    onBack,
   };
 }

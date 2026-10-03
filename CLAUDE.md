@@ -799,3 +799,11 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Preview** `alertThresholds.preview.tsx`: Saved, Loading, Load error, Edited, Invalid, Saving/saved, Off. Visual check via temporary web screenshot (entry restored).
 - **Gap for the Android team** (same as the Phase 2 alert-engine note): Android has no thresholds or alerts. This screen and its store are ready to share.
 - **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.
+
+### 2026-10-04 — Guard hardware back on unsaved changes (Steps on Home + Alert Thresholds approved)
+- **New `src/navigation/unsavedChanges.tsx`:** a reusable guard.
+  - The navigator wraps the active tab and the top stacked screen each in a `GuardScope` (`tab:<key>` / `stack:<index>:<route>`).
+  - A container calls **`useUnsavedChangesGuard(dirty, message)`**. While dirty, **every way of leaving that screen** shows "Discard changes?" with **Keep editing / Discard**: ‹ back (`navigation.back`), **Android hardware back**, and switching tabs (`navigation.openTab`, incl. hardware back from a tab to Home).
+  - Scopes mean a dirty screen underneath (e.g. Settings) doesn't prompt when you leave a clean sub-screen on top of it.
+- **Using it:** Alert Thresholds (its own dialog removed; now shared), and the **Settings profile form** (name/height/weight differ from the saved profile: "Your profile changes haven't been saved."). Preferences will use it when built.
+- **Not guarded (by design):** Log Out, and pushing a sub-screen on top (the tab stays mounted, so edits survive).
