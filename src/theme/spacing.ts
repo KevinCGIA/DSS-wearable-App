@@ -28,6 +28,15 @@ export const layout = {
   iconBadge: 32,
   avatar: 44,
   avatarLarge: 96,
+  statusDot: 12,
+  tabFab: 56,
+  tabFabLift: 22,
+  deviceRing: 92,
+  deviceRingBorder: 3,
+  progressHeight: 10,
+  stageBarHeight: 12,
+  waveformHeight: 32,
+  sheetHandle: 40,
 } as const;
 
 export const elevation = {
@@ -37,6 +46,13 @@ export const elevation = {
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
+  },
+  fab: {
+    shadowColor: '#14499A',
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   hero: {
     shadowColor: '#14499A',

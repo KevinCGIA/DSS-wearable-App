@@ -25,27 +25,34 @@ The Android app is already wired up. **My UI keeps its own visual design but cop
 | Tab key | Label | Feather icon | Content (matches Android `feature/ble-connection`) |
 |---|---|---|---|
 | `home` | Home | `home` | Dashboard (below) |
-| `heart-rate` | Heart Rate | `heart` | Large live BPM with "● Live" and "Updated x ago" (greyed "Last reading x ago" after 10 min, "from {device}"), plus a 24h line chart with Min / Avg / Max. iOS extras (UI only): a zone pill derived from BPM and a link to Alert Thresholds. |
+| `heart-rate` | Heart Rate | `heart` | Large live BPM with "● Live" and "Updated x ago" (greyed "Last reading x ago" after 10 min, "from {device}"), plus a 24h line chart with Min / Avg / Max. iOS extra (UI only): a link to Alert Thresholds. **No HR zones** (UI change 1). |
 | `fitness` | Fitness | `activity` | Steps Today against a 10,000 goal progress bar, plus a 24h steps-per-hour bar chart with Total. **No distance, floors or calories.** |
 | `sleep` | Sleep | `moon` | Default: empty "No sleep data yet" state (Android is a placeholder with no data source). My full sleep design (last night, stages, week/month score and hours) only appears in previews. |
 | `settings` | Settings | `settings` | One page matching Android (Task 3) |
 
-**Home dashboard: Android's elements in Android's order, plus iOS-only tap improvements:**
+**Tab bar:** the 5 tabs above, with **Fitness as a raised circular accent button in the centre** (white icon, label underneath). The other tabs are unchanged, with the active tab in accent.
+
+**Home dashboard (UI change 2: reference-screenshot layout).** Android's elements and destinations, in my visual language: light grey page, white large-radius cards with soft elevation, consistent gaps, everything scrolling above the tab bar.
 
 | Element | Shows | Empty / no-device state | Tap action |
 |---|---|---|---|
-| Header | Greeting + name (fall back to "Welcome!" with no name) | "Welcome!" | — |
-| Avatar (top right) | Profile picture | "?" in a circle. Spinner while loading. | **Settings tab** (Android) |
-| Heart Rate card | BPM + Live/Updated | "--" BPM + "No readings yet. Connect your wearable to start tracking." | Heart Rate tab *(iOS improvement)* |
-| Device badge | Device name, connection status, battery | "No Device" + "Tap to connect". Any pending status shows "Connecting...". | **Devices** screen (Android) |
-| Activity | **Steps only** | 0 | Fitness tab *(iOS improvement)* |
-| Sleep | Duration, score /100 | "--" | Sleep tab *(iOS improvement)* |
-| Log Out button | — | — | Confirm dialog → sign out *(iOS improvement; Android Home has no confirm)* |
+| Top bar, left | Today's real date, e.g. "Sat, Oct 3" (muted) | — | — |
+| Top bar, right: refresh | Round icon button, spins while `refreshing` | — | `onRefresh` (reconnect/refresh device) |
+| Top bar, right: avatar | Photo, or initials. Small green dot when a device is connected. | "?" with no name | **Settings tab** (Android) |
+| Header | "Welcome!" or "Welcome, {first name}!" + muted "Here is your daily summary" | "Welcome!" | — |
+| Header, right: help | Round outlined "?" button | — | Opens a static **Help sheet** (how to pair, what the connection states mean) |
+| Card 1: Heart Rate | Heart icon in a soft accent circle, "Heart Rate", "Live" pill (≤ 2 min old) or "Last seen x ago". Hero BPM (Barlow) + "BPM" in accent. "Resting: low–high bpm · Normal" (from 24h data, "Normal" in calm). Waveform bars that pulse while live and stay still otherwise. | "--" BPM + "No readings yet. Connect your wearable to start tracking.", no waveform | Heart Rate tab *(iOS)* |
+| Card 2 left: Device | Ring (accent border, soft fill) + watch icon, device name, uppercase status: CONNECTED / SYNCING (discovering or refreshing) / CONNECTING / RECONNECTING / DISCONNECTING / FAILED (+ battery when connected). "✓ Tap to sync" when connected. | Grey ring, "No Device", "Tap to connect" | **Devices** screen (Android) |
+| Card 2 right: Today's Activity | "TODAY'S ACTIVITY" label, then Steps / Distance (km) / Floors rows, values right-aligned and bold, units muted | Steps 0. Distance and Floors "--" (no data source). | Fitness tab *(iOS)* |
+| Card 3: Sleep & Recovery | Moon icon, title, status pill (e.g. "Optimal"). Duration (big) + "Sleep Duration", score "86 /100" + "Sleep Score". Segmented Deep/REM/Light bar with labels and durations. | Empty state "No sleep data yet" (no data source) | Sleep tab *(iOS)* |
+| Card 4: Active Calories | Flame icon, title, "Target: 600" pill. Big kcal + muted "kcal", "{n}% achieved" in accent, rounded progress bar. | "--" kcal, empty bar (no data source) | Fitness tab *(iOS)* |
 
-- **Distance, floors and active calories are not shown anywhere in the real flow**, because Android has no data source for them. Android's hardcoded Sleep card is shown as "--" by default, the same as the Sleep tab.
-- Default Home state is **no device connected**. Remove the simulated heart rate from the default flow and keep it only as a "connected" mock in previews.
-- Keep my visual language (cards, Barlow numerals, accent colours, vital colours for meaning only). Don't copy Android's emojis or Material styling, just its structure and actions.
-- The iOS-only improvements above are logged in the Progress Log as suggestions for the Android team. Android bugs are in `ANDROID_BUGS.md`.
+- **No Log Out on Home.** Log Out lives only in Settings (with confirm). This is an iOS change from Android, logged in the Progress Log.
+- **No bell on Home.** Notifications stay reachable from Settings.
+- **Distance, floors, calories and sleep** have no Android data source. They show "--" or an empty state in the real flow, and real values only in previews/mocks.
+- Default Home state is **no device connected**. The simulated heart rate (`useLiveHeartRate`) is used only in the connected preview.
+- Keep my visual language (Barlow numerals, accent colours, vital colours for meaning only). Don't copy Android's emojis or Material styling.
+- iOS-only improvements are logged in the Progress Log as suggestions for the Android team. Android bugs are in `ANDROID_BUGS.md`.
 
 **Settings: one scrolling page, like Android (no Profile sub-screen):**
 1. Avatar (tap or "Change Profile Picture") + editable profile: Name, Height (cm), Weight (kg), Save Changes
@@ -121,9 +128,10 @@ type SleepSummary = { totalMinutes: number; score: number; rating: string; start
 type AlertThresholds = { hrMin: number; hrMax: number; enabled: boolean };
 type AlertItem = { id: string; type: 'HR_HIGH' | 'HR_LOW'; value: number; message: string; timestamp: number };
 type Preferences = { textScale: 'default' | 'large' | 'xlarge'; units: 'metric' | 'imperial'; notifications: boolean };
+type DailyActivityExtras = { distanceKm: number | null; floors: number | null; activeCalories: number | null; calorieTarget: number };
 ```
 
-Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 72 BPM, 6,842 steps. Sleep (preview only): 7h 42m, score 86. **No distance, floors or calories in mocks.** No-device mocks are fully empty: disconnected, no readings, 0 steps, no sleep.
+Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 72 BPM, 6,842 steps. Preview only (no data source yet): 4.8 km, 12 floors, 486 / 600 kcal, sleep 7h 42m, score 86 "Optimal". No-device mocks are fully empty and consistent: disconnected, no readings, 0 steps, `null` distance/floors/calories, no sleep.
 
 ## PHASE 1 — FINISH THE UI
 
@@ -151,10 +159,13 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [ ] **Auth:** move the Firebase calls into `useAuthForm.ts`. `AuthScreen` becomes props-only.
   - Login: email, password, `onSignIn`, `onSignInWithGoogle`, "Please verify your email" state, **Forgot password?** (`onSendPasswordReset`, same reset-email logic as Change Password) with a reset-sent confirmation
   - Register (match Android): avatar (optional, `onChooseProfilePicture`), name, height (cm), weight (kg), email, password, **confirm password** ("Passwords do not match."), `onSignUp`, plus a **separate Google sign-up button** (`onSignUpWithGoogle`), then a "Verification email sent" state
-- [ ] **Home:** rebuild to match the Home dashboard table, in my visual style:
-  - Props: `profile: UserProfile | null`, `profileLoading`, `connection: ConnectionState`, `heartRate: LatestReadingState`, `steps: LatestReadingState`, `sleep: SleepSummary | null`, `onOpenSettings`, `onOpenDevices`, `onOpenTab`, `onLogout`
-  - Move the simulated heart rate into `useLiveHeartRate.ts`, used only in the connected mock
-  - Remove my old area shortcut tiles, plus anything showing distance, floors or calories
+- [x] **Home (UI change 2, reference layout):** rebuild to match the Home dashboard table:
+  - Props: `now` (date derived from it), `profile: UserProfile | null`, `profileLoading`, `connection: ConnectionState`, `refreshing`, `heartRate: LatestReadingState`, `restingRange: { low; high } | null`, `steps: LatestReadingState`, `activity: DailyActivityExtras`, `sleep: SleepSummary | null`, `onRefresh`, `onOpenSettings`, `onOpenDevices`, `onOpenTab`. **No `onLogout`.**
+  - `HomeContainer` + `useHomeData` own the data, the clock and the refresh timer. The simulated heart rate lives in `useLiveHeartRate.ts`, used only in the connected preview.
+  - New primitives: `IconButton` (incl. spinning), `Sheet` (help), `ProgressBar`, `Waveform`, Avatar initials + status dot, Pill `good` tier, raised centre tab
+  - Remove the old area tiles, the bell, the zone label and Log Out
+  - Previews: no device, connecting, connected + syncing, connected with full mock data (+ failed)
+  - Log Out moves to Settings with a confirm
 - [ ] **Sleep tab (from Analytics):** take `SleepSummary | null` and its series as props from a container. The default container returns no data, which gives the "No sleep data yet" state. Move the resting HR chart to the Heart Rate tab.
 
 ### Task 3: Build the missing and placeholder screens (in this order)
@@ -166,7 +177,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
   - Auto-connect toggle and Paired devices (Connect / Forget with confirm) — the same components as Settings
   - Props: `onStartScan`, `onStopScan`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onBack`
 - [ ] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
-- [ ] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, zone pill (UI only), 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
+- [ ] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
 - [ ] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
 - [ ] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
 - [ ] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
@@ -438,7 +449,7 @@ users/{uid}/sensor_readings/{type}/readings/{id}
 3. Show the user's name in the Home greeting ("Good evening, Alex"), falling back to "Welcome!".
 4. Add "Forgot password?" on Login, reusing `sendPasswordResetEmail` from `changePassword`.
 5. Hide Home's hardcoded distance, floors, sleep and calories until real data sources exist.
-6. Add an HR zone indicator and Alert Thresholds / Notifications (Jira DWBS22-367). iOS has the UI ready for a shared alert engine.
+6. Add Alert Thresholds / Notifications (Jira DWBS22-367). iOS has the UI ready for a shared alert engine.
 
 Android bugs: see `ANDROID_BUGS.md`.
 
@@ -470,3 +481,23 @@ Android bugs: see `ANDROID_BUGS.md`.
 - `app.json`: `ios.supportsTablet: false`. Nothing else changed (bundle ID and Firebase untouched).
 - **Checks:** `npm run typecheck` is clean, and `npx expo export` bundles for iOS and Android. Not yet clicked through on a device or emulator.
 - Note: RN 0.86 removed `StyleSheet.absoluteFillObject`, so use explicit `position: 'absolute'` insets.
+
+### 2026-10-04 — UI change 1 (remove zones) + UI change 2 (Home redesign)
+
+**UI change 1: remove HR zones.** There was no separate brief for this, so I applied it as "no heart-rate zones anywhere". The zone pill is gone from the Heart Rate tab spec and Task 3, and from the Android-team suggestion list. The old Home zone label ("Resting / Fat burn / Cardio zone") is gone with the redesign. No zone code remains.
+
+**UI change 2: Home rebuilt to the reference screenshot** (the Home table above replaces the old Task 2 Home spec):
+- **Files in `features/home/`:**
+  - Screen and cards: `HomeScreen` (props-only, `HomeScreenProps`), `HeartRateCard`, `DeviceActivityCard`, `SleepRecoveryCard`, `ActiveCaloriesCard`, `HelpSheet` (static)
+  - Logic and data: `homeModel.ts` (pure: `restingRangeFrom` middle 60% of 24h readings, `stepsTodayFrom` per Android's midnight rule, `deviceViewFrom` mapping the six connection states + refreshing to CONNECTED/SYNCING/CONNECTING/RECONNECTING/DISCONNECTING/FAILED/No Device), `useHomeData.ts` (mock data, `useNow(30s)` clock, 1.2s refresh timer; the Phase 2 swap point), `HomeContainer.tsx`
+  - Preview only: `useLiveHeartRate.ts`, `home.preview.tsx` (No device, Connecting, Syncing, Connected (live BPM), Failed)
+- **New primitives:** `IconButton` (filled/outlined, Feather icon or glyph, `spinning`), `CardTitle` (icon badge + title + right slot, Feather or Ionicons), `ProgressBar`, `Waveform` (pulses when `active`, respects Reduce Motion), `Sheet` (bottom modal).
+  - `Avatar` gained initials + `statusDot`, and `Pill` gained a `good` tier.
+  - The tab bar has a raised centre Fitness button. `tabBarBaseHeight` now includes the lift, so all tab content clears it.
+- **New tokens:** `colors.good/goodSurface/online/scrim` (palette `calmSurface`, `calmText`), `layout.statusDot/tabFab/tabFabLift/deviceRing/deviceRingBorder/progressHeight/stageBarHeight/waveformHeight/sheetHandle`, `elevation.fab`.
+- **Data:** `DailyActivityExtras` type, plus `noActivityExtras` (all `null`, target 600) and `mockActivityExtras` (4.8 km, 12 floors, 486 kcal). `mockSleep.rating` is now "Optimal". Real flow: Distance/Floors "--", calories "--" with an empty bar, Sleep "No sleep data yet".
+- **Shared helpers:** `src/lib/time.ts` (`formatAge`, `isSameDay`, `formatDuration`, `formatShortDate`, `LIVE_WITHIN_MS`, `STALE_AFTER_MS` copied from Android) and `src/lib/useNow.ts`.
+- **iOS change vs Android, Log Out moved off Home:** Home has no Log Out and no bell. Log Out is now only in Settings, via `SettingsContainer`, with Android's exact confirm dialog ("Log Out" / "Are you sure you want to log out?" / Cancel / Log Out). This replaces suggestion 2 above. **Suggestion for the Android team:** drop Home's unconfirmed Log Out button and keep the Settings one.
+- **iOS change vs Android, Home layout:** Android shows battery as "🔋 85%" under the device circle. iOS shows it inline as "CONNECTED · 85%".
+- The old Home area tiles, `AreaKey` and Home's use of `src/data/sleep.ts` are removed. (`SleepScreen` still uses `sleep.ts` until the Task 2 Sleep refactor.)
+- **Checks:** `npm run typecheck` is clean, and `npx expo export` bundles for iOS and Android. Not yet clicked through on a device.
