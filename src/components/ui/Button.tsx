@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, type } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
@@ -12,6 +12,7 @@ type Props = {
   variant?: Variant;
   size?: Size;
   icon?: keyof typeof Feather.glyphMap;
+  ionicon?: keyof typeof Ionicons.glyphMap;
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
@@ -36,6 +37,7 @@ export function Button({
   variant = 'primary',
   size = 'lg',
   icon,
+  ionicon,
   loading = false,
   disabled = false,
   fullWidth = false,
@@ -63,6 +65,7 @@ export function Button({
       ) : (
         <View style={styles.row}>
           {icon ? <Feather name={icon} size={18} color={tint} style={styles.icon} /> : null}
+          {ionicon ? <Ionicons name={ionicon} size={18} color={tint} style={styles.icon} /> : null}
           <Text style={[type.subheading, { color: tint }]} numberOfLines={1}>
             {label}
           </Text>

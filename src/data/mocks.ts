@@ -12,7 +12,9 @@ import type {
   ScannedDevice,
   SensorReading,
   SensorType,
+  RestingHrTrends,
   SleepSummary,
+  SleepTrends,
   UserProfile,
 } from './types';
 
@@ -256,6 +258,62 @@ export const mockSleep: SleepSummary = {
         { start: 0.58, width: 0.05 },
       ],
     },
+  ],
+};
+
+export const mockSleepTrends: SleepTrends = {
+  week: {
+    score: [
+      { label: 'Mon', value: 91 },
+      { label: 'Tue', value: 87 },
+      { label: 'Wed', value: 65 },
+      { label: 'Thu', value: 69 },
+      { label: 'Fri', value: 59 },
+      { label: 'Sat', value: 91 },
+      { label: 'Sun', value: 86 },
+    ],
+    hours: [
+      { label: 'Mon', value: 8.1 },
+      { label: 'Tue', value: 7.8 },
+      { label: 'Wed', value: 6.2 },
+      { label: 'Thu', value: 6.5 },
+      { label: 'Fri', value: 5.4 },
+      { label: 'Sat', value: 8.4 },
+      { label: 'Sun', value: 7.7 },
+    ],
+  },
+  month: {
+    score: [
+      { label: 'W1', value: 82 },
+      { label: 'W2', value: 74 },
+      { label: 'W3', value: 88 },
+      { label: 'W4', value: 79 },
+    ],
+    hours: [
+      { label: 'W1', value: 7.4 },
+      { label: 'W2', value: 6.8 },
+      { label: 'W3', value: 7.9 },
+      { label: 'W4', value: 7.2 },
+    ],
+  },
+};
+
+// Moved off the Sleep tab; shown on the Heart Rate tab in Task 3.
+export const mockRestingHrTrends: RestingHrTrends = {
+  week: [
+    { label: 'Mon', value: 58 },
+    { label: 'Tue', value: 57 },
+    { label: 'Wed', value: 63 },
+    { label: 'Thu', value: 62 },
+    { label: 'Fri', value: 66 },
+    { label: 'Sat', value: 57 },
+    { label: 'Sun', value: 56 },
+  ],
+  month: [
+    { label: 'W1', value: 59 },
+    { label: 'W2', value: 62 },
+    { label: 'W3', value: 57 },
+    { label: 'W4', value: 60 },
   ],
 };
 
