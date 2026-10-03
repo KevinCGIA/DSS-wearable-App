@@ -178,7 +178,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
   - Props: `onStartScan`, `onStopScan`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onBack`
 - [x] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
 - [x] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
-- [ ] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
+- [x] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
 - [ ] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
 - [ ] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
 
@@ -787,3 +787,15 @@ Android bugs: see `ANDROID_BUGS.md`.
 
 ### 2026-10-04 — Share steps with Home
 - Home's "Today's Activity → Steps" now reads `useLatestSensorReading('steps')` from the shared store (same as Fitness), via `useHomeData` only. Home's existing `stepsTodayFrom` applies Android's midnight rule, so Home and Fitness always show the same count. Distance/Floors stay "--". Device status and profile on Home stay placeholders until they're wired to `useBle()`/profile. Home layout untouched.
+
+### 2026-10-04 — Task 3, screen 5: Alert Thresholds (done, awaiting review) — **iOS only, no backend yet**
+- **`AlertThresholdsScreen`** (props-only, `AlertThresholdsScreenProps`). Blue hero with back, then:
+  - "Heart rate alerts" toggle
+  - "Your range" card: a range bar over 30–220 BPM (amber below / green band / red above) + Minimum and Maximum steppers (5 BPM steps, VoiceOver adjustable). It dims and locks when alerts are off. Validation error banner.
+  - Info card explaining when alerts fire (below min / above max, at most once a minute per type, shown in Notifications)
+  - Success/error notice, and a Save button (disabled until changed or while invalid; reads "✓ Saved" when clean)
+- **Validation (`src/lib/alerts/thresholds.ts`):** minimum 30–100, maximum 80–220, maximum ≥ minimum + 10.
+- **`useAlertThresholds.ts`:** loads/saves through `src/lib/alerts/thresholds.ts`. That's an in-memory stand-in for **`users/{uid}/settings/alerts`** with `subscribeToAlertThresholds` / `saveAlertThresholds`, so Phase 2 swaps only that file and the alert engine reads the same values. Defaults: `mockAlertThresholds` (on, 50–120). **Back with unsaved changes asks "Discard changes?"** (Android's hardware back still goes straight back; minor).
+- **Preview** `alertThresholds.preview.tsx`: Saved, Loading, Load error, Edited, Invalid, Saving/saved, Off. Visual check via temporary web screenshot (entry restored).
+- **Gap for the Android team** (same as the Phase 2 alert-engine note): Android has no thresholds or alerts. This screen and its store are ready to share.
+- **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.
