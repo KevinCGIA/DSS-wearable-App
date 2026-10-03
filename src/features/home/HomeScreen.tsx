@@ -34,7 +34,7 @@ export type HomeScreenProps = {
   sleep: SleepSummary | null;
   bottomInset: number;
   onRefresh: () => void;
-  onOpenSettings: () => void;
+  onOpenProfile: () => void;
   onOpenDevices: () => void;
   onOpenTab: (tab: TabKey) => void;
 };
@@ -52,7 +52,7 @@ export function HomeScreen({
   sleep,
   bottomInset,
   onRefresh,
-  onOpenSettings,
+  onOpenProfile,
   onOpenDevices,
   onOpenTab,
 }: HomeScreenProps) {
@@ -81,8 +81,8 @@ export function HomeScreen({
                 name={profile?.name}
                 loading={profileLoading}
                 statusDot={connected}
-                onPress={onOpenSettings}
-                accessibilityLabel={connected ? 'Open settings. Device connected' : 'Open settings'}
+                onPress={onOpenProfile}
+                accessibilityLabel={connected ? 'Open profile. Device connected' : 'Open profile'}
               />
             </View>
           </View>

@@ -10,6 +10,8 @@ import { HomeContainer } from '@/features/home/HomeContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
 import { PreferencesScreen } from '@/features/preferences/PreferencesScreen';
 import { PreviewsScreen } from '@/features/previews/PreviewsScreen';
+import { ProfileContainer } from '@/features/profile/ProfileContainer';
+import { ProfileProvider } from '@/features/profile/ProfileProvider';
 import { previewEntries } from '@/features/previews/registry';
 import { SettingsContainer } from '@/features/settings/SettingsContainer';
 import { SleepContainer } from '@/features/sleep/SleepContainer';
@@ -79,56 +81,60 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
 
   return (
     <BleProvider>
-      <View style={styles.shell}>
-        <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
-          <GuardScope scope={tabScope(tab)} registry={registry}>
-            {tab === 'home' ? (
-              <HomeContainer
-                displayName={displayName}
-                bottomInset={tabBarBaseHeight}
-                onOpenSettings={() => navigation.openTab('settings')}
-                onOpenDevices={() => navigation.push('devices')}
-                onOpenTab={navigation.openTab}
-              />
-            ) : null}
-            {tab === 'heart-rate' ? (
-              <HeartRateContainer
-                bottomInset={tabBarBaseHeight}
-                onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-              />
-            ) : null}
-            {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
-            {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
-            {tab === 'settings' ? (
-              <SettingsContainer
-                bottomInset={tabBarBaseHeight}
-                displayName={displayName}
-                signOut={onSignOut}
-                onOpenDevices={() => navigation.push('devices')}
-                onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-                onOpenNotifications={() => navigation.push('notifications')}
-                onOpenPreferences={() => navigation.push('preferences')}
-                onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
-              />
-            ) : null}
-          </GuardScope>
-          <TabBar active={tab} onChange={navigation.openTab} />
-        </View>
-
-        {top ? (
-          <View style={styles.overlay} accessibilityViewIsModal>
-            <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
-              {renderStackRoute(top, navigation)}
+      <ProfileProvider displayName={displayName}>
+        <View style={styles.shell}>
+          <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
+            <GuardScope scope={tabScope(tab)} registry={registry}>
+              {tab === 'home' ? (
+                <HomeContainer
+                  displayName={displayName}
+                  bottomInset={tabBarBaseHeight}
+                  onOpenProfile={() => navigation.push('profile')}
+                  onOpenDevices={() => navigation.push('devices')}
+                  onOpenTab={navigation.openTab}
+                />
+              ) : null}
+              {tab === 'heart-rate' ? (
+                <HeartRateContainer
+                  bottomInset={tabBarBaseHeight}
+                  onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+                />
+              ) : null}
+              {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
+              {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
+              {tab === 'settings' ? (
+                <SettingsContainer
+                  bottomInset={tabBarBaseHeight}
+                  signOut={onSignOut}
+                  onOpenProfile={() => navigation.push('profile')}
+                  onOpenDevices={() => navigation.push('devices')}
+                  onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+                  onOpenNotifications={() => navigation.push('notifications')}
+                  onOpenPreferences={() => navigation.push('preferences')}
+                  onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
+                />
+              ) : null}
             </GuardScope>
+            <TabBar active={tab} onChange={navigation.openTab} />
           </View>
-        ) : null}
-      </View>
+
+          {top ? (
+            <View style={styles.overlay} accessibilityViewIsModal>
+              <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
+                {renderStackRoute(top, navigation)}
+              </GuardScope>
+            </View>
+          ) : null}
+        </View>
+      </ProfileProvider>
     </BleProvider>
   );
 }
 
 function renderStackRoute(route: StackRoute, navigation: Navigation) {
   switch (route) {
+    case 'profile':
+      return <ProfileContainer onBack={navigation.back} />;
     case 'devices':
       return <DevicesContainer onBack={navigation.back} />;
     case 'alert-thresholds':

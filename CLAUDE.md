@@ -38,7 +38,7 @@ The Android app is already wired up. **My UI keeps its own visual design but cop
 | Element | Shows | Empty / no-device state | Tap action |
 |---|---|---|---|
 | Top bar, left | Time-of-day greeting + today's real date, e.g. "Good evening · Sat, Oct 3" (morning 5–12, afternoon 12–17, evening 17–21, night 21–5) | — | — |
-| Top bar, right: avatar | Photo, or initials. Small green dot when a device is connected. | "?" with no name | **Settings tab** (Android) |
+| Top bar, right: avatar | Photo, or initials. Small green dot when a device is connected. | "?" with no name | **Profile screen** *(iOS; Android opens the Settings tab — Profile split, 2026-10-04)* |
 | Header (on the full-width blue hero background with the top bar) | "Welcome!" or "Welcome, {first name}!" + "Here is your daily summary", white on blue | "Welcome!" | — |
 | Top bar, right: help (left of avatar) | Round white "?" button | — | Opens a static **Help sheet** (how to pair, what the connection states mean) |
 | Card 1: Heart Rate | Heart icon in a soft accent circle, "Heart Rate", "Live" pill (≤ 2 min old) or "Last seen x ago". Hero BPM (Barlow) + "BPM" in accent. "Resting: low–high bpm · Normal" (from 24h data, "Normal" in calm). Waveform bars that pulse while live and stay still otherwise. | "--" BPM + "No readings yet. Connect your wearable to start tracking.", no waveform | Heart Rate tab *(iOS)* |
@@ -54,15 +54,21 @@ The Android app is already wired up. **My UI keeps its own visual design but cop
 - Keep my visual language (Barlow numerals, accent colours, vital colours for meaning only). Don't copy Android's emojis or Material styling.
 - iOS-only improvements are logged in the Progress Log as suggestions for the Android team. Android bugs are in `ANDROID_BUGS.md`.
 
-**Settings: one scrolling page, like Android (no Profile sub-screen):**
-1. Avatar (tap or "Change Profile Picture") + editable profile: Name, Height (cm), Weight (kg), Save Changes
-2. Devices section: current device + Disconnect/Cancel, Auto-connect toggle, "Pair a New Device" → Devices, Paired devices list with Connect / Forget (confirm) and its empty state
-3. Account & Security: New Email input + Change Email (verify-before-update), Change Password (sends a reset email)
-4. iOS-only rows: Alert Thresholds, Notifications, Preferences (if built)
-5. Log Out (with confirm)
-6. `__DEV__` only: Previews
+**Profile and Settings are split (iOS difference from Android, 2026-10-04; overrides decision Q2).** Android keeps everything on one Settings page.
 
-**Sub-screens (pushed on the hand-rolled stack, with a back button):** `devices`, `alert-thresholds`, `notifications`, `preferences`, `previews`.
+**Profile** (stack route `profile`, header + ‹ back; opened from the Home avatar and from Settings' Profile row):
+1. Avatar + "Change Profile Picture" (image picker, saves straight away)
+2. Name, Height (cm), Weight (kg) + Save (unsaved-changes guard on ‹, hardware back and tab switch)
+3. Account: New Email + Change Email (verify-before-update), Change Password (sends a reset email)
+
+**Settings tab** (app settings only):
+1. Profile row: small avatar, name, email and chevron → Profile
+2. Devices section: current device + Disconnect/Cancel, Auto-connect toggle, "Pair a New Device" → Devices, Paired devices list with Connect / Forget (confirm) and its empty state
+3. Alert Thresholds, Notifications, Preferences
+4. `__DEV__` only: Previews
+5. Log Out (with confirm)
+
+**Sub-screens (pushed on the hand-rolled stack, with a back button):** `profile`, `devices`, `alert-thresholds`, `notifications`, `preferences`, `previews`.
 
 ## Current state (audited)
 
@@ -169,7 +175,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Sleep tab (from Analytics):** take `SleepSummary | null` and its series as props from a container. The default container returns no data, which gives the "No sleep data yet" state. Move the resting HR chart to the Heart Rate tab.
 
 ### Task 3: Build the missing and placeholder screens (in this order)
-- [x] **Settings** (one page, per the Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
+- [x] **Settings** (built as one page; **later split into Profile + Settings**, see the Profile/Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
 - [x] **Devices** (Android route `devices`):
   - Connection card for all six states: connecting (attempt n), discovering ("Setting up device..."), reconnecting (attempt n), disconnecting, failed (`error` on disconnected), connected (battery + Disconnect). **Cancel** for pending states.
   - Bluetooth banners: PoweredOff / Unauthorized / Unsupported / Resetting. Scan error banner.
@@ -817,3 +823,19 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **`useNotifications.ts`:** subscribes, "Clear all" confirm dialog. The dev "Add Test Alert" uses the **saved thresholds** from `lib/alerts/thresholds.ts` (e.g. above 130 if Max was saved as 130), simulating what the engine will write.
 - **Preview** `notifications.preview.tsx`: Empty, Loading, Error, Filled (4 alerts over 3 days). Visual check via temporary web screenshot (entry restored).
 - **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.
+
+### 2026-10-04 — UI change: Profile split out of Settings (**iOS difference from Android**)
+- **Overrides decision Q2** (avatar → Settings tab, Settings as one page). Android keeps profile, account and app settings on one Settings page, and its Home avatar opens that tab. iOS now has a separate **Profile** screen. **Suggestion for the Android team:** the same split keeps Settings short.
+- **Profile** (`features/profile/`, stack route `profile`, blue hero "Profile" + email + ‹):
+  - "Personal details" card: avatar + Change Profile Picture (image picker, saves straight away), Name, Height/Weight, Save Changes. Save is disabled until something changes, shows "✓ Saved" when clean, and validates as before. **Unsaved-changes guard** on ‹, hardware back and tab switch.
+  - "Account" card: New Email + Change Email, Change Password.
+- **Settings tab:** a Profile row at the top (small avatar, name, email, chevron → Profile), Devices, Alerts & Preferences, Development (`__DEV__`), Log Out (confirm). The profile form, account card and their guard were removed.
+- **Home:** the avatar now pushes `profile`. Only the callback was renamed (`onOpenSettings` → `onOpenProfile`) along with its VoiceOver label ("Open profile"). No layout change.
+- **Code moved, not rewritten:**
+  - `accountService.ts` was `git mv`'d to `features/profile/`.
+  - The profile, picture and account logic moved from `useSettingsData` into `useProfileData.ts` (same handlers and Android names).
+  - New `ProfileProvider` (mounted next to `BleProvider`) holds the one loaded profile, so the Settings row and the Profile screen stay in sync after a save or photo change.
+  - `useSettingsData` now only covers devices + logout.
+- **Previews:** new **Profile** (Default, Loading, Load error, Unsaved changes, Saving, Errors, Account notices). Settings preview updated (Default, Profile loading, Connected, Connecting, Failed/no devices).
+- Home's avatar/greeting still use the session display name (Home profile stays a placeholder), so a photo or name changed in Profile doesn't show on Home yet.
+- **Checks:** typecheck clean, iOS + Android bundles build.

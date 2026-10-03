@@ -24,7 +24,7 @@ const base: Omit<HomeScreenProps, 'now'> = {
   restingRange: null,
   bottomInset: 0,
   onRefresh: noop,
-  onOpenSettings: noop,
+  onOpenProfile: noop,
   onOpenDevices: noop,
   onOpenTab: noop,
 };
