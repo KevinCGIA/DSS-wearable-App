@@ -1,10 +1,6 @@
 import { useCallback, useState } from 'react';
-import {
-  describeAuthError,
-  isValidEmail,
-  parseMeasure,
-  validateAuthInput,
-} from './authErrors';
+import { parseMeasure } from '@/lib/measures';
+import { describeAuthError, isValidEmail, validateAuthInput } from './authErrors';
 import type {
   AuthBusy,
   AuthConfirmation,

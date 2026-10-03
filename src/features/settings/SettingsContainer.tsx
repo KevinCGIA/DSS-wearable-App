@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
-import { Alert } from 'react-native';
+import React from 'react';
 import { SettingsScreen } from './SettingsScreen';
+import { useSettingsData } from './useSettingsData';
 
 type Props = {
   bottomInset: number;
+  displayName: string;
   signOut: () => void;
   onOpenDevices: () => void;
   onOpenAlertThresholds: () => void;
@@ -12,14 +13,7 @@ type Props = {
   onOpenPreviews?: () => void;
 };
 
-export function SettingsContainer({ signOut, ...rest }: Props) {
-  // Same dialog as Android's logout() in app/(auth)/settings.tsx.
-  const logout = useCallback(() => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: signOut },
-    ]);
-  }, [signOut]);
-
-  return <SettingsScreen {...rest} onLogout={logout} />;
+export function SettingsContainer({ displayName, signOut, ...rest }: Props) {
+  const data = useSettingsData(displayName, signOut);
+  return <SettingsScreen {...rest} {...data} />;
 }

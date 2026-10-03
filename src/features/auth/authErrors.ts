@@ -1,3 +1,5 @@
+import { HEIGHT_RANGE, measureError, WEIGHT_RANGE } from '@/lib/measures';
+
 const messages: Record<string, string> = {
   'auth/invalid-email': "That email address doesn't look right. Check it and try again.",
   'auth/missing-email': 'Enter your email address to continue.',
@@ -50,20 +52,6 @@ export function isValidEmail(email: string): boolean {
   return EMAIL.test(email.trim());
 }
 
-export function parseMeasure(value: string): number | null {
-  const trimmed = value.trim().replace(',', '.');
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
-function checkRange(value: string, min: number, max: number, label: string): string | undefined {
-  const parsed = parseMeasure(value);
-  if (parsed === null) return undefined;
-  if (Number.isNaN(parsed) || parsed < min || parsed > max) return `${label} between ${min} and ${max}.`;
-  return undefined;
-}
-
 export function validateAuthInput(mode: AuthMode, values: AuthFormValues): AuthFieldErrors {
   const errors: AuthFieldErrors = {};
 
@@ -81,9 +69,9 @@ export function validateAuthInput(mode: AuthMode, values: AuthFormValues): AuthF
   if (values.confirmPassword !== values.password) {
     errors.confirmPassword = 'Passwords do not match.';
   }
-  const height = checkRange(values.height, 50, 250, 'Enter a height in cm');
+  const height = measureError(values.height, HEIGHT_RANGE, 'Enter a height in cm');
   if (height) errors.height = height;
-  const weight = checkRange(values.weight, 20, 300, 'Enter a weight in kg');
+  const weight = measureError(values.weight, WEIGHT_RANGE, 'Enter a weight in kg');
   if (weight) errors.weight = weight;
 
   return errors;

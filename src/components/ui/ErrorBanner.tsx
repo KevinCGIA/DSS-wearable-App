@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, layout, radius, spacing, type } from '@/theme';
 
-type Tone = 'error' | 'warning' | 'info';
+type Tone = 'error' | 'warning' | 'info' | 'success';
 
 type Props = {
   message: string;
@@ -17,6 +17,7 @@ const tones: Record<Tone, { bg: string; fg: string; icon: keyof typeof Feather.g
   error: { bg: colors.dangerSurface, fg: colors.danger, icon: 'alert-circle' },
   warning: { bg: colors.warningSurface, fg: colors.warning, icon: 'alert-triangle' },
   info: { bg: colors.accentSurface, fg: colors.accentText, icon: 'info' },
+  success: { bg: colors.goodSurface, fg: colors.good, icon: 'check-circle' },
 };
 
 export function ErrorBanner({ message, tone = 'error', actionLabel, onAction, style }: Props) {
