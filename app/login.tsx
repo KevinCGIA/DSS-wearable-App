@@ -18,6 +18,13 @@ import {
     signOut,
 } from "@react-native-firebase/auth";
 
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  setDoc,
+} from "@react-native-firebase/firestore";
+
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 GoogleSignin.configure({
@@ -92,10 +99,35 @@ export default function Login() {
     const googleCredential = GoogleAuthProvider.credential(idToken);
 
     // Sign in to Firebase
-    await signInWithCredential(auth, googleCredential);
+    const userCredential = await signInWithCredential(
+      auth,
+      googleCredential
+    );
+
+    const user = userCredential.user;
+    const firestore = getFirestore();
+
+    // Check whether this Google user has a Firestore profile
+    const userDocRef = doc(firestore, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      // Create a basic profile for this Google user
+      await setDoc(userDocRef, {
+        name: user.displayName?.split(" ")[0] || "",
+        height: "",
+        weight: "",
+        profilePictureUrl: user.photoURL || "",
+      });
+
+      console.log("Missing Google user profile created successfully!");
+    } else {
+      console.log("Existing Google user profile found.");
+    }
 
     console.log("Google sign in successful!");
     alert("Signed in successfully!");
+
   } catch (e: any) {
     console.log("Google sign in failed:", e);
     console.log("Error code:", e.code);
@@ -137,9 +169,13 @@ export default function Login() {
         <Button
           title="Sign In"
           onPress={signIn}
+          disabled={loading}
         />
 
-        <Pressable onPress={signInWithGoogle}>
+        <Pressable
+          onPress={signInWithGoogle}
+          disabled={loading}
+        >
         <Image
         source={require("../assets/google-signin.png")}
         style={Styles.googleButton}

@@ -43,6 +43,19 @@ export default function Home() {
         return;
       }
 
+      // Load the user's main profile
+      const userDoc = await getDoc(
+        doc(firestore, "users", user.uid)
+      );
+
+      let googleProfilePictureUrl = "";
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        googleProfilePictureUrl =
+          userData?.profilePictureUrl || "";
+      }
+
       const avatarDoc = await getDoc(
         doc(
           firestore,
@@ -55,10 +68,19 @@ export default function Home() {
 
       if (avatarDoc.exists()) {
         const avatarData = avatarDoc.data();
+        const customProfilePicture =
+          avatarData?.imageData || "";
 
-        setProfilePictureData(
-          avatarData?.imageData || ""
-        );
+        if (customProfilePicture) {
+          // Custom picture gets priority
+          setProfilePictureData(customProfilePicture);
+        } else {
+          // Otherwise use Google profile picture
+          setProfilePictureData(googleProfilePictureUrl);
+        }
+      } else {
+        // No custom picture, so use Google profile picture
+        setProfilePictureData(googleProfilePictureUrl);
       }
     } catch (e: any) {
       console.log(
