@@ -5,6 +5,7 @@ import { useBle } from '@/features/devices/BleProvider';
 import { confirmForget } from '@/features/devices/bluetoothText';
 import { describeAuthError, isValidEmail } from '@/features/auth/authErrors';
 import { formatMeasure, HEIGHT_RANGE, measureError, parseMeasure, WEIGHT_RANGE } from '@/lib/measures';
+import { pickSquareImage } from '@/lib/pickImage';
 import { useNow } from '@/lib/useNow';
 import { accountService } from './accountService';
 
@@ -83,12 +84,25 @@ export function useSettingsData(displayName: string, signOut: () => void) {
     }
   };
 
-  // Phase 2: Android's chooseProfilePicture (expo-image-picker, 300×300 JPEG → users/{uid}/private/avatarData).
-  const chooseProfilePicture = () => {
-    setProfileNotice({
-      tone: 'info',
-      message: 'Choosing a photo is added with the shared Firebase setup.',
-    });
+  // Android: chooseProfilePicture in app/(auth)/settings.tsx (saves straight away)
+  const chooseProfilePicture = async () => {
+    setProfileNotice(null);
+    const picked = await pickSquareImage();
+    if (picked.status === 'denied') {
+      setProfileNotice({
+        tone: 'error',
+        message: 'Please allow access to your photos to choose a profile picture.',
+      });
+      return;
+    }
+    if (picked.status !== 'picked') return;
+    try {
+      await accountService.saveProfilePicture(picked.uri);
+      setProfile((prev) => (prev ? { ...prev, avatarData: picked.uri } : prev));
+      setProfileNotice({ tone: 'success', message: 'Profile picture updated successfully!' });
+    } catch (error) {
+      setProfileNotice({ tone: 'error', message: `Failed to update profile picture: ${describeAuthError(error)}` });
+    }
   };
 
   const changeEmail = async () => {

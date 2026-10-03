@@ -11,6 +11,7 @@ export type ProfileUpdate = { name: string; height: number | null; weight: numbe
 export type AccountService = {
   loadProfile: (fallbackName: string) => Promise<UserProfile>;
   saveProfile: (update: ProfileUpdate) => Promise<void>;
+  saveProfilePicture: (uri: string) => Promise<void>;
   changeEmail: (newEmail: string) => Promise<void>;
   changePassword: () => Promise<string>;
 };
@@ -37,6 +38,8 @@ const firebaseService: AccountService = {
   async saveProfile({ name }) {
     await updateProfile(currentUser(), { displayName: name });
   },
+  // Phase 2: base64 → users/{uid}/private/avatarData via Android's helpers; a local file URI can't go in Auth.
+  async saveProfilePicture() {},
   async changeEmail(newEmail) {
     await verifyBeforeUpdateEmail(currentUser(), newEmail);
   },
@@ -61,6 +64,10 @@ const previewService: AccountService = {
   async saveProfile(update) {
     await wait(800);
     previewProfile = { ...(previewProfile ?? mockProfile), ...update };
+  },
+  async saveProfilePicture(uri) {
+    await wait(400);
+    previewProfile = { ...(previewProfile ?? mockProfile), avatarData: uri };
   },
   async changeEmail() {
     await wait(700);

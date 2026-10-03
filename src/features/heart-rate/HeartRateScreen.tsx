@@ -14,6 +14,7 @@ import { StatReadout } from '@/components/ui/StatReadout';
 import { TimeLineChart } from '@/components/ui/TimeLineChart';
 import { Waveform } from '@/components/ui/Waveform';
 import type { HistoryState, LatestReadingState, RestingHrTrends } from '@/data/types';
+import { sourceLabel } from '@/lib/sensors/sourceLabel';
 import { formatAge, LIVE_WITHIN_MS, STALE_AFTER_MS } from '@/lib/time';
 import { averageByBucket, HOUR_MS } from '@/lib/trends';
 import { colors, spacing, type } from '@/theme';
@@ -115,8 +116,8 @@ function LiveCard({ now, heartRate }: { now: number; heartRate: LatestReadingSta
               <Text style={[type.label, styles.message]}>
                 {stale ? 'Last reading' : 'Updated'} {formatAge(age)}
               </Text>
-              {reading.deviceName ? (
-                <Text style={[type.caption, styles.mutedText]}>from {reading.deviceName}</Text>
+              {sourceLabel(reading) ? (
+                <Text style={[type.caption, styles.mutedText]}>from {sourceLabel(reading)}</Text>
               ) : null}
               <Waveform active={live} style={styles.wave} />
             </>
