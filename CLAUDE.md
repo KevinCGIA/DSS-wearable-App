@@ -860,3 +860,11 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Previews:** Preferences (Default, Edited, Saving/saved), and Profile gained "Imperial".
 - **Task 3 complete.** Next is Task 4 (polish and sign-off), after approval.
 - **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.
+
+### 2026-10-04 — Test data fills Home's Activity and Sleep & Recovery
+- **Report:** Home's Distance, Floors and Sleep & Recovery stayed empty after adding test data, and Steps showed 0.
+- **Steps 0 is correct for the sample data.** Android's `addSampleDay` only walks 7am–10pm and resets at midnight, so before 7am "today" is 0 on both Home and Fitness. "Add Test Steps" adds today's steps immediately.
+- **New `src/lib/sensors/testExtras.ts`** (iOS, Phase 1, test data only):
+  - `testActivityFrom(stepsReading, now)`: when today's steps come from the dev buttons (`source: 'manual'`), Distance (steps × 0.762 m), Floors (1 per 700 steps) and Active Calories (0.045 kcal/step, target 600) are derived from **those same steps**. That keeps them consistent and avoids Android's "0 steps next to 4.8 km" (ANDROID_BUGS #5). Real `ble` readings keep "--" (no Android source).
+  - `addSampleSleep()` / `useSampleSleep()`: "Add 24h of Sample Data" (on Heart Rate or Fitness) also adds a sample night (`mockSleep`, 7h 42m, 86 "Optimal") + week/month trends. Home's Sleep & Recovery card and the **Sleep tab** show it. Otherwise both stay "No sleep data yet".
+- **Changed:** only `useHomeData` / `useSleepData` / the two dev-action hooks. Home and Sleep layouts are untouched. Phase 2: remove `testExtras` once real sources exist.

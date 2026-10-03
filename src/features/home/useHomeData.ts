@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { disconnectedConnection, mockProfile, noActivityExtras } from '@/data/mocks';
+import { disconnectedConnection, mockProfile } from '@/data/mocks';
 import type { UserProfile } from '@/data/types';
+import { testActivityFrom, useSampleSleep } from '@/lib/sensors/testExtras';
 import { useLatestSensorReading, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 import { restingRangeFrom } from './homeModel';
@@ -14,6 +15,7 @@ export function useHomeData(displayName: string) {
   const heartRate = useLatestSensorReading('heart_rate');
   const heartRateHistory = useSensorHistory('heart_rate', 24);
   const steps = useLatestSensorReading('steps');
+  const sampleSleep = useSampleSleep();
   const [refreshing, setRefreshing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,8 +40,8 @@ export function useHomeData(displayName: string) {
     heartRate,
     restingRange: restingRangeFrom(heartRateHistory),
     steps,
-    activity: noActivityExtras,
-    sleep: null,
+    activity: testActivityFrom(steps.reading, now),
+    sleep: sampleSleep?.sleep ?? null,
     onRefresh,
   };
 }
