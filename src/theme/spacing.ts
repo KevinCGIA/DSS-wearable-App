@@ -38,6 +38,9 @@ export const layout = {
   waveformHeight: 32,
   sheetHandle: 40,
   heroOverscroll: 1000,
+  heroBackdrop: 640,
+  heroRingCenterY: 56,
+  heroRingInset: 84,
 } as const;
 
 export const elevation = {
