@@ -784,3 +784,6 @@ Android bugs: see `ANDROID_BUGS.md`.
      - Resize to 300×300 JPEG → base64 → `users/{uid}/private/avatarData`.
      - **The iOS permission strings go in the Phase 2 `app.json` `ios` block:** `NSPhotoLibraryUsageDescription` + `NSCameraUsageDescription`, via the `expo-image-picker` plugin (`photosPermission`, `cameraPermission`). No `app.json` change now (Rule 8).
 - **Checks:** typecheck clean, iOS + Android bundles build. Only `features/home/useHomeData.ts` changed in Home.
+
+### 2026-10-04 — Share steps with Home
+- Home's "Today's Activity → Steps" now reads `useLatestSensorReading('steps')` from the shared store (same as Fitness), via `useHomeData` only. Home's existing `stepsTodayFrom` applies Android's midnight rule, so Home and Fitness always show the same count. Distance/Floors stay "--". Device status and profile on Home stay placeholders until they're wired to `useBle()`/profile. Home layout untouched.
