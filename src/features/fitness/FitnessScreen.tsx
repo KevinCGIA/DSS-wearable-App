@@ -5,11 +5,11 @@ type Props = {
   bottomInset: number;
 };
 
-export function MonitoringScreen({ bottomInset }: Props) {
+export function FitnessScreen({ bottomInset }: Props) {
   return (
     <PlaceholderScreen
-      title="Real-time monitoring"
-      blurb="Live BLE streams from the paired band land here once device connectivity is wired up."
+      title="Fitness"
+      blurb="Steps today against your goal and the 24-hour steps chart land here in Task 3."
       icon="activity"
       bottomInset={bottomInset}
     />

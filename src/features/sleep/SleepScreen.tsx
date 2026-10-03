@@ -41,7 +41,7 @@ const monthlyRestingHr = [
 
 type Props = { bottomInset: number };
 
-export function AnalyticsScreen({ bottomInset }: Props) {
+export function SleepScreen({ bottomInset }: Props) {
   const [range, setRange] = useState<Range>('week');
 
   const data = useMemo(
@@ -62,7 +62,7 @@ export function AnalyticsScreen({ bottomInset }: Props) {
 
   return (
     <Screen scroll bottomInset={bottomInset}>
-      <Text style={[type.title, styles.title]}>Insights</Text>
+      <Text style={[type.title, styles.title]}>Sleep</Text>
       <Text style={[type.body, styles.blurb]}>
         Trends across your recorded sessions, drawn from the paired band.
       </Text>

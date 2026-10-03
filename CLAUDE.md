@@ -139,13 +139,13 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Stop and show me the wiring map before Task 1** (reviewed 2026-10-03, decisions recorded in the Progress Log)
 
 ### Task 1: Foundations
-- [ ] `git init` in `ios/`, check `.gitignore` covers `node_modules`, `.expo` and `.env`, and make an initial commit before changing anything (local only, no remote)
-- [ ] Add `src/data/types.ts` (the shapes above) and `src/data/mocks.ts` (no-device and connected mocks)
-- [ ] Replace the tabs with the 5 Android tabs (`home`, `heart-rate`, `fitness`, `sleep`, `settings`) in `TabBar` and `RootNavigator`. Monitoring → Heart Rate, Analytics → Sleep, and a new Fitness screen.
-- [ ] Add a hand-rolled `useState` route stack in `RootNavigator` for `devices`, `alert-thresholds`, `notifications`, `preferences` and `previews`, with a back button (plus the Android hardware back). **Don't add react-navigation or expo-router.**
-- [ ] Add primitives: `ListRow`, `Toggle`, `Stepper`, `EmptyState`, `ErrorBanner`, `Avatar`, `Header` (title + back)
-- [ ] Add the dev-only Previews menu (behind `__DEV__`, reachable from Settings)
-- [ ] Set `ios.supportsTablet` to false
+- [x] `git init` in `ios/`, check `.gitignore` covers `node_modules`, `.expo` and `.env`, and make an initial commit before changing anything (local only, no remote)
+- [x] Add `src/data/types.ts` (the shapes above) and `src/data/mocks.ts` (no-device and connected mocks)
+- [x] Replace the tabs with the 5 Android tabs (`home`, `heart-rate`, `fitness`, `sleep`, `settings`) in `TabBar` and `RootNavigator`. Monitoring → Heart Rate, Analytics → Sleep, and a new Fitness screen.
+- [x] Add a hand-rolled `useState` route stack in `RootNavigator` for `devices`, `alert-thresholds`, `notifications`, `preferences` and `previews`, with a back button (plus the Android hardware back). **Don't add react-navigation or expo-router.**
+- [x] Add primitives: `ListRow`, `Toggle`, `Stepper`, `EmptyState`, `ErrorBanner`, `Avatar`, `Header` (title + back)
+- [x] Add the dev-only Previews menu (behind `__DEV__`, reachable from Settings)
+- [x] Set `ios.supportsTablet` to false
 
 ### Task 2: Refactor the built screens to Rule 1
 - [ ] **Auth:** move the Firebase calls into `useAuthForm.ts`. `AuthScreen` becomes props-only.
@@ -441,3 +441,32 @@ users/{uid}/sensor_readings/{type}/readings/{id}
 6. Add an HR zone indicator and Alert Thresholds / Notifications (Jira DWBS22-367). iOS has the UI ready for a shared alert engine.
 
 Android bugs: see `ANDROID_BUGS.md`.
+
+### 2026-10-03 — Task 1: Foundations (done)
+
+- **Git:** `git init -b main` in `ios/` (local only, **no remote**). `.gitignore` already covered `node_modules/`, `.expo/` and `.env`. Initial commit `f907116` was made before any Task 1 change.
+- **Data:** `src/data/types.ts` (Android shapes + iOS-only shapes) and `src/data/mocks.ts`:
+  - Profiles: `mockProfile`, `mockProfileNoName`
+  - Connection: `disconnectedConnection`, `connectedConnection`, `failedConnection`, `connectionIn(status, attempt)` for all six states, `bluetoothStates`
+  - Devices: `mockScannedDevices`, `mockPairedDevices`
+  - Latest reading: `emptyLatest`, `loadingLatest`, `errorLatest`, `heartRateLatest()`, `stepsLatest()`
+  - History: `emptyHistory()`, `loadingHistory()`, `errorHistory()`, `heartRateHistory()` (24h, 15-min), `stepsHistory()` (hourly running totals ending at 6,842)
+  - iOS-only: `mockSleep` (7h 42m / 86), `mockAlertThresholds`, `mockAlerts`, `defaultPreferences`
+  - Bundles: `noDeviceMock` and `connectedMock`
+  - Mocks are deterministic and contain no distance, floors or calories.
+  - `src/data/sleep.ts` is still imported by `SleepScreen` and `HomeScreen`. It gets removed in Task 2.
+- **Tabs:** `TabBar` now has `home`, `heart-rate`, `fitness`, `sleep`, `settings` (Feather `home`, `heart`, `activity`, `moon`, `settings`) with tab accessibility roles. Route types are in `src/navigation/routes.ts`.
+  - `git mv`: `features/analytics/AnalyticsScreen` → `features/sleep/SleepScreen` (content unchanged until Task 2), and `features/monitoring/MonitoringScreen` → `features/heart-rate/HeartRateScreen` (placeholder).
+  - New placeholder: `features/fitness/FitnessScreen`.
+- **Stack:** `RootNavigator` keeps the tabs mounted and overlays the top `StackRoute` (`devices`, `alert-thresholds`, `notifications`, `preferences`, `previews`).
+  - `Navigation = { openTab, push, back }`
+  - Android hardware back pops the stack, then returns to Home.
+  - Placeholder sub-screens are in `features/{devices,alerts,notifications,preferences}`. `PlaceholderScreen` now takes an optional `onBack` and uses `Header` + `EmptyState`.
+  - Home's old area tiles are temporarily mapped (devices → Devices, monitoring → Heart Rate, analytics → Sleep, account → Settings) until the Task 2 rebuild.
+- **Primitives:** `Header`, `ListRow`, `Toggle` (themed RN `Switch`), `Stepper` (VoiceOver adjustable), `EmptyState`, `ErrorBanner` (error/warning/info), `Avatar` ("?" fallback, loading, 44pt hit area).
+  - New tokens: `colors.warning`, `colors.warningSurface`, and `layout.minTouch/rowHeight/iconBadge/avatar/avatarLarge`.
+- **Previews:** `features/previews/` (`PreviewsScreen`, `registry.ts`, `types.ts`). It's reachable from Settings → Development → Previews, which only renders when `__DEV__`. The first entry is `components/ui/primitives.preview.tsx`. Each screen's preview is added to the registry as it is built.
+- **Settings (interim):** props-only list (Pair a New Device, Alert Thresholds, Notifications, Preferences, Log Out, dev Previews). It gets replaced by the full Android-matching page in Task 3.
+- `app.json`: `ios.supportsTablet: false`. Nothing else changed (bundle ID and Firebase untouched).
+- **Checks:** `npm run typecheck` is clean, and `npx expo export` bundles for iOS and Android. Not yet clicked through on a device or emulator.
+- Note: RN 0.86 removed `StyleSheet.absoluteFillObject`, so use explicit `position: 'absolute'` insets.

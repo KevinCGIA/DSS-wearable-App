@@ -1,39 +1,26 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Header } from '@/components/ui/Header';
 import { Screen } from '@/components/ui/Screen';
-import { colors, radius, spacing, type } from '@/theme';
 
 type Props = {
   title: string;
   blurb: string;
   icon: keyof typeof Feather.glyphMap;
-  bottomInset: number;
-  onSignOut?: () => void;
+  bottomInset?: number;
+  onBack?: () => void;
 };
 
-export function PlaceholderScreen({ title, blurb, icon, bottomInset, onSignOut }: Props) {
+export function PlaceholderScreen({ title, blurb, icon, bottomInset = 0, onBack }: Props) {
   return (
     <Screen bottomInset={bottomInset}>
+      <Header title={title} onBack={onBack} />
       <View style={styles.wrap}>
-        <Card style={styles.card}>
-          <View style={styles.icon}>
-            <Feather name={icon} size={22} color={colors.accentText} />
-          </View>
-          <Text style={[type.heading, styles.title]}>{title}</Text>
-          <Text style={[type.body, styles.blurb]}>{blurb}</Text>
-          {onSignOut ? (
-            <Button
-              label="Sign out"
-              variant="secondary"
-              icon="log-out"
-              onPress={onSignOut}
-              fullWidth
-              style={styles.action}
-            />
-          ) : null}
+        <Card>
+          <EmptyState icon={icon} title="Coming soon" message={blurb} />
         </Card>
       </View>
     </Screen>
@@ -42,17 +29,4 @@ export function PlaceholderScreen({ title, blurb, icon, bottomInset, onSignOut }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'center' },
-  card: { alignItems: 'center' },
-  icon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accentSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  title: { color: colors.text },
-  blurb: { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
-  action: { marginTop: spacing.xl },
 });

@@ -1,0 +1,115 @@
+// Mirrors the Android app (origin/feature/ble-connection) so containers swap 1:1 in Phase 2.
+
+export type UserProfile = {
+  uid: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  height: number | null;
+  weight: number | null;
+  avatarData: string | null;
+};
+
+export type ConnectionStatus =
+  | 'disconnected'
+  | 'connecting'
+  | 'discovering'
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnecting';
+
+export type ConnectionState = {
+  status: ConnectionStatus;
+  deviceId: string | null;
+  deviceName: string | null;
+  attempt: number;
+  batteryLevel: number | null;
+  error: string | null;
+};
+
+// Same string values as react-native-ble-plx's State enum.
+export type BluetoothState =
+  | 'Unknown'
+  | 'Resetting'
+  | 'Unsupported'
+  | 'Unauthorized'
+  | 'PoweredOff'
+  | 'PoweredOn';
+
+export type ScannedDevice = {
+  id: string;
+  name: string;
+  rssi: number;
+  isHeartRateDevice: boolean;
+};
+
+export type PairedDevice = {
+  deviceId: string;
+  name: string;
+  addedAt: Date | null;
+  lastConnectedAt: Date | null;
+};
+
+export type SensorType = 'heart_rate' | 'steps';
+
+export type ReadingSource = 'ble' | 'manual';
+
+// For steps, value is the running total for that calendar day.
+export type SensorReading = {
+  id: string;
+  type: SensorType;
+  value: number;
+  unit: string;
+  timestamp: Date;
+  deviceName: string | null;
+  source: ReadingSource;
+};
+
+export type LatestReadingState = {
+  reading: SensorReading | null;
+  loading: boolean;
+  error: string | null;
+};
+
+export type HistoryState = {
+  readings: SensorReading[];
+  start: number;
+  end: number;
+  loading: boolean;
+  error: string | null;
+};
+
+// iOS only below: no Android backend yet.
+
+export type SleepStageKey = 'awake' | 'rem' | 'light' | 'deep';
+
+export type SleepStage = {
+  key: SleepStageKey;
+  minutes: number;
+  segments: { start: number; width: number }[];
+};
+
+export type SleepSummary = {
+  totalMinutes: number;
+  score: number;
+  rating: string;
+  start: string;
+  end: string;
+  stages: SleepStage[];
+};
+
+export type AlertThresholds = { hrMin: number; hrMax: number; enabled: boolean };
+
+export type AlertItem = {
+  id: string;
+  type: 'HR_HIGH' | 'HR_LOW';
+  value: number;
+  message: string;
+  timestamp: number;
+};
+
+export type Preferences = {
+  textScale: 'default' | 'large' | 'xlarge';
+  units: 'metric' | 'imperial';
+  notifications: boolean;
+};
