@@ -12,7 +12,7 @@ import type {
 } from '@/data/types';
 import { formatShortDate, greetingFor } from '@/lib/time';
 import type { TabKey } from '@/navigation/routes';
-import { colors, elevation, radius, spacing, type } from '@/theme';
+import { colors, spacing, type } from '@/theme';
 import { ActiveCaloriesCard } from './ActiveCaloriesCard';
 import { DeviceActivityCard } from './DeviceActivityCard';
 import { HeartRateCard } from './HeartRateCard';
@@ -62,35 +62,37 @@ export function HomeScreen({
   const connected = connection.status === 'connected';
 
   return (
-    <Screen scroll bottomInset={bottomInset}>
-      <View style={styles.topBar}>
-        <Text style={[type.label, styles.date]} numberOfLines={1}>
-          <Text style={styles.greeting}>{greetingFor(new Date(now))}</Text>
-          {' · '}
-          {formatShortDate(new Date(now))}
-        </Text>
-        <View style={styles.topActions}>
-          <IconButton glyph="?" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
-          <Avatar
-            uri={profile?.avatarData ?? null}
-            name={profile?.name}
-            loading={profileLoading}
-            statusDot={connected}
-            onPress={onOpenSettings}
-            accessibilityLabel={connected ? 'Open settings. Device connected' : 'Open settings'}
-          />
-        </View>
-      </View>
+    <Screen
+      scroll
+      bottomInset={bottomInset}
+      hero={
+        <>
+          <View style={styles.topBar}>
+            <Text style={[type.label, styles.date]} numberOfLines={1}>
+              <Text style={styles.greeting}>{greetingFor(new Date(now))}</Text>
+              {' · '}
+              {formatShortDate(new Date(now))}
+            </Text>
+            <View style={styles.topActions}>
+              <IconButton glyph="?" variant="onAccent" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
+              <Avatar
+                uri={profile?.avatarData ?? null}
+                name={profile?.name}
+                loading={profileLoading}
+                statusDot={connected}
+                onPress={onOpenSettings}
+                accessibilityLabel={connected ? 'Open settings. Device connected' : 'Open settings'}
+              />
+            </View>
+          </View>
 
-      <View style={styles.header}>
-        <View style={styles.headerText}>
           <Text style={[type.title, styles.title]} accessibilityRole="header">
             {firstName ? `Welcome, ${firstName}!` : 'Welcome!'}
           </Text>
           <Text style={[type.body, styles.subtitle]}>Here is your daily summary</Text>
-        </View>
-      </View>
-
+        </>
+      }
+    >
       <HeartRateCard
         heartRate={heartRate}
         restingRange={restingRange}
@@ -124,19 +126,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.md,
   },
-  date: { flex: 1, color: colors.textMuted, marginRight: spacing.md },
-  greeting: { color: colors.textSecondary },
+  date: { flex: 1, color: colors.textOnAccentMuted, marginRight: spacing.md },
+  greeting: { color: colors.textOnAccent },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    padding: spacing.xl,
-    borderRadius: radius.xl,
-    backgroundColor: colors.accent,
-    ...elevation.hero,
-  },
-  headerText: { flex: 1 },
-  title: { color: colors.textOnAccent },
+  title: { color: colors.textOnAccent, marginTop: spacing.xl },
   subtitle: { color: colors.textOnAccentMuted, marginTop: spacing.xs },
 });

@@ -37,6 +37,7 @@ export const layout = {
   stageBarHeight: 12,
   waveformHeight: 32,
   sheetHandle: 40,
+  heroOverscroll: 1000,
 } as const;
 
 export const elevation = {
