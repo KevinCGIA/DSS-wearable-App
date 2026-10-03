@@ -1,16 +1,16 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { Logo } from '@/components/ui/Logo';
 import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, layout, spacing, type } from '@/theme';
 import type {
   AuthBusy,
   AuthConfirmation,
@@ -57,9 +57,7 @@ export function AuthScreen(props: AuthScreenProps) {
         hero={
           <View>
             <View style={styles.brandRow}>
-              <View style={styles.mark}>
-                <Feather name="activity" size={20} color={colors.textOnAccent} />
-              </View>
+              <Logo />
               <Text style={[type.subheading, styles.brand]}>DSS Wearables</Text>
             </View>
             <Text style={[type.title, styles.title]} accessibilityRole="header">
@@ -275,16 +273,6 @@ function FormCard(props: AuthScreenProps) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   brandRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
-  mark: {
-    width: layout.minTouch - spacing.xs,
-    height: layout.minTouch - spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.onAccentSurface,
-    borderWidth: 1,
-    borderColor: colors.onAccentBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   brand: { color: colors.textOnAccent, marginLeft: spacing.md },
   title: { color: colors.textOnAccent, marginTop: spacing.xxl },
   blurb: { color: colors.textOnAccentMuted, marginTop: spacing.xs },
