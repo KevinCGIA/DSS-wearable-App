@@ -4,7 +4,7 @@ import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import { AlertThresholdsScreen } from '@/features/alerts/AlertThresholdsScreen';
 import { BleProvider } from '@/features/devices/BleProvider';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
-import { FitnessScreen } from '@/features/fitness/FitnessScreen';
+import { FitnessContainer } from '@/features/fitness/FitnessContainer';
 import { HeartRateScreen } from '@/features/heart-rate/HeartRateScreen';
 import { HomeContainer } from '@/features/home/HomeContainer';
 import { NotificationsScreen } from '@/features/notifications/NotificationsScreen';
@@ -70,7 +70,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
             />
           ) : null}
           {tab === 'heart-rate' ? <HeartRateScreen bottomInset={tabBarBaseHeight} /> : null}
-          {tab === 'fitness' ? <FitnessScreen bottomInset={tabBarBaseHeight} /> : null}
+          {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
           {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
           {tab === 'settings' ? (
             <SettingsContainer

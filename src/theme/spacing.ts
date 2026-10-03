@@ -39,6 +39,7 @@ export const layout = {
   sheetHandle: 40,
   heroOverscroll: 1000,
   heroBackdrop: 640,
+  chartHeight: 140,
   heroRingCenterY: 56,
   heroRingInset: 84,
 } as const;
