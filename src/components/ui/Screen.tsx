@@ -12,6 +12,7 @@ type Props = {
   bottomInset?: number;
   hero?: React.ReactNode;
   heroBackground?: string;
+  heroOverlap?: boolean;
 };
 
 export function Screen({
@@ -23,6 +24,7 @@ export function Screen({
   bottomInset = 0,
   hero,
   heroBackground = colors.accent,
+  heroOverlap = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const withHero = Boolean(hero) && scroll;
@@ -47,11 +49,11 @@ export function Screen({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.hero, { backgroundColor: heroBackground }]}>
+          <View style={[styles.hero, heroOverlap && styles.heroTall, { backgroundColor: heroBackground }]}>
             <View style={[styles.overscroll, { backgroundColor: heroBackground }]} />
             {hero}
           </View>
-          <View style={[inner, styles.overlap, contentStyle]}>{children}</View>
+          <View style={[inner, heroOverlap && styles.overlap, contentStyle]}>{children}</View>
         </ScrollView>
       </View>
     );
@@ -80,8 +82,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: {
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: spacing.giant,
+    paddingBottom: spacing.xl,
   },
+  heroTall: { paddingBottom: spacing.giant },
   overscroll: { position: 'absolute', left: 0, right: 0, top: -layout.heroOverscroll, height: layout.heroOverscroll },
   overlap: { marginTop: -spacing.huge },
 });
