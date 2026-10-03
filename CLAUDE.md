@@ -722,3 +722,12 @@ Android bugs: see `ANDROID_BUGS.md`.
   1. Home still reads mock "no device" data, so connecting from Settings doesn't change Home yet. Pointing `useHomeData` at `useBle()` / the saved profile changes Home's data, not its UI.
   2. Photo picker (expo-image-picker).
 - **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
+
+### 2026-10-04 — Textured blue banner (all hero pages)
+- New primitive **`HeroBackdrop`**: a diagonal gradient (`colors.heroGradient`, blue500 → blue600), three faint white concentric rings top-right (`colors.heroRing`, echoing the logo's guide circles) and a soft white glow lower-left (`colors.heroGlow`). Sizes come from `layout.heroBackdrop/heroRingCenterY/heroRingInset`.
+- **`Screen` hero mode reworked:**
+  - The backdrop is **fixed** behind the page, and the hero content (transparent) scrolls over it.
+  - The grey body is an absolutely positioned "sheet" that slides up over the texture. It starts below the overlap on Home, so the cards still straddle the edge.
+  - A status-bar strip renders the same backdrop, so there's no seam when content scrolls under the clock.
+  - The unused `heroBackground` prop was removed. Applies to every page using `hero`: Home, Auth, Heart Rate, Fitness, Sleep, Settings and the sub-screens.
+- **Checked** with a headless-Edge screenshot of the web export (sign-in page). Typecheck clean, iOS + Android bundles build. Home's screen code is unchanged; only the shared banner background changed, as requested.
