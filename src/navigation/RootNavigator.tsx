@@ -8,7 +8,8 @@ import { FitnessContainer } from '@/features/fitness/FitnessContainer';
 import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
 import { HomeContainer } from '@/features/home/HomeContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
-import { PreferencesScreen } from '@/features/preferences/PreferencesScreen';
+import { PreferencesContainer } from '@/features/preferences/PreferencesContainer';
+import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import { PreviewsScreen } from '@/features/previews/PreviewsScreen';
 import { ProfileContainer } from '@/features/profile/ProfileContainer';
 import { ProfileProvider } from '@/features/profile/ProfileProvider';
@@ -29,6 +30,8 @@ type Props = {
 };
 
 export function RootNavigator({ displayName, onSignOut }: Props) {
+  // Subscribing re-renders the whole tree when text size changes (see applyTextScale).
+  usePreferences();
   const [tab, setTab] = useState<TabKey>('home');
   const [stack, setStack] = useState<StackRoute[]>([]);
 
@@ -147,7 +150,7 @@ function renderStackRoute(route: StackRoute, navigation: Navigation) {
         />
       );
     case 'preferences':
-      return <PreferencesScreen onBack={navigation.back} />;
+      return <PreferencesContainer onBack={navigation.back} />;
     case 'previews':
       return __DEV__ ? <PreviewsScreen entries={previewEntries} onBack={navigation.back} /> : null;
   }

@@ -26,3 +26,42 @@ export function measureError(
 export function formatMeasure(value: number | null): string {
   return value === null ? '' : String(value);
 }
+
+// Stored values are always metric (cm, kg), as on Android; imperial is display-only.
+export type Units = 'metric' | 'imperial';
+
+const CM_PER_IN = 2.54;
+const KG_PER_LB = 0.45359237;
+
+const round1 = (value: number) => Math.round(value * 10) / 10;
+
+export function heightFor(units: Units, cm: number | null): number | null {
+  return cm === null ? null : units === 'imperial' ? round1(cm / CM_PER_IN) : cm;
+}
+
+export function weightFor(units: Units, kg: number | null): number | null {
+  return kg === null ? null : units === 'imperial' ? round1(kg / KG_PER_LB) : kg;
+}
+
+export function heightToCm(units: Units, value: number | null): number | null {
+  return value === null ? null : units === 'imperial' ? round1(value * CM_PER_IN) : value;
+}
+
+export function weightToKg(units: Units, value: number | null): number | null {
+  return value === null ? null : units === 'imperial' ? round1(value * KG_PER_LB) : value;
+}
+
+export function heightRangeFor(units: Units) {
+  return units === 'imperial'
+    ? { min: Math.round(HEIGHT_RANGE.min / CM_PER_IN), max: Math.round(HEIGHT_RANGE.max / CM_PER_IN) }
+    : HEIGHT_RANGE;
+}
+
+export function weightRangeFor(units: Units) {
+  return units === 'imperial'
+    ? { min: Math.round(WEIGHT_RANGE.min / KG_PER_LB), max: Math.round(WEIGHT_RANGE.max / KG_PER_LB) }
+    : WEIGHT_RANGE;
+}
+
+export const unitLabels = (units: Units) =>
+  units === 'imperial' ? { height: 'in', weight: 'lb', distance: 'mi' } : { height: 'cm', weight: 'kg', distance: 'km' };

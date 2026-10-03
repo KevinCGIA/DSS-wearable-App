@@ -186,7 +186,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
 - [x] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
 - [x] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
-- [ ] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
+- [x] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
 
 ### Task 4: Polish and sign-off
 - [ ] Click through every flow:
@@ -840,3 +840,23 @@ Android bugs: see `ANDROID_BUGS.md`.
 - Home's avatar/greeting still use the session display name (Home profile stays a placeholder), so a photo or name changed in Profile doesn't show on Home yet.
 - **Checks:** typecheck clean, iOS + Android bundles build.
 - Follow-up: removed the made-up `tarun@example.com` from the mock profile (`mockProfile.email` is now `''`). In preview mode, Profile shows no email under the header, the password hint says "your account email", the Settings Profile row shows just the name, and Change Password says "Password reset email sent." without an address. A real signed-in account still shows its own email. (Form-input examples in the Auth and primitives previews are unchanged.)
+
+### 2026-10-04 — Task 3, screen 7: Preferences (done, awaiting review; Profile split approved) — **iOS only**
+- **`PreferencesScreen`** (props-only). Blue hero with back, then:
+  - **Text size:** Default / Large / X-Large, with a live sample of the chosen size before saving
+  - **Units:** Metric / Imperial, with a hint of what changes
+  - **Alert notifications** toggle
+  - Save (disabled until changed, "✓ Saved" when clean, "Preferences saved."). **Unsaved-changes guard** on ‹, hardware back and tab switch.
+- **Text size is real, app-wide:**
+  - `theme/typography.ts` gained `TEXT_SCALES` (1 / 1.15 / 1.3), `scaledType()` and `applyTextScale()`, which rescales the shared `type` tokens in place.
+  - `PreferencesProvider` (in `App.tsx`, around sign-in and the app) applies the scale on load and save, and `RootNavigator` subscribes so the whole tree re-renders with the new sizes. There's no remount, so navigation state is kept.
+  - It multiplies on top of iOS Dynamic Type.
+  - Checked visually: Home at X-Large via temporary web screenshot (entry restored).
+- **Units:**
+  - **Applied to Profile:** height in inches / weight in pounds, with labels, validation ranges and form values converted. Storage stays metric (cm/kg), so the data shape matches Android. Conversions are in `lib/measures.ts` (`heightFor/weightFor/heightToCm/weightToKg/heightRangeFor/weightRangeFor/unitLabels`).
+  - **Not yet applied:** Register (still cm/kg) and Home distance (shows "--" anyway; changing its "km" label touches Home's card).
+- **Notifications toggle:** saved now. **The Phase 2 alert engine must check it** before scheduling an `expo-notifications` local notification. Alerts are still recorded in Notifications either way.
+- **Storage:** `lib/preferences/preferencesStore.ts` on `AsyncStorage` (device-local, survives app restarts; Expo Go compatible).
+- **Previews:** Preferences (Default, Edited, Saving/saved), and Profile gained "Imperial".
+- **Task 3 complete.** Next is Task 4 (polish and sign-off), after approval.
+- **Checks:** typecheck clean, iOS + Android bundles build, Home and `app.json` untouched.
