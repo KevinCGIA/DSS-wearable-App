@@ -7,6 +7,7 @@ import { describeAuthError, isValidEmail } from '@/features/auth/authErrors';
 import { formatMeasure, HEIGHT_RANGE, measureError, parseMeasure, WEIGHT_RANGE } from '@/lib/measures';
 import { pickSquareImage } from '@/lib/pickImage';
 import { useNow } from '@/lib/useNow';
+import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
 import { accountService } from './accountService';
 
 export type ProfileForm = { name: string; height: string; weight: string };
@@ -54,6 +55,13 @@ export function useSettingsData(displayName: string, signOut: () => void) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const profileDirty =
+    profile !== null &&
+    (form.name !== toForm(profile).name ||
+      form.height !== toForm(profile).height ||
+      form.weight !== toForm(profile).weight);
+  useUnsavedChangesGuard(profileDirty, "Your profile changes haven't been saved.");
 
   const changeForm = useCallback((field: keyof ProfileForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
