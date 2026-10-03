@@ -177,7 +177,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
   - Auto-connect toggle and Paired devices (Connect / Forget with confirm) — the same components as Settings
   - Props: `onStartScan`, `onStopScan`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onBack`
 - [x] **Fitness tab**: Steps Today vs 10,000 goal (progress bar, "Goal reached!", "Updated x ago"), 24h steps-per-hour bar chart with Total. States: loading, error, no data ("No step data yet. Connect your wearable to start tracking.").
-- [ ] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
+- [x] **Heart Rate tab**: large BPM, Live badge, Updated/Last reading age, "from {device}", greyed when stale, no zones, 24h line chart with Min/Avg/Max (needs a `LineChart` primitive: Views, or `react-native-svg` via `npx expo install`, which is Expo Go–compatible and already in Android's deps), link to Alert Thresholds. States: loading, error, no data.
 - [ ] **Alert Thresholds** (iOS only, **no backend yet**): enable toggle, min/max HR steppers, validation (min < max, sensible range), Save
 - [ ] **Notifications** (iOS only, **no backend yet**): alerts grouped by day, with type icon, value and time, plus an empty state
 - [ ] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
@@ -755,4 +755,16 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Mock fix:** `heartRateHistory`/`stepsHistory` readings now sit strictly inside the 24 h window. A reading at exactly "now" fell outside the last bucket and was dropped from totals.
 - **Preview** `fitness.preview.tsx`: No data, Loading, Error, Filled, Goal reached. Checked visually via a temporary web-export screenshot (entry file restored afterwards).
 - **Known:** at night the mock still puts the full "today" total into the hours after midnight (one tall bar). Real data won't.
+- **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
+
+### 2026-10-04 — Task 3, screen 4: Heart Rate (done, awaiting review; Fitness approved)
+- **`HeartRateScreen`** (props-only, `HeartRateScreenProps`; Android `app/(auth)/heart-rate.tsx`). Blue hero "Heart Rate", then:
+  - **Live card** (Android `HeartRateDisplay` large): hero BPM + "BPM", "Live" pill (≤ 2 min) or "Last seen x ago", "Updated x ago" or greyed "Last reading x ago" (> 10 min), "from {device}", and a waveform that pulses when live. Empty: "--" + Android's "No readings yet…". Loading, error. **No zones** (UI change 1).
+  - **Last 24 hours card** (Android `SensorTrendChart` heart_rate): Min / Avg / Max over 30-minute averages (`averageByBucket`) + line chart with gaps for missing data. Empty: "No heart rate readings in the last 24 hours."
+  - **Resting heart rate card** (iOS extra, moved from Sleep in Task 2): Week/Month bars. Only shown when `restingTrends` is set, which is `null` in the real flow (no source).
+  - **Alert Thresholds** row → `alert-thresholds`.
+  - **`__DEV__` Development card:** "Add Test Reading" / "Add 24h of Sample Data" (Android's dev buttons), in memory.
+- **`useHeartRateData.ts`:** mock, starts empty. Dev actions update the latest reading + history; sample data stamps the newest reading as live. `HeartRateContainer` passes `onOpenAlertThresholds`.
+- **New primitive `TimeLineChart`:** a line drawn with rotated Views (no `react-native-svg`), y-range padded to tens, 6-hour ticks, gaps on null buckets, one accessibility summary.
+- **Preview** `heartRate.preview.tsx`: No data, Loading, Error, Live (BPM ticking via `useLiveHeartRate`, + resting trends), Stale (42 min old). Checked visually via a temporary web-export screenshot (entry restored).
 - **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
