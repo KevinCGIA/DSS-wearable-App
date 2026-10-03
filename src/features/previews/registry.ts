@@ -1,4 +1,5 @@
 import { primitivesPreview } from '@/components/ui/primitives.preview';
+import { notificationsPreview } from '@/features/notifications/notifications.preview';
 import { alertThresholdsPreview } from '@/features/alerts/alertThresholds.preview';
 import { authPreview } from '@/features/auth/auth.preview';
 import { devicesPreview } from '@/features/devices/devices.preview';
@@ -10,4 +11,4 @@ import { sleepPreview } from '@/features/sleep/sleep.preview';
 import type { PreviewEntry } from './types';
 
 // Add each screen's *.preview.tsx here as it is built.
-export const previewEntries: PreviewEntry[] = [authPreview, homePreview, sleepPreview, settingsPreview, devicesPreview, fitnessPreview, heartRatePreview, alertThresholdsPreview, primitivesPreview];
+export const previewEntries: PreviewEntry[] = [authPreview, homePreview, sleepPreview, settingsPreview, devicesPreview, fitnessPreview, heartRatePreview, alertThresholdsPreview, notificationsPreview, primitivesPreview];
