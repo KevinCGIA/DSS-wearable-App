@@ -49,6 +49,8 @@ export default function Settings() {
       const firestore = getFirestore();
       const user = auth.currentUser;
 
+      let googleProfilePictureUrl = "";
+
       if (!user) {
         return;
       }
@@ -64,6 +66,8 @@ export default function Settings() {
         setName(data?.name || "");
         setHeight(data?.height || "");
         setWeight(data?.weight || "");
+
+        googleProfilePictureUrl = data?.profilePictureUrl || "";
       }
 
       // Load profile picture
@@ -79,10 +83,18 @@ export default function Settings() {
 
       if (avatarDoc.exists()) {
         const avatarData = avatarDoc.data();
+        const customProfilePicture = avatarData?.imageData || "";
 
-        setProfilePictureData(
-          avatarData?.imageData || ""
-        );
+        if (customProfilePicture) {
+          // Custom uploaded picture gets first priority
+          setProfilePictureData(customProfilePicture);
+        } else {
+          // Fall back to the Google profile picture
+          setProfilePictureData(googleProfilePictureUrl);
+        }
+      } else {
+        // No custom picture exists, so use the Google profile picture
+        setProfilePictureData(googleProfilePictureUrl);
       }
     } catch (e: any) {
       Alert.alert(
@@ -196,6 +208,40 @@ export default function Settings() {
   };
 
   const saveProfile = async () => {
+    // Validate height if the user entered one
+    if (height.trim() !== "") {
+      const heightNumber = Number(height);
+
+      if (
+        !Number.isFinite(heightNumber) ||
+        heightNumber < 50 ||
+        heightNumber > 250
+      ) {
+        Alert.alert(
+          "Invalid Height",
+          "Please enter a height between 50 and 250 cm."
+        );
+        return;
+      }
+    }
+
+    // Validate weight if the user entered one
+    if (weight.trim() !== "") {
+      const weightNumber = Number(weight);
+
+      if (
+        !Number.isFinite(weightNumber) ||
+        weightNumber < 2 ||
+        weightNumber > 500
+      ) {
+        Alert.alert(
+          "Invalid Weight",
+          "Please enter a weight between 2 and 500 kg."
+        );
+        return;
+      }
+    }
+
     try {
       const auth = getAuth();
       const firestore = getFirestore();
