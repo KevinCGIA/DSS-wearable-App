@@ -501,3 +501,8 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **iOS change vs Android, Home layout:** Android shows battery as "🔋 85%" under the device circle. iOS shows it inline as "CONNECTED · 85%".
 - The old Home area tiles, `AreaKey` and Home's use of `src/data/sleep.ts` are removed. (`SleepScreen` still uses `sleep.ts` until the Task 2 Sleep refactor.)
 - **Checks:** `npm run typecheck` is clean, and `npx expo export` bundles for iOS and Android. Not yet clicked through on a device.
+
+### 2026-10-04 — Home header on a blue bar
+- The Home header ("Welcome, {name}!", "Here is your daily summary", **?** help button) now sits on a solid `colors.accent` bar (the same blue as the Fitness tab button, "BPM", Live pill dot and progress bars). It uses `radius.xl` and `elevation.hero`, white title and 82%-white subtitle.
+- `IconButton` gained an `onAccent` variant (translucent white fill, white outline, white glyph) for buttons on blue.
+- New tokens: `colors.textOnAccentMuted`, `colors.onAccentSurface`, `colors.onAccentBorder`.

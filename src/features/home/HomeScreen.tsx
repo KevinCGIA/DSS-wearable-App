@@ -12,7 +12,7 @@ import type {
 } from '@/data/types';
 import { formatShortDate } from '@/lib/time';
 import type { TabKey } from '@/navigation/routes';
-import { colors, spacing, type } from '@/theme';
+import { colors, elevation, radius, spacing, type } from '@/theme';
 import { ActiveCaloriesCard } from './ActiveCaloriesCard';
 import { DeviceActivityCard } from './DeviceActivityCard';
 import { HeartRateCard } from './HeartRateCard';
@@ -90,7 +90,7 @@ export function HomeScreen({
           </Text>
           <Text style={[type.body, styles.subtitle]}>Here is your daily summary</Text>
         </View>
-        <IconButton glyph="?" variant="outlined" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
+        <IconButton glyph="?" variant="onAccent" accessibilityLabel="Help" onPress={() => setHelpOpen(true)} />
       </View>
 
       <HeartRateCard
@@ -126,8 +126,16 @@ const styles = StyleSheet.create({
   },
   date: { color: colors.textMuted },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    padding: spacing.xl,
+    borderRadius: radius.xl,
+    backgroundColor: colors.accent,
+    ...elevation.hero,
+  },
   headerText: { flex: 1, marginRight: spacing.md },
-  title: { color: colors.text },
-  subtitle: { color: colors.textMuted, marginTop: spacing.xs },
+  title: { color: colors.textOnAccent },
+  subtitle: { color: colors.textOnAccentMuted, marginTop: spacing.xs },
 });
