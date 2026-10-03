@@ -4,6 +4,7 @@ import type {
   BluetoothState,
   ConnectionState,
   ConnectionStatus,
+  DailyActivityExtras,
   HistoryState,
   LatestReadingState,
   PairedDevice,
@@ -212,7 +213,7 @@ export function stepsHistory(todayTotal = 6842): HistoryState {
 export const mockSleep: SleepSummary = {
   totalMinutes: 462,
   score: 86,
-  rating: 'Good',
+  rating: 'Optimal',
   start: '12:57am',
   end: '9:07am',
   stages: [
@@ -284,6 +285,20 @@ export const mockAlerts: AlertItem[] = [
   },
 ];
 
+export const noActivityExtras: DailyActivityExtras = {
+  distanceKm: null,
+  floors: null,
+  activeCalories: null,
+  calorieTarget: 600,
+};
+
+export const mockActivityExtras: DailyActivityExtras = {
+  distanceKm: 4.8,
+  floors: 12,
+  activeCalories: 486,
+  calorieTarget: 600,
+};
+
 export const defaultPreferences: Preferences = {
   textScale: 'default',
   units: 'metric',
@@ -297,6 +312,7 @@ export const noDeviceMock = {
   heartRate: emptyLatest,
   steps: { ...emptyLatest },
   sleep: null as SleepSummary | null,
+  activity: noActivityExtras,
   pairedDevices: [] as PairedDevice[],
   autoConnect: true,
 };
@@ -307,6 +323,7 @@ export const connectedMock = {
   heartRate: heartRateLatest(),
   steps: stepsLatest(),
   sleep: mockSleep,
+  activity: mockActivityExtras,
   pairedDevices: mockPairedDevices,
   autoConnect: true,
 };

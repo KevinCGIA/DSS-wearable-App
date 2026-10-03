@@ -113,3 +113,10 @@ export type Preferences = {
   units: 'metric' | 'imperial';
   notifications: boolean;
 };
+
+export type DailyActivityExtras = {
+  distanceKm: number | null;
+  floors: number | null;
+  activeCalories: number | null;
+  calorieTarget: number;
+};

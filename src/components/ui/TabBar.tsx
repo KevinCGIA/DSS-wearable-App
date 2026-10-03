@@ -3,12 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabKey } from '@/navigation/routes';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, elevation, layout, radius, spacing, type } from '@/theme';
 
-const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap; raised?: boolean }[] = [
   { key: 'home', label: 'Home', icon: 'home' },
   { key: 'heart-rate', label: 'Heart Rate', icon: 'heart' },
-  { key: 'fitness', label: 'Fitness', icon: 'activity' },
+  { key: 'fitness', label: 'Fitness', icon: 'activity', raised: true },
   { key: 'sleep', label: 'Sleep', icon: 'moon' },
   { key: 'settings', label: 'Settings', icon: 'settings' },
 ];
@@ -28,6 +28,7 @@ export function TabBar({ active, onChange }: Props) {
     >
       {tabs.map((tab) => {
         const selected = tab.key === active;
+        const tint = selected ? colors.accentText : colors.textMuted;
         return (
           <Pressable
             key={tab.key}
@@ -37,18 +38,16 @@ export function TabBar({ active, onChange }: Props) {
             accessibilityLabel={tab.label}
             accessibilityState={{ selected }}
           >
-            <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
-              <Feather
-                name={tab.icon}
-                size={20}
-                color={selected ? colors.accentText : colors.textMuted}
-              />
-            </View>
-            <Text
-              style={[type.caption, { color: selected ? colors.accentText : colors.textMuted }]}
-              numberOfLines={1}
-              maxFontSizeMultiplier={1.3}
-            >
+            {tab.raised ? (
+              <View style={styles.fab}>
+                <Feather name={tab.icon} size={24} color={colors.textOnAccent} />
+              </View>
+            ) : (
+              <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+                <Feather name={tab.icon} size={20} color={tint} />
+              </View>
+            )}
+            <Text style={[type.caption, { color: tint }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
               {tab.label}
             </Text>
           </Pressable>
@@ -58,7 +57,7 @@ export function TabBar({ active, onChange }: Props) {
   );
 }
 
-export const tabBarBaseHeight = layout.tabBarHeight;
+export const tabBarBaseHeight = layout.tabBarHeight + layout.tabFabLift;
 
 const styles = StyleSheet.create({
   bar: {
@@ -67,6 +66,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     flexDirection: 'row',
+    alignItems: 'flex-end',
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
@@ -80,4 +80,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   iconWrapActive: { backgroundColor: colors.accentSurface },
+  fab: {
+    width: layout.tabFab,
+    height: layout.tabFab,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    borderWidth: spacing.xs,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -layout.tabFabLift,
+    marginBottom: spacing.xs,
+    ...elevation.fab,
+  },
 });
