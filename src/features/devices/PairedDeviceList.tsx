@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import type { ConnectionState, PairedDevice } from '@/data/types';
 import { formatAge } from '@/lib/time';
+import { isBusy } from './bluetoothText';
 import { colors, layout, spacing, type } from '@/theme';
 
 type Props = {
@@ -15,7 +16,7 @@ type Props = {
 
 // Android: components/PairedDeviceList.tsx
 export function PairedDeviceList({ pairedDevices, connection, now, onConnect, onForgetDevice }: Props) {
-  const busy = connection.status !== 'disconnected' && connection.status !== 'connected';
+  const busy = isBusy(connection);
 
   if (pairedDevices.length === 0) {
     return (

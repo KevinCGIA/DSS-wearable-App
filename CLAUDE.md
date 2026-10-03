@@ -170,7 +170,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 
 ### Task 3: Build the missing and placeholder screens (in this order)
 - [x] **Settings** (one page, per the Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
-- [ ] **Devices** (Android route `devices`):
+- [x] **Devices** (Android route `devices`):
   - Connection card for all six states: connecting (attempt n), discovering ("Setting up device..."), reconnecting (attempt n), disconnecting, failed (`error` on disconnected), connected (battery + Disconnect). **Cancel** for pending states.
   - Bluetooth banners: PoweredOff / Unauthorized / Unsupported / Resetting. Scan error banner.
   - Scan / Stop Scanning (disabled while busy). Scan results sorted by RSSI with an HR-capable marker, signal bars + label, and "Current" / "Connect". Empty text for scanning and idle.
@@ -731,3 +731,15 @@ Android bugs: see `ANDROID_BUGS.md`.
   - A status-bar strip renders the same backdrop, so there's no seam when content scrolls under the clock.
   - The unused `heroBackground` prop was removed. Applies to every page using `hero`: Home, Auth, Heart Rate, Fitness, Sleep, Settings and the sub-screens.
 - **Checked** with a headless-Edge screenshot of the web export (sign-in page). Typecheck clean, iOS + Android bundles build. Home's screen code is unchanged; only the shared banner background changed, as requested.
+
+### 2026-10-04 — Task 3, screen 2: Devices (done, awaiting review)
+- **`DevicesScreen`** (props-only, `DevicesScreenProps`; Android `app/(auth)/devices.tsx`). Blue hero "Devices" with back, then:
+  - **`ConnectionCard`:** a ring (grey idle / blue connected / spinner pending / red failed) and Android's exact texts. "Connecting (attempt n)…", "Connection lost, reconnecting (attempt n)…", "Setting up device…", "● Connected" + battery, "Disconnecting…", "No device connected" + red error. **Cancel** while pending, **Disconnect** when connected.
+  - **Bluetooth banners:** a warning banner for PoweredOff / Unauthorized / Unsupported / Resetting (Android's `describeBluetoothState` wording), and a scan error banner when there's no Bluetooth problem.
+  - **Nearby devices:** Scan for Devices / Stop Scanning (disabled while busy or on a Bluetooth problem), a spinner while scanning, and rows sorted by RSSI. Each row has a heart marker for heart-rate devices, `SignalBars` + "Strong/Good/Weak signal · −54 dBm", and "Connect" / "Current". Empty text for scanning and idle.
+  - **Paired devices:** the Auto-connect toggle + the shared `PairedDeviceList` (Connect / Forget with confirm).
+- **`DevicesContainer`** reads `useBle()` and stops scanning on leave (as Android does). Prop names map 1:1 to `useBle()`: `onStartScan/onStopScan/onConnect/onDisconnect/onForgetDevice/onSetAutoConnect/onBack`.
+- **`devices.preview.tsx`** has 12 states: Idle, Scanning, Results, Connecting, Setting up, Connected, Reconnecting, Disconnecting, Failed, Bluetooth off, Permission denied, No paired.
+- **Shared code:** `devices/bluetoothText.ts` (Bluetooth messages, signal strength, `isBusy`, `confirmForget`, now also used by Settings). New primitive `SignalBars`.
+- The mock BLE is always `PoweredOn`, so the Bluetooth banners are only visible in Previews until Phase 2.
+- **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
