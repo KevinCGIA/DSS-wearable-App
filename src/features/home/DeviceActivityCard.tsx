@@ -4,6 +4,8 @@ import { Feather } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
 import type { DailyActivityExtras } from '@/data/types';
+import { distanceFor, unitLabels } from '@/lib/measures';
+import type { Units } from '@/lib/measures';
 import { colors, layout, radius, spacing, type } from '@/theme';
 import type { DeviceTone, DeviceView } from './homeModel';
 
@@ -12,6 +14,7 @@ type Props = {
   refreshing: boolean;
   stepsToday: number;
   activity: DailyActivityExtras;
+  units: Units;
   onRefresh: () => void;
   onOpenDevices: () => void;
   onOpenFitness: () => void;
@@ -29,6 +32,7 @@ export function DeviceActivityCard({
   refreshing,
   stepsToday,
   activity,
+  units,
   onRefresh,
   onOpenDevices,
   onOpenFitness,
@@ -37,6 +41,7 @@ export function DeviceActivityCard({
   const statusLine = device.status
     ? `${device.status}${device.battery !== null ? ` · ${device.battery}%` : ''}`
     : null;
+  const distance = distanceFor(units, activity.distanceKm);
   const canSync = device.tone === 'active' || device.tone === 'failed';
 
   return (
@@ -90,8 +95,8 @@ export function DeviceActivityCard({
           <ActivityRow label="Steps" value={stepsToday.toLocaleString()} />
           <ActivityRow
             label="Distance"
-            value={activity.distanceKm !== null ? activity.distanceKm.toFixed(1) : '--'}
-            unit={activity.distanceKm !== null ? 'km' : undefined}
+            value={distance !== null ? distance.toFixed(1) : '--'}
+            unit={distance !== null ? unitLabels(units).distance : undefined}
           />
           <ActivityRow label="Floors" value={activity.floors !== null ? String(activity.floors) : '--'} />
         </Pressable>

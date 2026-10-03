@@ -10,6 +10,8 @@ import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
+import { unitLabels } from '@/lib/measures';
+import type { Units } from '@/lib/measures';
 import { colors, layout, spacing, type } from '@/theme';
 import type {
   AuthBusy,
@@ -21,6 +23,7 @@ import type {
 } from './authErrors';
 
 export type AuthScreenProps = {
+  units: Units;
   mode: AuthMode;
   values: AuthFormValues;
   avatarUri: string | null;
@@ -113,6 +116,7 @@ function ConfirmationCard({
 
 function FormCard(props: AuthScreenProps) {
   const {
+    units,
     mode,
     values,
     avatarUri,
@@ -170,7 +174,7 @@ function FormCard(props: AuthScreenProps) {
             />
             <View style={styles.row}>
               <TextField
-                label="Height (cm)"
+                label={`Height (${unitLabels(units).height})`}
                 value={values.height}
                 onChangeText={(v) => onChangeValue('height', v)}
                 placeholder="Optional"
@@ -179,7 +183,7 @@ function FormCard(props: AuthScreenProps) {
                 style={styles.half}
               />
               <TextField
-                label="Weight (kg)"
+                label={`Weight (${unitLabels(units).weight})`}
                 value={values.weight}
                 onChangeText={(v) => onChangeValue('weight', v)}
                 placeholder="Optional"

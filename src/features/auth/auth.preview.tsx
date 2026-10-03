@@ -6,6 +6,7 @@ import type { AuthScreenProps } from './AuthScreen';
 const noop = () => undefined;
 
 const base: AuthScreenProps = {
+  units: 'metric',
   mode: 'login',
   values: { name: '', height: '', weight: '', email: '', password: '', confirmPassword: '' },
   avatarUri: null,
@@ -91,6 +92,10 @@ export const authPreview: PreviewEntry = {
     {
       label: 'Reset sent',
       render: () => <AuthScreen {...base} confirmation={{ kind: 'reset-sent', email: 'tarun@example.com' }} />,
+    },
+    {
+      label: 'Register imperial',
+      render: () => <AuthScreen {...base} mode="register" units="imperial" />,
     },
     { label: 'Preview mode', render: () => <AuthScreen {...base} previewMode onPreview={noop} /> },
   ],

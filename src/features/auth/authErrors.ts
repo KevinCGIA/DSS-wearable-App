@@ -1,4 +1,5 @@
-import { HEIGHT_RANGE, measureError, WEIGHT_RANGE } from '@/lib/measures';
+import { heightRangeFor, measureError, weightRangeFor } from '@/lib/measures';
+import type { Units } from '@/lib/measures';
 
 const messages: Record<string, string> = {
   'auth/invalid-email': "That email address doesn't look right. Check it and try again.",
@@ -52,7 +53,7 @@ export function isValidEmail(email: string): boolean {
   return EMAIL.test(email.trim());
 }
 
-export function validateAuthInput(mode: AuthMode, values: AuthFormValues): AuthFieldErrors {
+export function validateAuthInput(mode: AuthMode, values: AuthFormValues, units: Units = 'metric'): AuthFieldErrors {
   const errors: AuthFieldErrors = {};
 
   if (!isValidEmail(values.email)) {
@@ -69,9 +70,10 @@ export function validateAuthInput(mode: AuthMode, values: AuthFormValues): AuthF
   if (values.confirmPassword !== values.password) {
     errors.confirmPassword = 'Passwords do not match.';
   }
-  const height = measureError(values.height, HEIGHT_RANGE, 'Enter a height in cm');
+  const imperial = units === 'imperial';
+  const height = measureError(values.height, heightRangeFor(units), imperial ? 'Enter a height in inches' : 'Enter a height in cm');
   if (height) errors.height = height;
-  const weight = measureError(values.weight, WEIGHT_RANGE, 'Enter a weight in kg');
+  const weight = measureError(values.weight, weightRangeFor(units), imperial ? 'Enter a weight in pounds' : 'Enter a weight in kg');
   if (weight) errors.weight = weight;
 
   return errors;

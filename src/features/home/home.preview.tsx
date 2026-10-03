@@ -21,6 +21,7 @@ const base: Omit<HomeScreenProps, 'now'> = {
   ...noDeviceMock,
   profileLoading: false,
   refreshing: false,
+  units: 'metric',
   restingRange: null,
   bottomInset: 0,
   onRefresh: noop,
@@ -56,6 +57,7 @@ export const homePreview: PreviewEntry = {
       render: () => <HomeScreen {...connected()} refreshing now={Date.now()} />,
     },
     { label: 'Connected', render: () => <LiveConnectedHome /> },
+    { label: 'Imperial', render: () => <HomeScreen {...connected()} units="imperial" now={Date.now()} /> },
     {
       label: 'Failed',
       render: () => (
