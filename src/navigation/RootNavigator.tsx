@@ -3,7 +3,7 @@ import { BackHandler, StyleSheet, View } from 'react-native';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import { AlertThresholdsScreen } from '@/features/alerts/AlertThresholdsScreen';
 import { BleProvider } from '@/features/devices/BleProvider';
-import { DevicesScreen } from '@/features/devices/DevicesScreen';
+import { DevicesContainer } from '@/features/devices/DevicesContainer';
 import { FitnessScreen } from '@/features/fitness/FitnessScreen';
 import { HeartRateScreen } from '@/features/heart-rate/HeartRateScreen';
 import { HomeContainer } from '@/features/home/HomeContainer';
@@ -100,7 +100,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
 function renderStackRoute(route: StackRoute, navigation: Navigation) {
   switch (route) {
     case 'devices':
-      return <DevicesScreen onBack={navigation.back} />;
+      return <DevicesContainer onBack={navigation.back} />;
     case 'alert-thresholds':
       return <AlertThresholdsScreen onBack={navigation.back} />;
     case 'notifications':

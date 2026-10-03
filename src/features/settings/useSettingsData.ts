@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import type { PairedDevice, UserProfile } from '@/data/types';
 import { useBle } from '@/features/devices/BleProvider';
+import { confirmForget } from '@/features/devices/bluetoothText';
 import { describeAuthError, isValidEmail } from '@/features/auth/authErrors';
 import { formatMeasure, HEIGHT_RANGE, measureError, parseMeasure, WEIGHT_RANGE } from '@/lib/measures';
 import { useNow } from '@/lib/useNow';
@@ -135,13 +136,7 @@ export function useSettingsData(displayName: string, signOut: () => void) {
     }
   };
 
-  // Android: confirmForget in components/PairedDeviceList.tsx
-  const forgetDevice = (device: PairedDevice) => {
-    Alert.alert('Forget Device', `Remove ${device.name}? You'll need to scan for it again to reconnect.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Forget', style: 'destructive', onPress: () => ble.forgetDevice(device.deviceId) },
-    ]);
-  };
+  const forgetDevice = (device: PairedDevice) => confirmForget(device, ble.forgetDevice);
 
   // Android: logout in app/(auth)/settings.tsx
   const logout = () => {
