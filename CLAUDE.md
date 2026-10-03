@@ -199,10 +199,10 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [ ] Replace the default Expo app icon and splash with the DSS icon (the accent-blue chevron matching the Home design), and check the app name shows as "DSS Wearables" on the iPhone home screen.
   - Status: icons were generated on 2026-10-04 by `scripts/generate-logo.mjs` (`icon.png`, `splash-icon.png`, Android adaptive icons, favicon).
   - Still to do: wire the splash in `app.json` (needs OK, Rule 8), and verify both the icon and the name in a real build. Expo Go shows its own icon.
-- [ ] **Units gap 1: Register.** Read the saved Preferences units (`usePreferences()`; `PreferencesProvider` already wraps sign-in) and show Height (in) / Weight (lb) with the converted ranges. Convert back with `heightToCm` / `weightToKg` before `signUp`, so storage stays cm/kg like Android.
-- [ ] **Units gap 2: Home distance label.** Show "mi" instead of the hard-coded "km" when Imperial is set, converting the value (km → mi), in `DeviceActivityCard`'s distance row. Label and value only, no layout change. It matters for Phase 2 real distance, and for test data now (test steps already fill Distance in km).
+- [x] **Units gap 1: Register.** Read the saved Preferences units (`usePreferences()`; `PreferencesProvider` already wraps sign-in) and show Height (in) / Weight (lb) with the converted ranges. Convert back with `heightToCm` / `weightToKg` before `signUp`, so storage stays cm/kg like Android.
+- [x] **Units gap 2: Home distance label.** Show "mi" instead of the hard-coded "km" when Imperial is set, converting the value (km → mi), in `DeviceActivityCard`'s distance row. Label and value only, no layout change. It matters for Phase 2 real distance, and for test data now (test steps already fill Distance in km).
 - [ ] No typecheck errors and no yellow-box warnings
-- [ ] Write a **UI Sign-off** section in the Progress Log listing every screen, its props type, and its container/hook
+- [x] Write a **UI Sign-off** section in the Progress Log listing every screen, its props type, and its container/hook
 - [ ] **Stop. Wait for me to say "start Phase 2".**
 
 ---
@@ -885,3 +885,64 @@ Android bugs: see `ANDROID_BUGS.md`.
   - FAILED: retries the most recent paired device (like Android's auto-connect).
 - **Not added:** the simulated watch doesn't generate heart-rate readings while connected (Android saves one every 60 s from a real watch). The Heart Rate card still uses the test buttons until Phase 2.
 - Follow-up (Home tweak, requested): removed the "Tap to sync" / "Syncing…" text beside the sync button (the status line already shows CONNECTED / SYNCING; "Tap to retry" stays for FAILED), and centred the "TODAY'S ACTIVITY" heading over its column.
+
+### 2026-10-04 — Task 4: polish and UI Sign-off (awaiting phone click-through + approval)
+
+**Polish done:**
+- **Register follows the units preference:** Height (in) / Weight (lb), converted ranges ("Enter a height in inches between 20 and 98"), saved as cm/kg. `validateAuthInput(mode, values, units)`; the `PreferencesProvider` already wraps sign-in.
+- **Home distance follows units:** label "km" or "mi" with the value converted (`distanceFor`). Home gets a `units` prop from `useHomeData`, no layout change. New Home preview "Imperial", Auth preview "Register imperial".
+- **Warnings check:** a dev web build mounted every preview state of every screen (73 states) and captured the console. **No React warnings** (keys, props, unmounted updates).
+  - Fixed: "props.pointerEvents is deprecated", moved to `style.pointerEvents` in `Screen` and `HeroBackdrop`.
+  - Web-only, not applicable on device: password field not in a `<form>`, `useNativeDriver` unsupported, `shadow*` → `boxShadow`.
+- **Still open in Task 4:**
+  - Tarun's phone click-through (all screens/states) + yellow-box check on device
+  - Android side-by-side
+  - Sizes at 375 / 430 widths (web screenshots can't verify reliably: the headless viewport clips; needs a small device/emulator or PL's simulator)
+  - Splash wiring (`app.json`, needs OK)
+  - App name check in a real build
+
+**Android comparison (vs `feature/ble-connection`):**
+
+| Area | Android | iOS | Same? |
+|---|---|---|---|
+| Tabs | Home, Heart Rate, Fitness, Sleep, Settings (Ionicons) | Same 5 in the same order (Feather); Fitness is a raised centre button | ✓ structure |
+| Home order | Header → avatar → Heart Rate → Device + Activity → Sleep → Calories → Log Out | Same order, minus Log Out (moved to Settings), plus Help "?" | ✓ (iOS diffs logged) |
+| Avatar tap | Settings tab | **Profile screen** (iOS split) | iOS diff |
+| Device tap | Devices | Devices | ✓ |
+| HR / Activity / Sleep / Calories taps | not tappable | → Heart Rate / Fitness / Sleep / Fitness | iOS improvement |
+| Heart Rate tab | live BPM, Live/Updated/stale, from device, 24 h line Min/Avg/Max, dev buttons | same + Alert Thresholds link + resting trend (data only) | ✓ + extras |
+| Fitness tab | Steps Today vs 10,000, 24 h steps/hour + Total, dev buttons | same | ✓ |
+| Sleep tab | placeholder | full design, empty by default | iOS ahead |
+| Devices | 6 states + Cancel, BT banners, scan list, paired + auto-connect | same wording and logic | ✓ |
+| Settings | one page (profile, devices, email/password, log out) | Settings (Profile row, devices, alerts, prefs, log out) + separate Profile | iOS diff |
+| Auth | Landing → Login / Register routes, alerts | one screen with segmented switch, inline banners, same fields + Forgot password | ✓ actions |
+| Alerts / Notifications / Preferences | none | iOS only, local stores | iOS only |
+
+**UI Sign-off: every screen**
+
+| Screen | File | Props type | Container | Hook / data source | Preview states |
+|---|---|---|---|---|---|
+| Auth | `features/auth/AuthScreen.tsx` | `AuthScreenProps` | `AuthContainer` | `useAuthForm` → `authService` (Firebase JS / preview), `useAuthSession` | 10 |
+| Home | `features/home/HomeScreen.tsx` | `HomeScreenProps` | `HomeContainer` | `useHomeData` → `useBle`, `useProfile`, readings store, `usePreferences`, `testExtras` | 6 |
+| Heart Rate | `features/heart-rate/HeartRateScreen.tsx` | `HeartRateScreenProps` | `HeartRateContainer` | `useHeartRateData` → readings store | 5 |
+| Fitness | `features/fitness/FitnessScreen.tsx` | `FitnessScreenProps` | `FitnessContainer` | `useFitnessData` → readings store | 5 |
+| Sleep | `features/sleep/SleepScreen.tsx` | `SleepScreenProps` | `SleepContainer` | `useSleepData` → `testExtras` (no source) | 4 |
+| Settings | `features/settings/SettingsScreen.tsx` | `SettingsScreenProps` | `SettingsContainer` | `useSettingsData` → `useBle`, `useProfile` | 5 |
+| Profile | `features/profile/ProfileScreen.tsx` | `ProfileScreenProps` | `ProfileContainer` | `useProfileData` → `ProfileProvider` / `accountService`, `usePreferences` | 8 |
+| Devices | `features/devices/DevicesScreen.tsx` | `DevicesScreenProps` | `DevicesContainer` | `useBle` (`BleProvider`) | 12 |
+| Alert Thresholds | `features/alerts/AlertThresholdsScreen.tsx` | `AlertThresholdsScreenProps` | `AlertThresholdsContainer` | `useAlertThresholds` → `lib/alerts/thresholds` | 7 |
+| Notifications | `features/notifications/NotificationsScreen.tsx` | `NotificationsScreenProps` | `NotificationsContainer` | `useNotifications` → `lib/alerts/alertHistory` | 4 |
+| Preferences | `features/preferences/PreferencesScreen.tsx` | `PreferencesScreenProps` | `PreferencesContainer` | `usePreferencesForm` → `PreferencesProvider` (`AsyncStorage`) | 3 |
+| Previews (dev) | `features/previews/PreviewsScreen.tsx` | inline | — | `registry.ts` | — |
+
+**Phase 2 swap points (screens stay unchanged):**
+
+| Swap point | Replace with |
+|---|---|
+| `features/devices/BleProvider.tsx` | Android's `services/ble/BleContext.tsx` + `BleService.ts` |
+| `lib/sensors/readings.ts` (+ hooks keep their names) | Android's `services/sensors/readings.ts` (Firestore) |
+| `features/auth/authService.ts` | `@react-native-firebase` auth + Google Sign-In |
+| `features/profile/accountService.ts` / `ProfileProvider` | `users/{uid}` + `private/avatarData` |
+| `lib/alerts/thresholds.ts` / `alertHistory.ts` | new Firestore paths + alert engine |
+| `lib/sensors/testExtras.ts` | delete once real sources exist |
+| `lib/preferences` | keep (device-local) |
