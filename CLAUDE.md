@@ -545,3 +545,15 @@ Android bugs: see `ANDROID_BUGS.md`.
 - `src/data/sleep.ts` deleted. Its series moved to `mockSleepTrends` (+ `TrendPoint`, `SleepTrends`, `RestingHrTrends` types).
 
 **Checks:** `npm run typecheck` is clean, `npx expo export` bundles for iOS and Android, and `git diff` shows no change to `features/home`, `Screen` or `HeroHeader`. Not yet clicked through on a device.
+
+### 2026-10-04 — DSS Wearables logo
+- **New logo** (from Tarun's reference): a rounded blue chevron (gradient `blue500` → `blue400`) on a light-blue `blue50` rounded square.
+- **Generator:** `scripts/generate-logo.mjs` draws it mathematically with anti-aliased edges and writes every asset. Run `node scripts/generate-logo.mjs`. It uses `pngjs` (already in `node_modules` via Expo, not a direct dependency).
+- **Assets written:**
+  - `icon.png`: iOS app icon, 1024, opaque, full-bleed
+  - `logo.png`: in-app, 512, rounded corners
+  - `splash-icon.png`: mark only, transparent
+  - `favicon.png`
+  - `android-icon-foreground/background/monochrome.png`: mark inside the adaptive-icon safe zone
+- **New primitive `Logo`** (`assets/logo.png`, default 44pt, labelled for VoiceOver). The login page now uses it in place of the old activity-icon box. Home is unchanged (it has no logo).
+- **Not wired:** `app.json` has no splash image configured (`expo-splash-screen` has no options), so `splash-icon.png` is ready but unused. Wiring it needs an `app.json` change, which Rule 8 limits to `supportsTablet`. Awaiting OK.
