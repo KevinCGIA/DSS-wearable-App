@@ -7,6 +7,7 @@ import type { ProfileScreenProps } from './ProfileScreen';
 const noop = () => undefined;
 
 const base: ProfileScreenProps = {
+  units: 'metric',
   profile: mockProfile,
   profileLoading: false,
   profileError: null,
@@ -34,6 +35,10 @@ export const profilePreview: PreviewEntry = {
   group: 'Screens',
   states: [
     { label: 'Default', render: () => <ProfileScreen {...base} /> },
+    {
+      label: 'Imperial',
+      render: () => <ProfileScreen {...base} units="imperial" form={{ name: mockProfile.name, height: '70.1', weight: '158.7' }} />,
+    },
     { label: 'Loading', render: () => <ProfileScreen {...base} profile={null} profileLoading /> },
     {
       label: 'Load error',

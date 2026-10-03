@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { UserProfile } from '@/data/types';
 import { describeAuthError, isValidEmail } from '@/features/auth/authErrors';
-import { formatMeasure, HEIGHT_RANGE, measureError, parseMeasure, WEIGHT_RANGE } from '@/lib/measures';
+import { usePreferences } from '@/features/preferences/PreferencesProvider';
+import {
+  formatMeasure,
+  heightFor,
+  heightRangeFor,
+  heightToCm,
+  measureError,
+  parseMeasure,
+  weightFor,
+  weightRangeFor,
+  weightToKg,
+} from '@/lib/measures';
+import type { Units } from '@/lib/measures';
 import { pickSquareImage } from '@/lib/pickImage';
 import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
 import { accountService } from './accountService';
@@ -15,14 +27,15 @@ export type ProfileFormErrors = Partial<Record<keyof ProfileForm, string>>;
 export type ProfileNotice = { tone: 'success' | 'error' | 'info'; message: string };
 export type AccountBusy = 'email' | 'password' | null;
 
-const toForm = (p: UserProfile): ProfileForm => ({
+const toForm = (p: UserProfile, units: Units): ProfileForm => ({
   name: p.name,
-  height: formatMeasure(p.height),
-  weight: formatMeasure(p.weight),
+  height: formatMeasure(heightFor(units, p.height)),
+  weight: formatMeasure(weightFor(units, p.weight)),
 });
 
 export function useProfileData() {
   const { profile, loading: profileLoading, error: profileError, reload, update } = useProfile();
+  const { units } = usePreferences().preferences;
 
   const [form, setForm] = useState<ProfileForm>({ name: '', height: '', weight: '' });
   const [formErrors, setFormErrors] = useState<ProfileFormErrors>({});
@@ -36,14 +49,14 @@ export function useProfileData() {
 
   // Fill the form once the profile has loaded (or reloaded after Retry).
   useEffect(() => {
-    if (profile && !profileLoading) setForm(toForm(profile));
-  }, [profileLoading]);
+    if (profile && !profileLoading) setForm(toForm(profile, units));
+  }, [profileLoading, units]);
 
   const profileDirty =
     profile !== null &&
-    (form.name !== toForm(profile).name ||
-      form.height !== toForm(profile).height ||
-      form.weight !== toForm(profile).weight);
+    (form.name !== toForm(profile, units).name ||
+      form.height !== toForm(profile, units).height ||
+      form.weight !== toForm(profile, units).weight);
   useUnsavedChangesGuard(profileDirty, "Your profile changes haven't been saved.");
 
   const changeForm = useCallback((field: keyof ProfileForm, value: string) => {
@@ -54,8 +67,9 @@ export function useProfileData() {
 
   const saveProfile = async () => {
     const errors: ProfileFormErrors = {};
-    const height = measureError(form.height, HEIGHT_RANGE, 'Enter a height in cm');
-    const weight = measureError(form.weight, WEIGHT_RANGE, 'Enter a weight in kg');
+    const imperial = units === 'imperial';
+    const height = measureError(form.height, heightRangeFor(units), imperial ? 'Enter a height in inches' : 'Enter a height in cm');
+    const weight = measureError(form.weight, weightRangeFor(units), imperial ? 'Enter a weight in pounds' : 'Enter a weight in kg');
     if (height) errors.height = height;
     if (weight) errors.weight = weight;
     setFormErrors(errors);
@@ -64,10 +78,14 @@ export function useProfileData() {
 
     setSaving(true);
     try {
-      const changes = { name: form.name.trim(), height: parseMeasure(form.height), weight: parseMeasure(form.weight) };
+      const changes = {
+        name: form.name.trim(),
+        height: heightToCm(units, parseMeasure(form.height)),
+        weight: weightToKg(units, parseMeasure(form.weight)),
+      };
       await accountService.saveProfile(changes);
       update(changes);
-      setForm(toForm({ ...(profile as UserProfile), ...changes }));
+      setForm(toForm({ ...(profile as UserProfile), ...changes }, units));
       setProfileNotice({ tone: 'success', message: 'Profile updated successfully!' });
     } catch (error) {
       setProfileNotice({ tone: 'error', message: `Failed to update profile: ${describeAuthError(error)}` });
@@ -139,6 +157,7 @@ export function useProfileData() {
   };
 
   return {
+    units,
     profile,
     profileLoading,
     profileError,

@@ -8,10 +8,13 @@ import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import type { UserProfile } from '@/data/types';
+import { unitLabels } from '@/lib/measures';
+import type { Units } from '@/lib/measures';
 import { colors, layout, spacing, type } from '@/theme';
 import type { AccountBusy, ProfileForm, ProfileFormErrors, ProfileNotice } from './useProfileData';
 
 export type ProfileScreenProps = {
+  units: Units;
   profile: UserProfile | null;
   profileLoading: boolean;
   profileError: string | null;
@@ -69,6 +72,7 @@ function Section({ title, first = false }: { title: string; first?: boolean }) {
 }
 
 function DetailsCard({
+  units,
   profile,
   form,
   formErrors,
@@ -106,7 +110,7 @@ function DetailsCard({
         />
         <View style={styles.row}>
           <TextField
-            label="Height (cm)"
+            label={`Height (${unitLabels(units).height})`}
             value={form.height}
             onChangeText={(v) => onChangeForm('height', v)}
             placeholder="e.g. 178"
@@ -115,7 +119,7 @@ function DetailsCard({
             style={styles.half}
           />
           <TextField
-            label="Weight (kg)"
+            label={`Weight (${unitLabels(units).weight})`}
             value={form.weight}
             onChangeText={(v) => onChangeForm('weight', v)}
             placeholder="e.g. 72"

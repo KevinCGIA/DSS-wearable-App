@@ -37,3 +37,32 @@ export const type: Record<Variant, TextStyle> = {
   caption: { fontFamily: fonts.ui, fontSize: 12, lineHeight: 16 },
   unit: { fontFamily: fonts.uiMedium, fontSize: 15, lineHeight: 20 },
 };
+
+export type TextScale = 'default' | 'large' | 'xlarge';
+
+export const TEXT_SCALES: Record<TextScale, number> = { default: 1, large: 1.15, xlarge: 1.3 };
+
+const baseType: Record<Variant, TextStyle> = Object.fromEntries(
+  Object.entries(type).map(([key, style]) => [key, { ...style }]),
+) as Record<Variant, TextStyle>;
+
+export function scaledType(scale: TextScale): Record<Variant, TextStyle> {
+  const factor = TEXT_SCALES[scale];
+  return Object.fromEntries(
+    Object.entries(baseType).map(([key, style]) => [
+      key,
+      {
+        ...style,
+        fontSize: (style.fontSize ?? 0) * factor,
+        lineHeight: style.lineHeight ? style.lineHeight * factor : undefined,
+      },
+    ]),
+  ) as Record<Variant, TextStyle>;
+}
+
+// Updates the shared `type` tokens in place; the caller re-renders the tree to pick them up.
+// The system text size (Dynamic Type) still applies on top of this.
+export function applyTextScale(scale: TextScale) {
+  const next = scaledType(scale);
+  (Object.keys(type) as Variant[]).forEach((key) => Object.assign(type[key], next[key]));
+}

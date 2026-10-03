@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthContainer } from '@/features/auth/AuthContainer';
+import { PreferencesProvider } from '@/features/preferences/PreferencesProvider';
 import { useAuthSession } from '@/features/auth/useAuthSession';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { useAppFonts } from '@/lib/useAppFonts';
@@ -31,11 +32,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      {session.signedIn ? (
-        <RootNavigator displayName={session.displayName} onSignOut={session.signOut} />
-      ) : (
-        <AuthContainer onPreview={session.enablePreview} />
-      )}
+      <PreferencesProvider>
+        {session.signedIn ? (
+          <RootNavigator displayName={session.displayName} onSignOut={session.signOut} />
+        ) : (
+          <AuthContainer onPreview={session.enablePreview} />
+        )}
+      </PreferencesProvider>
     </SafeAreaProvider>
   );
 }
