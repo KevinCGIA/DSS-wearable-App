@@ -1,10 +1,10 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
-type Variant = 'primary' | 'secondary' | 'ghost';
-type Size = 'md' | 'lg';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive';
+type Size = 'sm' | 'md' | 'lg';
 
 type Props = {
   label: string;
@@ -23,12 +23,14 @@ const surfaces: Record<Variant, ViewStyle> = {
   primary: { backgroundColor: colors.accent, borderColor: colors.accent },
   secondary: { backgroundColor: colors.surface, borderColor: colors.border },
   ghost: { backgroundColor: 'transparent', borderColor: 'transparent' },
+  destructive: { backgroundColor: 'transparent', borderColor: 'transparent' },
 };
 
 const labelColors: Record<Variant, string> = {
   primary: colors.textOnAccent,
   secondary: colors.text,
   ghost: colors.accentText,
+  destructive: colors.danger,
 };
 
 export function Button({
@@ -44,6 +46,7 @@ export function Button({
   style,
 }: Props) {
   const inactive = disabled || loading;
+  const textOnly = variant === 'ghost' || variant === 'destructive';
   const tint = inactive && variant === 'primary' ? colors.disabledText : labelColors[variant];
 
   return (
@@ -52,10 +55,10 @@ export function Button({
       disabled={inactive}
       style={({ pressed }) => [
         styles.base,
-        size === 'lg' ? styles.lg : styles.md,
+        styles[size],
         surfaces[variant],
         fullWidth && styles.fullWidth,
-        inactive && variant !== 'ghost' && styles.inactive,
+        inactive && (textOnly ? styles.inactiveText : styles.inactive),
         pressed && !inactive && (variant === 'primary' ? styles.pressedPrimary : styles.pressedSoft),
         style,
       ]}
@@ -83,11 +86,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
   },
-  md: { height: 44 },
+  sm: { height: layout.minTouch, paddingHorizontal: spacing.md },
+  md: { height: layout.minTouch },
   lg: { height: 54 },
   fullWidth: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: spacing.sm },
+  inactiveText: { opacity: 0.4 },
   inactive: { backgroundColor: colors.disabledSurface, borderColor: colors.disabledSurface },
   pressedPrimary: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed },
   pressedSoft: { backgroundColor: colors.accentSurface },

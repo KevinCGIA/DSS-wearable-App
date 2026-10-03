@@ -169,7 +169,7 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Sleep tab (from Analytics):** take `SleepSummary | null` and its series as props from a container. The default container returns no data, which gives the "No sleep data yet" state. Move the resting HR chart to the Heart Rate tab.
 
 ### Task 3: Build the missing and placeholder screens (in this order)
-- [ ] **Settings** (one page, per the Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
+- [x] **Settings** (one page, per the Settings section above). Props named after Android handlers: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail(newEmail)`, `onChangePassword`, `onLogout`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`. Loading, saving and validation states. Previews entry under `__DEV__` only.
 - [ ] **Devices** (Android route `devices`):
   - Connection card for all six states: connecting (attempt n), discovering ("Setting up device..."), reconnecting (attempt n), disconnecting, failed (`error` on disconnected), connected (battery + Disconnect). **Cancel** for pending states.
   - Bluetooth banners: PoweredOff / Unauthorized / Unsupported / Resetting. Scan error banner.
@@ -700,3 +700,25 @@ Android bugs: see `ANDROID_BUGS.md`.
 - `origin` was checked and is already `https://github.com/TarunKrishnan6/DSS-iOS-UI.git`, so it's unchanged. Rule: never push; Tarun pushes. PL uses `fix/<name>` branches + pull requests, or `BUGS.md`.
 - Added the "Phase 2: BLE on iOS" plan (from the Task 0 reading of `feature/ble-connection`), the Phase 2 Final step (Firebase, incl. the Google `REVERSED_CLIENT_ID` URL scheme), and Phase 3. Task 4 gained the app icon / splash / name check.
 - Phase 1 decisions and all earlier log entries are unchanged.
+
+### 2026-10-04 — Task 3, screen 1: Settings (done, awaiting review)
+- **`SettingsScreen`** (props-only, `SettingsScreenProps`) is one page with a blue hero ("Settings" + account email) and white cards under section labels:
+  - **Profile:** large avatar + "Change Profile Picture", Name, Height/Weight, Save Changes (saving spinner, range validation, success/error banner)
+  - **Devices:** current device + Disconnect/Cancel, Auto-connect toggle, Pair a New Device → Devices, Paired devices with Connect / Forget (+ empty state)
+  - **Account & Security:** New Email + Change Email (verify-before-update), Change Password (reset email to the account address)
+  - **Alerts & Preferences:** rows to the sub-screens
+  - **Log Out** (confirm)
+  - **Previews** (`__DEV__` only)
+- **`useSettingsData.ts`** owns all logic: profile load/save, validation via the new `src/lib/measures.ts` (shared with Auth), account actions, and Android's two confirm dialogs (Forget Device, Log Out). Props use Android's names: `onChooseProfilePicture`, `onSaveProfile`, `onChangeEmail`, `onChangePassword`, `onConnect`, `onDisconnect`, `onForgetDevice`, `onSetAutoConnect`, `onOpenDevices`, `onLogout`.
+- **`accountService.ts`:** a Firebase JS SDK version (`verifyBeforeUpdateEmail`, `sendPasswordResetEmail`, `updateProfile`) plus a preview mock. The preview keeps the edited profile for the session. Phase 2 moves profile data to `users/{uid}` via Android's helpers.
+- **`features/devices/BleProvider.tsx`:** a mock with **exactly Android's `useBle()` API**. It's mounted around the logged-in app (like Android's `(auth)/_layout`).
+  - Simulates Android's 3 attempts + 1 s/2 s backoff, connecting → discovering → connected (85% battery), disconnecting, cancel via token, and the 15 s scan.
+  - **Any device named "Polar…" always fails** (FAILED state for testing).
+  - Starts with the two mock paired devices, disconnected.
+  - **Phase 2:** swap this file for the ported `services/ble/BleContext.tsx`.
+- **Reusable device components** (for the Devices screen next): `CurrentDevice.tsx`, `PairedDeviceList.tsx`.
+- **Primitive changes:** `Button` gained size `sm` and variant `destructive`, and text-style buttons now dim when disabled. `ErrorBanner` gained tone `success`.
+- **Not done, needs OK:**
+  1. Home still reads mock "no device" data, so connecting from Settings doesn't change Home yet. Pointing `useHomeData` at `useBle()` / the saved profile changes Home's data, not its UI.
+  2. Photo picker (expo-image-picker).
+- **Checks:** typecheck clean, iOS + Android bundles build, `features/home` unchanged.
