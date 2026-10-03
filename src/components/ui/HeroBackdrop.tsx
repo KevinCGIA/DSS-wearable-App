@@ -12,7 +12,7 @@ const RINGS = [
 // Decorative texture behind Screen's blue hero: gradient, rings (echoing the logo guides) and a soft glow.
 export function HeroBackdrop() {
   return (
-    <View style={styles.root} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View style={styles.root} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <LinearGradient
         colors={[...colors.heroGradient]}
         start={{ x: 0, y: 0 }}
@@ -40,7 +40,7 @@ export function HeroBackdrop() {
 }
 
 const styles = StyleSheet.create({
-  root: { height: layout.heroBackdrop, overflow: 'hidden' },
+  root: { height: layout.heroBackdrop, overflow: 'hidden', pointerEvents: 'none' },
   fill: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   glow: {
     position: 'absolute',

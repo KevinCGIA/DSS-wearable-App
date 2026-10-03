@@ -46,12 +46,11 @@ export function Screen({
           <View style={[inner, heroOverlap && styles.overlap, contentStyle]}>
             <View
               style={[styles.sheet, heroOverlap && styles.sheetOverlap, { backgroundColor: background }]}
-              pointerEvents="none"
             />
             {children}
           </View>
         </ScrollView>
-        <View style={[styles.statusStrip, { height: insets.top }]} pointerEvents="none">
+        <View style={[styles.statusStrip, { height: insets.top }]}>
           <HeroBackdrop />
         </View>
       </View>
@@ -80,7 +79,7 @@ export function Screen({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0 },
-  statusStrip: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
+  statusStrip: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden', pointerEvents: 'none' },
   hero: {
     paddingHorizontal: layout.screenPadding,
     paddingBottom: spacing.xl,
@@ -94,6 +93,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: -layout.heroOverscroll,
+    pointerEvents: 'none',
   },
   sheetOverlap: { top: spacing.huge },
 });
