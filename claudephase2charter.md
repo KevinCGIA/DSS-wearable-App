@@ -1259,3 +1259,33 @@ Android bugs: see `ANDROID_BUGS.md`.
 - Validation: npm run typecheck passed; EXPO_OFFLINE=1 npx --no-install expo config --type public resolved successfully. Compared configuration with HEAD to verify only the required A3 additions and identifier replacement. Native build/auth runtime verification remains deferred to A10/A11.
 - Click list: no device taps validate native configuration at this step. On Mac, review app.json for the two platform IDs and retained icon/splash settings; real sign-in tests require the later iOS Simulator / Android development builds.
 - A3 STOP: await PL approval before A4 (Android debug SHA-1). No Firebase console changes, native prebuild, or push performed.
+
+
+### 2026-10-05 — Phase 2 A5: port auth service (A4 deferred by PL)
+- PL explicitly requested skipping A4 and starting A5. No SHA-1 was generated or added; Android Google sign-in remains pending each build machine's SHA-1. Tarun still needs his Windows debug SHA-1 registered by the team. No Firebase console/security-rule changes performed.
+- Added nativeAuthService.ts as the native SDK adapter and nativeAuthFlow.ts for the auth/session lifecycle. Provides email registration/login, Google sign-in/sign-up, reset email, verification-based email change, password reset for the current user, logout and an auth subscription with cleanup. Existing containers/hooks continue to use their current service until the explicit A9 swap; screens/previews and mock BLE are unchanged.
+- Registration creates users/{uid} with name, height and weight (measurements remain metric strings, empty values remain empty strings), optionally saves private/avatarData.imageData, sends verification and signs out. Display name is also set in Auth for the session greeting. Failed profile/avatar writes sign out; unverified email/password users cannot enter the app. Auth callbacks are held until the operation completes, avoiding premature navigation during registration/Google profile setup.
+- Added public Google web/iOS OAuth client IDs in googleClientConfig.ts, extracted from the Android client_type 3 entry and plist CLIENT_ID. No API keys or full Firebase configuration embedded. Google configure runs once on first use; Play Services check is Android-only; cancellation/missing tokens do not exchange credentials.
+- Installed expo-image-manipulator ~57.0.20 via npx expo install for Kevin-compatible 300x300 JPEG (quality 0.5) avatar data. Uses SDK 57 contextual manipulation/saveAsync(base64: true), avoiding Kevin's deprecated manipulateAsync and an unnecessary legacy filesystem dependency. Read https://docs.expo.dev/versions/v57.0.0/sdk/imagemanipulator/index.md and installed SDK type/source declarations before implementation. Avatar writes merge imageData and release native image resources.
+
+**Ported source map (Kevin origin/feature/ble-connection @ e65c84b → this repo):**
+| Kevin source | Destination | Adaptation |
+|---|---|---|
+| app/login.tsx: signIn, signInWithGoogle | src/features/auth/nativeAuthFlow.ts; nativeAuthService.ts | Modular native Auth calls, verification/session guard, platform-aware Google login |
+| app/register.tsx: signUp, signUpWithGoogle | src/features/auth/nativeAuthFlow.ts; nativeAuthService.ts; src/features/profile/nativeProfileWrites.ts | Registration, safe create-if-missing profile, verification and sign-out |
+| app/login.tsx and app/register.tsx: GoogleSignin.configure | src/features/auth/googleClientConfig.ts; nativeAuthService.ts | Single public web/iOS client config |
+| app/register.tsx: avatar block; app/(auth)/settings.tsx: chooseProfilePicture serialization | src/features/profile/nativeProfileWrites.ts: saveNativeAvatar | Same Firestore path/data URI and image dimensions/quality, current Expo API |
+| app/(auth)/settings.tsx: changeEmail, changePassword, logout; app/(auth)/home.tsx: logout | src/features/auth/nativeAuthFlow.ts; nativeAuthService.ts | Verification email, reset email (also Forgot password), sign-out; UI confirmations stay in existing containers |
+| app/_layout.tsx: handleAuthStateChanged and subscription effect | src/features/auth/nativeAuthFlow.ts: subscribe; nativeAuthService.ts: observeAuth | Subscription cleanup and verified-session gating; navigator unchanged |
+
+**Fixes for the Android team (introduced safely while porting):**
+- Both Google buttons call ensureNativeProfile; missing users/{uid} is created. A Firestore transaction creates only absent profiles, preserving existing name/measurements/autoConnectDevice and any additional fields, including concurrent creation. This deliberately avoids reproducing ANDROID_BUGS 1-2. Google avatar read/photo/initials fallback is still A6/A7 work.
+- Email registration no longer leaks a transient authenticated session before profile/avatar/verification completion. A failed Google profile setup attempts sign-out and suppresses its session even if cleanup fails.
+
+**Validation and limitations:**
+- npm run test:auth: 15 passing focused tests, using mocked native SDKs (registration ordering/field types, failures, unverified/restored sessions, Google readiness/cancellation/platform guard, profile preservation, avatar format/resource cleanup, reset/change-email/logout and subscriptions). Node prints a harmless module-format warning for the stripped TypeScript test import.
+- npm run typecheck and git diff --check pass; Kevin's repo is clean. No live Auth/Firestore calls made, no native prebuild/build performed. Installed SDK types compile; actual iOS/Android integration remains unverified until A9/A10/A11. Before native builds, regenerate the platform with prebuild --clean as required.
+- Registration spans Auth and Firestore (not one transaction); a failure after account creation can leave the Auth account/profile partially created. The service reports the error and signs out rather than claiming success; no automatic account deletion. Profile creation transactions require network access. Native UI error/cancellation presentation is integrated in A9.
+- npm audit still reports 33 vulnerabilities (8 moderate, 25 high); no automatic audit upgrades.
+- Click list now (Mac web preview): Preview the dashboard → Devices → Dashboard → Settings should remain the existing mock flow. This does not exercise the native service yet. After A9/A10 on iOS Simulator (Android emulator/Tarun phone once SHA-1 is configured): Register with avatar → verification-sent; login unverified → blocked; verify then login → Dashboard; Forgot password/Change Password → reset email; Change Email → verification at new address; Log Out → sign-in. These native clicks are pending, not claimed passed.
+- STOP after A5: await PL approval before A6. No push.
