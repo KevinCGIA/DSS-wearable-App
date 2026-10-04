@@ -332,7 +332,30 @@ Always: never touch or commit `google-services.json` / `GoogleService-Info.plist
   - `bluetoothState` starts as `Unknown` and reports `Unauthorized` through the state listener rather than a permission call.
 - **Hardware risk:** the Galaxy Watch8 (Wear OS) doesn't officially pair with iPhones, and Android's own code notes it doesn't advertise the Heart Rate service until a watch app starts it. Have a **standard BLE heart-rate strap (e.g. Polar H10) or a heart-rate broadcast app** ready as a fallback for the iOS demo.
 
-**7. Test checklist for PL** (physical iPhone, dev build; log results in `BUGS.md`):
+**7. iOS-specific BLE rules (added 2026-10-04).**
+1. **Don't port Android-only workarounds to iOS.** These run only when `Platform.OS === 'android'`:
+   - the GATT error 133 handling (the "cancel half-open link before retry" step and any extra retry delay added for it)
+   - `requestMTU` (iOS negotiates MTU automatically)
+   - any explicit Android bonding call (`feature/ble-connection` has none today; bonding happens on the encrypted read)
+
+   The shared retry loop (3 attempts, 1 s/2 s backoff) stays on both platforms.
+2. **Bluetooth state on iOS: two separate states, never the scan list.**
+   - `Unauthorized` (permission denied) → the Devices **"Permission denied"** state, with a button that opens the app's iOS Settings page (`Linking.openSettings()`).
+   - `PoweredOff` → the Devices **"Bluetooth off"** state (turn it on in Control Centre; no Settings button needed).
+   - In **both**, hide the scan list and the Scan button entirely. Today's `DevicesScreen` shows a warning banner above an empty scan card, so Phase 2 adds the "Open Settings" button and hides the scan section for these states (small UI change, not built yet).
+   - `Unknown` / `Resetting` stay as "not ready yet" with Scan disabled.
+3. **Pairing/bonding on iOS is started by the device, not the app.** iOS shows the system pairing dialog when the app first reads or subscribes to an encrypted characteristic (for us, the battery read or HR notify in the handshake). There's no API to start pairing, so the plan **must not rely on an explicit pair call on iOS**. "Paired" in our UI means "saved in `users/{uid}/devices`", not OS-level bonding. If the user cancels the system dialog, the read fails → the attempt fails → normal retry/FAILED flow.
+4. **No MAC addresses on iOS → platform-neutral device key.**
+   - iOS never exposes MAC addresses.
+   - Any Android code or Firestore data keyed by MAC (today the doc id in `users/{uid}/devices/{deviceId}`) needs a **platform-neutral key**: device **name + service UUID** (e.g. `Galaxy Watch8|180d`). Each phone also stores its own platform id: the iOS peripheral UUID for that iPhone, and the MAC for that Android phone.
+   - Matching a saved device on a new phone goes by the neutral key, then the platform id is saved for next time. This extends item 3's plan and needs Kevin's agreement before the schema changes.
+5. **Scan filter: include the Heart Rate service (0x180D) where possible.**
+   - iOS only returns some service UUIDs to a scan that filters for them (UUIDs moved to the advertisement "overflow area"). An unfiltered scan can also show less detail for some devices.
+   - So iOS scans with a `[0x180D]` filter first.
+   - **Caveat from Android's code:** Android deliberately scans *unfiltered* (`startDeviceScan(null, …)`), because the Galaxy Watch only advertises 0x180D once a watch app starts it. A filter-only scan would hide it.
+   - So on iOS, run the 0x180D-filtered pass, **then an unfiltered pass** within the same 15 s scan window, and merge the results (de-duplicated by id). Heart-rate devices still get the ❤ marker.
+
+**8. Test checklist for PL** (physical iPhone, dev build; log results in `BUGS.md`):
 - [ ] First Devices visit: Bluetooth permission prompt appears (not at login). Deny it → "Bluetooth permission was denied" banner. Allow it in iOS Settings → scanning works.
 - [ ] Bluetooth off in Control Centre → "Bluetooth is turned off" banner. Back on → banner clears.
 - [ ] **Scan:** devices appear sorted by signal, with the heart-rate marker. Auto-stops after 15 s. Stop Scanning works.
