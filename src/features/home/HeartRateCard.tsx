@@ -1,12 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { Pill } from '@/components/ui/Pill';
 import { Waveform } from '@/components/ui/Waveform';
 import type { LatestReadingState } from '@/data/types';
 import { formatAge, LIVE_WITHIN_MS, STALE_AFTER_MS } from '@/lib/time';
-import { colors, spacing, type } from '@/theme';
+import { colors, layout, spacing, type } from '@/theme';
 import type { RestingRange } from './homeModel';
 
 type Props = {
@@ -17,6 +17,8 @@ type Props = {
 };
 
 export function HeartRateCard({ heartRate, restingRange, now, onPress }: Props) {
+  // Square: at least as tall as the card is wide, but free to grow at large text sizes.
+  const side = useWindowDimensions().width - layout.screenPadding * 2;
   const { reading, loading, error } = heartRate;
   const age = reading ? now - reading.timestamp.getTime() : 0;
   const live = Boolean(reading) && age <= LIVE_WITHIN_MS;
@@ -33,7 +35,7 @@ export function HeartRateCard({ heartRate, restingRange, now, onPress }: Props) 
   const bpm = reading ? String(Math.round(reading.value)) : '--';
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    <Card onPress={onPress} style={{ ...styles.card, minHeight: side }}>
       <CardTitle icon="heart" title="Heart Rate" right={badge} />
 
       {loading ? (
@@ -75,8 +77,8 @@ export function HeartRateCard({ heartRate, restingRange, now, onPress }: Props) 
 
 const styles = StyleSheet.create({
   card: { marginTop: spacing.xl },
-  spinner: { marginVertical: spacing.huge },
-  center: { alignItems: 'center', marginTop: spacing.lg },
+  spinner: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   valueRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { color: colors.text },
   muted: { color: colors.textMuted },

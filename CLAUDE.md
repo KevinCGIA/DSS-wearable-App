@@ -947,3 +947,4 @@ Android bugs: see `ANDROID_BUGS.md`.
 | `lib/sensors/testExtras.ts` | delete once real sources exist |
 | `lib/preferences` | keep (device-local) |
 - Follow-up (Home tweak, requested): the Heart Rate card's **Live / Last seen** badge is now a small rounded square instead of a pill. `Pill` gained `shape: 'pill' | 'square'` (square = `radius.sm / 2`); only Home's HR badge uses it.
+- Follow-up (Home tweak, requested): the **Heart Rate card is now square**. Its `minHeight` equals the card's width (window width − 2 × screen padding), and the content (BPM, resting line, waveform, or the empty/loading state) is centred vertically. It's a minimum, so the card can grow taller at large text sizes instead of clipping. (The earlier square "Live" badge tweak stays.)
