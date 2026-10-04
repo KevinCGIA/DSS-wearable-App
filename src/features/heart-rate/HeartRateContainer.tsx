@@ -3,11 +3,11 @@ import { HeartRateScreen } from './HeartRateScreen';
 import { useHeartRateData } from './useHeartRateData';
 
 type Props = {
-  bottomInset: number;
+  onBack: () => void;
   onOpenAlertThresholds: () => void;
 };
 
-export function HeartRateContainer({ bottomInset, onOpenAlertThresholds }: Props) {
+export function HeartRateContainer({ onBack, onOpenAlertThresholds }: Props) {
   const data = useHeartRateData();
-  return <HeartRateScreen {...data} bottomInset={bottomInset} onOpenAlertThresholds={onOpenAlertThresholds} />;
+  return <HeartRateScreen {...data} onBack={onBack} onOpenAlertThresholds={onOpenAlertThresholds} />;
 }

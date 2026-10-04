@@ -69,6 +69,7 @@ export async function addSensorReading(
     value: reading.value,
     unit: UNITS[type],
     timestamp: reading.timestamp ?? new Date(),
+    deviceId: reading.deviceId ?? null,
     deviceName: reading.deviceName ?? null,
     source: reading.source,
   });
@@ -86,6 +87,7 @@ export async function addSampleDay(_uid: string): Promise<void> {
       value,
       unit: UNITS[type],
       timestamp: new Date(time),
+      deviceId: null,
       deviceName: 'Sample data',
       source: 'manual',
     });

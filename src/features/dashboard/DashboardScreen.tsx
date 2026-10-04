@@ -4,65 +4,74 @@ import { Avatar } from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import type {
-  ConnectionState,
   DailyActivityExtras,
+  HistoryState,
   LatestReadingState,
   SleepSummary,
   UserProfile,
 } from '@/data/types';
 import { formatShortDate, greetingFor } from '@/lib/time';
 import type { Units } from '@/lib/measures';
-import type { TabKey } from '@/navigation/routes';
 import { colors, spacing, type } from '@/theme';
-import { ActiveCaloriesCard } from './ActiveCaloriesCard';
-import { DeviceActivityCard } from './DeviceActivityCard';
+import type { DashboardDevice, RestingRange } from './dashboardModel';
+import { DeviceFilterBar } from './DeviceFilterBar';
+import { DevicesStrip } from './DevicesStrip';
 import { HeartRateCard } from './HeartRateCard';
 import { HelpSheet } from './HelpSheet';
-import { deviceViewFrom, stepsTodayFrom } from './homeModel';
-import type { RestingRange } from './homeModel';
+import { MetricsCard } from './MetricsCard';
 import { SleepRecoveryCard } from './SleepRecoveryCard';
+import { StepsCard } from './StepsCard';
 
-export type HomeScreenProps = {
+export type DashboardScreenProps = {
   now: number;
   profile: UserProfile | null;
   profileLoading: boolean;
-  connection: ConnectionState;
-  refreshing: boolean;
+  devices: DashboardDevice[];
+  filterDeviceId: string | null;
   heartRate: LatestReadingState;
+  heartRateHistory: HistoryState;
   restingRange: RestingRange | null;
   steps: LatestReadingState;
+  stepsHistory: HistoryState;
+  sleep: SleepSummary | null;
   activity: DailyActivityExtras;
   units: Units;
-  sleep: SleepSummary | null;
   bottomInset: number;
-  onRefresh: () => void;
+  onChangeFilter: (deviceId: string | null) => void;
   onOpenProfile: () => void;
-  onOpenDevices: () => void;
-  onOpenTab: (tab: TabKey) => void;
+  onOpenDevices: (deviceId?: string) => void;
+  onOpenHeartRate: () => void;
+  onOpenSteps: () => void;
+  onOpenSleep: () => void;
 };
 
-export function HomeScreen({
+// Combines Android's Home, Heart Rate, Fitness and Sleep tabs (iOS researcher layout, 2026-10-04).
+export function DashboardScreen({
   now,
   profile,
   profileLoading,
-  connection,
-  refreshing,
+  devices,
+  filterDeviceId,
   heartRate,
+  heartRateHistory,
   restingRange,
   steps,
+  stepsHistory,
+  sleep,
   activity,
   units,
-  sleep,
   bottomInset,
-  onRefresh,
+  onChangeFilter,
   onOpenProfile,
   onOpenDevices,
-  onOpenTab,
-}: HomeScreenProps) {
+  onOpenHeartRate,
+  onOpenSteps,
+  onOpenSleep,
+}: DashboardScreenProps) {
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const firstName = profile?.name.trim().split(/\s+/)[0] ?? '';
-  const connected = connection.status === 'connected';
+  const firstName = profile?.name.trim().split(/s+/)[0] ?? '';
+  const connected = devices.some((d) => d.status === 'connected');
 
   return (
     <Screen
@@ -97,27 +106,19 @@ export function HomeScreen({
         </>
       }
     >
+      <DevicesStrip devices={devices} onOpenDevices={onOpenDevices} />
+      <DeviceFilterBar devices={devices} deviceId={filterDeviceId} onChange={onChangeFilter} />
+
       <HeartRateCard
         heartRate={heartRate}
+        history={heartRateHistory}
         restingRange={restingRange}
         now={now}
-        onPress={() => onOpenTab('heart-rate')}
+        onPress={onOpenHeartRate}
       />
-
-      <DeviceActivityCard
-        device={deviceViewFrom(connection, refreshing)}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        stepsToday={stepsTodayFrom(steps.reading, now)}
-        activity={activity}
-        units={units}
-        onOpenDevices={onOpenDevices}
-        onOpenFitness={() => onOpenTab('fitness')}
-      />
-
-      <SleepRecoveryCard sleep={sleep} onPress={() => onOpenTab('sleep')} />
-
-      <ActiveCaloriesCard activity={activity} onPress={() => onOpenTab('fitness')} />
+      <StepsCard steps={steps} history={stepsHistory} now={now} onPress={onOpenSteps} />
+      <SleepRecoveryCard sleep={sleep} onPress={onOpenSleep} />
+      <MetricsCard activity={activity} units={units} />
 
       <HelpSheet visible={helpOpen} onClose={() => setHelpOpen(false)} />
     </Screen>

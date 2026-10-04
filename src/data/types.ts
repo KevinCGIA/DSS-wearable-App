@@ -61,6 +61,8 @@ export type SensorReading = {
   value: number;
   unit: string;
   timestamp: Date;
+  // Source device, as stored in Android's Firestore doc. null for test/sample data.
+  deviceId: string | null;
   deviceName: string | null;
   source: ReadingSource;
 };
@@ -118,7 +120,6 @@ export type DailyActivityExtras = {
   distanceKm: number | null;
   floors: number | null;
   activeCalories: number | null;
-  calorieTarget: number;
 };
 
 export type TrendPoint = { label: string; value: number };

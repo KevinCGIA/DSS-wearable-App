@@ -11,7 +11,7 @@ import {
   mockRestingHrTrends,
 } from '@/data/mocks';
 import type { PreviewEntry } from '@/features/previews/types';
-import { useLiveHeartRate } from '@/features/home/useLiveHeartRate';
+import { useLiveHeartRate } from '@/features/dashboard/useLiveHeartRate';
 import { HeartRateScreen } from './HeartRateScreen';
 import type { HeartRateScreenProps } from './HeartRateScreen';
 
@@ -22,7 +22,8 @@ const base = (): HeartRateScreenProps => ({
   heartRate: emptyLatest,
   history: emptyHistory(),
   restingTrends: null,
-  bottomInset: 0,
+  showing: 'All devices',
+  onBack: noop,
   onOpenAlertThresholds: noop,
 });
 

@@ -23,16 +23,15 @@ export type SleepScreenProps = {
   trends: SleepTrends | null;
   loading: boolean;
   error: string | null;
-  bottomInset: number;
+  onBack?: () => void;
   onRetry?: () => void;
 };
 
-export function SleepScreen({ sleep, trends, loading, error, bottomInset, onRetry }: SleepScreenProps) {
+export function SleepScreen({ sleep, trends, loading, error, onBack, onRetry }: SleepScreenProps) {
   return (
     <Screen
       scroll
-      bottomInset={bottomInset}
-      hero={<HeroHeader title="Sleep" subtitle="Last night and your recent trends, from your watch." />}
+      hero={<HeroHeader title="Sleep" subtitle="Last night and your recent trends, from your watch." onBack={onBack} />}
     >
       {loading ? (
         <Card style={styles.first}>
@@ -148,7 +147,7 @@ function TrendsSection({ trends }: { trends: SleepTrends }) {
       </Card>
 
       <Card style={styles.card}>
-        <CardTitle icon="clock" title="Hours asleep" right={<Pill label="Target 8h" tier="live" dot />} />
+        <CardTitle icon="clock" title="Hours asleep" right={<Pill label="Dark = 7.5 h or more" tier="neutral" />} />
         <BarChart
           data={data.hours}
           max={9}

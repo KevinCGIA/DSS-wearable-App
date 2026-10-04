@@ -25,6 +25,10 @@ const DAY = 24 * HOUR;
 const DEVICE_ID = 'C2:4F:8A:11:93:7E';
 const DEVICE_NAME = 'Galaxy Watch8';
 
+export type MockDevice = { id: string; name: string };
+export const mockDeviceA: MockDevice = { id: DEVICE_ID, name: DEVICE_NAME };
+export const mockDeviceB: MockDevice = { id: 'E1:02:7B:44:C0:19', name: 'Polar H10' };
+
 // Deterministic wobble so previews look the same on every render.
 function wave(index: number, spread: number): number {
   return Math.round(((Math.sin(index * 1.7) + Math.sin(index * 0.6)) / 2) * spread);
@@ -108,14 +112,21 @@ export const mockPairedDevices: PairedDevice[] = [
   },
 ];
 
-function reading(type: SensorType, value: number, timestamp: Date, index = 0): SensorReading {
+function reading(
+  type: SensorType,
+  value: number,
+  timestamp: Date,
+  index = 0,
+  device: MockDevice = mockDeviceA,
+): SensorReading {
   return {
-    id: `${type}-${index}`,
+    id: `${type}-${device.id}-${index}`,
     type,
     value,
     unit: type === 'heart_rate' ? 'bpm' : 'steps',
     timestamp,
-    deviceName: DEVICE_NAME,
+    deviceId: device.id,
+    deviceName: device.name,
     source: 'ble',
   };
 }
@@ -128,17 +139,17 @@ export const errorLatest: LatestReadingState = {
   error: "Couldn't load your latest reading.",
 };
 
-export function heartRateLatest(bpm = 72, ageMs = 30 * 1000): LatestReadingState {
+export function heartRateLatest(bpm = 72, ageMs = 30 * 1000, device: MockDevice = mockDeviceA): LatestReadingState {
   return {
-    reading: reading('heart_rate', bpm, new Date(Date.now() - ageMs)),
+    reading: reading('heart_rate', bpm, new Date(Date.now() - ageMs), 0, device),
     loading: false,
     error: null,
   };
 }
 
-export function stepsLatest(steps = 6842, ageMs = 5 * MINUTE): LatestReadingState {
+export function stepsLatest(steps = 6842, ageMs = 5 * MINUTE, device: MockDevice = mockDeviceA): LatestReadingState {
   return {
-    reading: reading('steps', steps, new Date(Date.now() - ageMs)),
+    reading: reading('steps', steps, new Date(Date.now() - ageMs), 0, device),
     loading: false,
     error: null,
   };
@@ -158,7 +169,7 @@ export function errorHistory(): HistoryState {
 }
 
 // Every 15 minutes for 24h, lower overnight, matching Android's addSampleDay.
-export function heartRateHistory(): HistoryState {
+export function heartRateHistory(device: MockDevice = mockDeviceA, offset = 0): HistoryState {
   const end = Date.now();
   const start = end - DAY;
   const readings: SensorReading[] = [];
@@ -166,15 +177,15 @@ export function heartRateHistory(): HistoryState {
   for (let t = start + MINUTE; t < end; t += 15 * MINUTE) {
     const hour = new Date(t).getHours();
     const asleep = hour < 7 || hour >= 23;
-    const value = (asleep ? 58 : 76) + wave(index, 9);
-    readings.push(reading('heart_rate', value, new Date(t), index));
+    const value = (asleep ? 58 : 76) + offset + wave(index + offset, 9);
+    readings.push(reading('heart_rate', value, new Date(t), index, device));
     index += 1;
   }
   return { readings, start, end, loading: false, error: null };
 }
 
 // Hourly running daily totals; today's total ends at `todayTotal`.
-export function stepsHistory(todayTotal = 6842): HistoryState {
+export function stepsHistory(todayTotal = 6842, device: MockDevice = mockDeviceA): HistoryState {
   const end = Date.now();
   const start = end - DAY;
   const midnight = new Date(end);
@@ -200,12 +211,12 @@ export function stepsHistory(todayTotal = 6842): HistoryState {
   hours.forEach((t, i) => {
     if (t < midnight.getTime()) {
       yesterday += weight(t, i) * 110;
-      readings.push(reading('steps', yesterday, new Date(t), i));
+      readings.push(reading('steps', yesterday, new Date(t), i, device));
     } else {
       today += todayWeights[todayIndex] / todaySum;
       todayIndex += 1;
       const value = todayIndex === todayHours.length ? todayTotal : Math.round(today * todayTotal);
-      readings.push(reading('steps', value, new Date(t), i));
+      readings.push(reading('steps', value, new Date(t), i, device));
     }
   });
 
@@ -347,14 +358,12 @@ export const noActivityExtras: DailyActivityExtras = {
   distanceKm: null,
   floors: null,
   activeCalories: null,
-  calorieTarget: 600,
 };
 
 export const mockActivityExtras: DailyActivityExtras = {
   distanceKm: 4.8,
   floors: 12,
   activeCalories: 486,
-  calorieTarget: 600,
 };
 
 export const defaultPreferences: Preferences = {

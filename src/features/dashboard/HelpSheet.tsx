@@ -10,8 +10,8 @@ type Props = {
 
 const pairingSteps = [
   'Turn on Bluetooth on your phone and keep your watch nearby and awake.',
-  'Tap the device circle on Home, or Settings → Pair a New Device.',
-  'Tap Scan for Devices and pick your watch from the list.',
+  'Open the Devices tab (or tap Add device on the Dashboard).',
+  'Tap Scan for Devices and pick your device from the list.',
   'Wait for Connected. Next time the app reconnects automatically if Auto-connect is on.',
 ];
 

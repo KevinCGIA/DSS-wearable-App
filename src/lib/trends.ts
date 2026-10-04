@@ -86,3 +86,24 @@ export function formatHour(time: number): string {
   const suffix = hours < 12 ? 'AM' : 'PM';
   return `${hours % 12 === 0 ? 12 : hours % 12} ${suffix}`;
 }
+
+// Steps are a running total per device, so bucket each device on its own, then add them up.
+// (Mixing devices in stepsByBucket would subtract one device's total from another's.)
+export function stepsByBucketAcrossDevices(
+  readings: SensorReading[],
+  start: number,
+  end: number,
+  bucketMs: number,
+): Bucket[] {
+  const byDevice = new Map<string, SensorReading[]>();
+  for (const reading of readings) {
+    const key = reading.deviceId ?? `test:${reading.source}`;
+    byDevice.set(key, [...(byDevice.get(key) ?? []), reading]);
+  }
+  const groups = [...byDevice.values()].map((group) => stepsByBucket(group, start, end, bucketMs));
+  if (groups.length === 0) return stepsByBucket([], start, end, bucketMs);
+  return groups[0].map((bucket, i) => ({
+    ...bucket,
+    value: groups.reduce((sum, g) => sum + (g[i].value ?? 0), 0),
+  }));
+}
