@@ -21,7 +21,9 @@
 
 The Android app is already wired up. **My UI keeps its own visual design and copies the Android app's actions and data** (handlers, Firestore paths, connection states), so Phase 2 is still a 1:1 swap of containers. **Since 2026-10-04 the screen structure differs on purpose** (researcher/test-subject app, below).
 
-**Who the app is for (2026-10-04, overrides the fitness-style layout): an iOS difference from Android.** Researchers use it to test and demonstrate BLE wearables, and test subjects use it to record data at home. **Avoid fitness wording everywhere** ("Fitness", step goals, "achieved", calorie targets). Android still uses its 5 fitness-style tabs; iOS keeps Android's *actions and data* but organises them around devices and recordings.
+**Who the app is for (2026-10-04):** researchers use it to test and demonstrate BLE wearables, and test subjects use it to record data at home. **Avoid fitness wording everywhere** ("Fitness", step goals, "achieved", calorie targets).
+
+**Team decision (2026-10-05): this 3-tab structure (Devices | Dashboard | Settings) is the agreed UI for BOTH iOS and Android.** No `*.ios.tsx` split. In Phase 3 it **replaces the Android UI** in Kevin's repo, keeping Kevin's logic (auth, Firestore, BLE, sensors). It's the app's structure, not an iOS difference.
 
 **Bottom tabs (3, in this order):**
 
@@ -31,7 +33,7 @@ The Android app is already wired up. **My UI keeps its own visual design and cop
 | `dashboard` | Dashboard | `activity` | **Raised centre button, the default tab on sign-in.** The old Home layout; Heart Rate, Steps and Sleep are detail pages opened from its cards (below). |
 | `settings` | Settings | `settings` | Profile row, Alert Thresholds, Notifications, Preferences, Development (`__DEV__`), Log Out. Part 1 still has the Devices section; **Part 2 removes it** (it's a tab now). |
 
-Android's tabs, for reference: Home, Heart Rate, Fitness, Sleep, Settings (+ hidden `devices` route). The mapping: Home + Heart Rate + Fitness + Sleep → **Dashboard** (with detail pages); `devices` → **Devices tab**.
+*Historical:* Kevin's current Android build still has the old 5 tabs (Home, Heart Rate, Fitness, Sleep, Settings + hidden `devices` route) until Phase 3 replaces them. Mapping: Home + Heart Rate + Fitness + Sleep → **Dashboard** (with detail pages); `devices` → **Devices tab**.
 
 **Dashboard** (`features/dashboard/`): **the old Home layout, restored 2026-10-05 at Tarun's request**. The cards open the detail pages instead of tabs.
 
@@ -49,7 +51,7 @@ Android's tabs, for reference: Home, Heart Rate, Fitness, Sleep, Settings (+ hid
 - Dev test-data buttons stay on the Heart Rate and Steps detail pages (`__DEV__` only).
 - The Part 1 connected-devices strip, device filter, chart-in-card and Steps card were removed. Multi-device information moves to the **Devices tab** (Part 2). `DeviceFilterProvider` stays so the detail pages can follow a filter later; it's always "All devices" for now.
 
-**Profile and Settings are split (iOS difference from Android, 2026-10-04).** Android keeps everything on one Settings page.
+**Profile and Settings are split (2026-10-04; part of the agreed structure for both platforms).** Kevin's current Android build still keeps everything on one Settings page until Phase 3.
 
 **Profile** (stack route `profile`, header + ‹ back; opened from the Dashboard avatar and from Settings' Profile row):
 1. Avatar + "Change Profile Picture" (image picker, saves straight away)
@@ -204,6 +206,8 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 
 ## PHASE 2 — WIRE REAL LOGIC (in this repo) (LOCKED until I say "start Phase 2")
 
+**Both platforms (2026-10-05):** everything built in Phase 2 must work on **iOS and Android**. Test each Step A and Step B piece on **Android** (Tarun's phone over USB, or the emulator where Bluetooth isn't needed) **and iOS** (PL's Mac + iPhone) before calling it done. Log results for both in the Progress Log and `BUGS.md`.
+
 **Where:** this repo (`https://github.com/TarunKrishnan6/DSS-iOS-UI.git`, private). **Kevin's repo stays read-only**; it's only a reference to copy logic from. **Never push.** Tarun pushes. PL tests from this repo on his Mac, works on `fix/<name>` branches, and opens pull requests into this repo or logs issues in `BUGS.md`. Nobody pushes straight to `main` except Tarun.
 
 ### Phase 2, Step 0: back up Phase 1
@@ -256,6 +260,13 @@ Different IDs in the same Firebase project is intended. The old `dss-wearable-br
 11. **iOS check (PL, Mac):** after Tarun pushes, PL builds with `npx expo run:ios`. Then test shared data: register on iOS, log in on Android with the same account, and confirm the account and `users/{uid}` data are shared.
 
 ### Phase 2, Step B: BLE and the rest
+
+**Shared data compatibility rule (applies to every Step B write):**
+- iOS and Android write to the **same Firestore project** (`wearable-app-f9d83`).
+- **Only ADD optional fields** (e.g. `deviceId`/`source` on readings, `platform`/`localName`/`serviceUUIDs`/`lastRssi`/`lastBattery` on paired devices). **Never rename, remove or change the type** of fields Android writes or reads in `users/{uid}`, `users/{uid}/private/avatarData`, `users/{uid}/sensor_readings/{type}/readings/*` and `users/{uid}/devices/*`.
+- **Docs without the new fields must still work:** a missing `deviceId` means "unknown device" (counted under All devices, never in a device's stats); a missing `platform` means "android"; a missing `source` means `ble`.
+- **Before any Step B code:** write the final reading and device document shapes (field, type, optional?, who writes it) into the Progress Log and get Tarun's OK.
+- The connection event log (6b) goes in a **new** subcollection (e.g. `users/{uid}/devices/{key}/events`), so Android's existing docs are untouched.
 
 The numbered list below is the general wiring plan. Firebase items in it are covered by Step A, so do the BLE, sensors, alert engine and connection log parts **after Step A is tested**.
 
@@ -476,9 +487,9 @@ Keep for Phase 2.5 (not covered by Part 2):
 - **Realism rules (unchanged):** background/closed time never counts as gaps or drop-outs; readings with source "Test data" never count towards device stats.
 ---
 
-## PHASE 3 — MERGE INTO KEVIN'S REPO (later, blocked on a team decision)
+## PHASE 3 — MERGE INTO KEVIN'S REPO (later; team decision made 2026-10-05)
 
-- **Blocking question for the team:** is my UI **iOS-only** (mounted via `*.ios.tsx` routes) or does it **replace the Android UI too**?
+- **Decided (2026-10-05):** this UI **replaces the Android UI** on both platforms. No `*.ios.tsx` routes. Kevin's screens in `app/(auth)/*` are replaced by this structure, and his logic (`services/ble`, `services/sensors`, `services/devices`, auth/Firestore helpers) stays and is wired into the containers.
 - **Placeholder `ios/` folder:** Kevin's repo has one (only `.gitkeep`, plus a CODEOWNERS entry for `/ios/`). Move its contents to `docs/ios/` before any iOS prebuild there, because prebuild generates `ios/`.
 - **Bundle ID:** Kevin's `app.json` already has `ios.bundleIdentifier` = `com.galaxies.firebase`, which matches. Keep it.
 - **Imports:** re-align to Kevin's repo, which has no `@/` alias. Either add an alias there or rewrite imports.
@@ -1024,7 +1035,7 @@ Android bugs: see `ANDROID_BUGS.md`.
   - Splash wiring (`app.json`, needs OK)
   - App name check in a real build
 
-**Android comparison (vs `feature/ble-connection`):**
+**Android comparison (vs `feature/ble-connection`). HISTORICAL:** this compares against Kevin's old 5-tab UI. Since 2026-10-05 the 3-tab structure is the agreed UI for both platforms, so these "iOS diff" rows describe what Phase 3 changes on Android.
 
 | Area | Android | iOS | Same? |
 |---|---|---|---|
@@ -1139,3 +1150,8 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Removed from Part 1:** the connected-devices strip, the device filter bar, the chart inside the Heart Rate card, the Steps card and the Distance/Floors/Calories card. Multi-device info goes to the Devices tab in Part 2. The fixes from Part 1 are kept: readings carry `deviceId`, and `stepsByBucketAcrossDevices` is used by the Steps detail page.
 - **Kept:** the 3 tabs, the pushed Heart Rate / Steps / Sleep detail pages, no fitness wording, and `DeviceFilterProvider` (always "All devices" for now).
 - **Previews:** Dashboard is back to No device, Connecting, Syncing, Connected (live), Imperial, Failed.
+
+### 2026-10-05 — Plan: new structure for both platforms + data compatibility
+- **Team decision:** the 3-tab structure (Devices | Dashboard | Settings) is **the app's structure on both iOS and Android**, not an iOS difference. No `*.ios.tsx` split. Phase 3 replaces the Android UI in Kevin's repo with this one, keeping Kevin's logic. The old 5-tab Android comparison table is marked **historical**, and earlier "iOS difference" notes about the structure now describe what Phase 3 changes on Android.
+- **Phase 2 on both platforms:** every Step A and Step B piece is tested on Android and iOS.
+- **Shared data compatibility rule** (Phase 2 Step B): only add optional fields; never rename, remove or retype Android's fields; docs without the new fields must still work (missing `deviceId` = unknown device). The final reading/device doc shapes go in the Progress Log before Step B code.
