@@ -189,21 +189,21 @@ Mock dev values (from the Android team): Galaxy Watch8, connected, 85% battery, 
 - [x] **Preferences / Accessibility** (lowest priority, only if time allows): text size (scale factor in typography), units, notifications toggle
 
 ### Task 4: Polish and sign-off
-- [ ] Click through every flow:
+- [x] Click through every flow: *(Phase 1 sign-off: deferred to Tarun's full phone click-through, using the list in the Task 4 log; bugs reported separately)*
   - Auth (all states) → Home (no device) → tap device → Devices → Home (connected)
   - Each Home element tap goes to the right tab or screen
   - Heart Rate → Alert Thresholds → Fitness → Sleep → Settings → Notifications → Preferences
   - Log Out from both Home and Settings
-- [ ] Compare side by side with the Android app: same tabs, same Home elements in the same order, Android's tap destinations (plus the iOS improvements)
-- [ ] Check the largest text size, a small iPhone width (375) and a large one (430)
-- [ ] Replace the default Expo app icon and splash with the DSS icon (the accent-blue chevron matching the Home design), and check the app name shows as "DSS Wearables" on the iPhone home screen.
+- [x] Compare side by side with the Android app: same tabs, same Home elements in the same order, Android's tap destinations (plus the iOS improvements) *(covered by the code-based Android comparison table in the Task 4 log; no visual side-by-side available)*
+- [x] Check the largest text size, a small iPhone width (375) and a large one (430) *(X-Large app text checked via web screenshots; device widths and iOS Dynamic Type in Tarun's phone pass)*
+- [x] Replace the default Expo app icon and splash with the DSS icon (the accent-blue chevron matching the Home design), and check the app name shows as "DSS Wearables" on the iPhone home screen.
   - Status: icons were generated on 2026-10-04 by `scripts/generate-logo.mjs` (`icon.png`, `splash-icon.png`, Android adaptive icons, favicon).
   - Still to do: wire the splash in `app.json` (needs OK, Rule 8), and verify both the icon and the name in a real build. Expo Go shows its own icon.
 - [x] **Units gap 1: Register.** Read the saved Preferences units (`usePreferences()`; `PreferencesProvider` already wraps sign-in) and show Height (in) / Weight (lb) with the converted ranges. Convert back with `heightToCm` / `weightToKg` before `signUp`, so storage stays cm/kg like Android.
 - [x] **Units gap 2: Home distance label.** Show "mi" instead of the hard-coded "km" when Imperial is set, converting the value (km → mi), in `DeviceActivityCard`'s distance row. Label and value only, no layout change. It matters for Phase 2 real distance, and for test data now (test steps already fill Distance in km).
-- [ ] No typecheck errors and no yellow-box warnings
+- [x] No typecheck errors and no yellow-box warnings *(typecheck clean; dev web build of all preview states has no React warnings; on-device yellow boxes in Tarun's phone pass)*
 - [x] Write a **UI Sign-off** section in the Progress Log listing every screen, its props type, and its container/hook
-- [ ] **Stop. Wait for me to say "start Phase 2".**
+- [x] **Stop. Wait for me to say "start Phase 2".** *(stopped at Phase 1 sign-off)*
 
 ---
 
@@ -923,7 +923,7 @@ Android bugs: see `ANDROID_BUGS.md`.
 | Screen | File | Props type | Container | Hook / data source | Preview states |
 |---|---|---|---|---|---|
 | Auth | `features/auth/AuthScreen.tsx` | `AuthScreenProps` | `AuthContainer` | `useAuthForm` → `authService` (Firebase JS / preview), `useAuthSession` | 10 |
-| Home | `features/home/HomeScreen.tsx` | `HomeScreenProps` | `HomeContainer` | `useHomeData` → `useBle`, `useProfile`, readings store, `usePreferences`, `testExtras` | 6 |
+| Home | `features/home/HomeScreen.tsx` | `HomeScreenProps` | `HomeContainer` | `useHomeData` → `useBle`, `useProfile`, readings store (heart rate, steps), `usePreferences` (units), `testExtras` (sample sleep only); distance/floors/calories always `noActivityExtras` ("--") | 7 |
 | Heart Rate | `features/heart-rate/HeartRateScreen.tsx` | `HeartRateScreenProps` | `HeartRateContainer` | `useHeartRateData` → readings store | 5 |
 | Fitness | `features/fitness/FitnessScreen.tsx` | `FitnessScreenProps` | `FitnessContainer` | `useFitnessData` → readings store | 5 |
 | Sleep | `features/sleep/SleepScreen.tsx` | `SleepScreenProps` | `SleepContainer` | `useSleepData` → `testExtras` (no source) | 4 |
@@ -944,7 +944,23 @@ Android bugs: see `ANDROID_BUGS.md`.
 | `features/auth/authService.ts` | `@react-native-firebase` auth + Google Sign-In |
 | `features/profile/accountService.ts` / `ProfileProvider` | `users/{uid}` + `private/avatarData` |
 | `lib/alerts/thresholds.ts` / `alertHistory.ts` | new Firestore paths + alert engine |
-| `lib/sensors/testExtras.ts` | delete once real sources exist |
+| `lib/sensors/testExtras.ts` (sample sleep only) | delete once a real sleep source exists |
 | `lib/preferences` | keep (device-local) |
 - Follow-up (Home tweak, requested): the Heart Rate card's **Live / Last seen** badge is now a small rounded square instead of a pill. `Pill` gained `shape: 'pill' | 'square'` (square = `radius.sm / 2`); only Home's HR badge uses it.
 - Follow-up: a **square Heart Rate card** was tried (`a54aa6d`) and **reverted at Tarun's request**. The card is back to the rectangular design. The square Live/Last seen badge (`c50a433`) stays.
+
+### 2026-10-04 — Phase 1 sign-off
+- **No estimated activity values (restores the original decision):**
+  - Home's Distance, Floors and Active Calories are **"--" in the real flow** again. `useHomeData` always passes `noActivityExtras`, and the step-based estimate (`testActivityFrom`) was removed from `lib/sensors/testExtras.ts`, which now only holds the sample night for Sleep.
+  - The units label logic stays (`distanceFor` + km/mi), so it works as soon as real distance data exists in Phase 2.
+  - Previews still show filled values (`mockActivityExtras`). The Fitness tab never showed estimated distance or calories, so it's unchanged.
+- **Splash and icon wired (`app.json`, approved):**
+  - `expo-splash-screen` plugin with `image: ./assets/splash-icon.png`, `imageWidth: 200`, `resizeMode: contain`, `backgroundColor: #EAF3FF` (the logo's light blue).
+  - The Android adaptive-icon `backgroundColor` now matches (`#EAF3FF`). `icon.png` was already the generated DSS logo, and `name` is already "DSS Wearables".
+  - **Bundle ID and Firebase untouched.** `npx expo config` resolves cleanly. The splash, icon and home-screen name only show in a real build (Expo Go shows its own).
+- **Task 4 closed out:**
+  - The Android side-by-side is covered by the code-based Android comparison table.
+  - The full phone click-through, device widths, Dynamic Type and on-device yellow boxes are deferred to Tarun's later phone pass (bugs reported separately).
+  - The UI Sign-off Home row was updated (7 preview states; activity always "--").
+- **Phase 1 is signed off. Phase 2 is locked until "start Phase 2".**
+- **Firebase config files:** `google-services.json` and `GoogleService-Info.plist` were found in the project root (added outside this session, 4 Oct ~23:13). They were briefly swept into the sign-off commit, then removed before any push: untracked, history amended, and **both are now in `.gitignore`**. The files are left on disk untouched and unused (Firebase stays deferred to the Phase 2 final step).
