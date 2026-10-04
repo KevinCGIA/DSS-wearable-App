@@ -57,3 +57,55 @@ export function deviceViewFrom(connection: ConnectionState, refreshing: boolean)
         : { tone: 'idle', name: 'No Device', status: null, battery: null, hint: 'Tap to connect' };
   }
 }
+
+// One connected (or connecting) device, for the expanded device card and the multi-device ring.
+export type DeviceSummary = {
+  deviceId: string;
+  name: string;
+  status: ConnectionState['status'];
+  rssi: number | null;
+  batteryLevel: number | null;
+  lastSync: number | null;
+};
+
+const PENDING_ORDER: ConnectionState['status'][] = ['reconnecting', 'connecting', 'discovering', 'disconnecting'];
+
+export function statusLabel(status: ConnectionState['status']): string {
+  switch (status) {
+    case 'connected':
+      return 'Connected';
+    case 'discovering':
+      return 'Syncing';
+    case 'connecting':
+      return 'Connecting';
+    case 'reconnecting':
+      return 'Reconnecting';
+    case 'disconnecting':
+      return 'Disconnecting';
+    case 'disconnected':
+      return 'Not connected';
+  }
+}
+
+// Ring for one device: as before. For several: "<n> devices connected", the worst status and the weakest signal.
+export function ringViewFrom(
+  devices: DeviceSummary[],
+  connection: ConnectionState,
+  refreshing: boolean,
+): DeviceView {
+  if (devices.length < 2) return deviceViewFrom(connection, refreshing);
+
+  const worst = PENDING_ORDER.find((s) => devices.some((d) => d.status === s));
+  const withSignal = devices.filter((d) => d.rssi !== null);
+  const weakest = withSignal.length
+    ? withSignal.reduce((a, b) => ((a.rssi as number) <= (b.rssi as number) ? a : b))
+    : null;
+
+  return {
+    tone: worst ? 'pending' : 'active',
+    name: `${devices.length} devices connected`,
+    status: worst ? statusLabel(worst).toUpperCase() : refreshing ? 'SYNCING' : 'CONNECTED',
+    battery: null,
+    hint: weakest ? `Weakest: ${weakest.name} · ${weakest.rssi} dBm` : null,
+  };
+}

@@ -9,13 +9,22 @@ type Props = {
   start: number;
   end: number;
   color?: string;
+  height?: number;
   accessibilityLabel: string;
   style?: ViewStyle;
 };
 
 const formatAxis = (value: number) => (value >= 1000 ? `${value / 1000}k` : String(value));
 
-export function TimeBarChart({ buckets, start, end, color = colors.accent, accessibilityLabel, style }: Props) {
+export function TimeBarChart({
+  buckets,
+  start,
+  end,
+  color = colors.accent,
+  height = layout.chartHeight,
+  accessibilityLabel,
+  style,
+}: Props) {
   const peak = Math.max(0, ...buckets.map((b) => b.value ?? 0));
   const ceiling = niceCeil(peak);
   const span = end - start || 1;
@@ -23,7 +32,7 @@ export function TimeBarChart({ buckets, start, end, color = colors.accent, acces
 
   return (
     <View style={style} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
-      <View style={styles.plotRow}>
+      <View style={[styles.plotRow, { height }]}>
         <View style={styles.axis}>
           <Text style={[type.caption, styles.axisText]}>{formatAxis(ceiling)}</Text>
           <Text style={[type.caption, styles.axisText]}>0</Text>
@@ -63,7 +72,7 @@ export function TimeBarChart({ buckets, start, end, color = colors.accent, acces
 }
 
 const styles = StyleSheet.create({
-  plotRow: { flexDirection: 'row', height: layout.chartHeight },
+  plotRow: { flexDirection: 'row' },
   axis: { justifyContent: 'space-between', marginRight: spacing.sm, alignItems: 'flex-end', minWidth: spacing.xxl },
   axisText: { color: colors.textMuted },
   plot: { flex: 1, borderBottomWidth: 1, borderBottomColor: colors.border },

@@ -1155,3 +1155,25 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Team decision:** the 3-tab structure (Devices | Dashboard | Settings) is **the app's structure on both iOS and Android**, not an iOS difference. No `*.ios.tsx` split. Phase 3 replaces the Android UI in Kevin's repo with this one, keeping Kevin's logic. The old 5-tab Android comparison table is marked **historical**, and earlier "iOS difference" notes about the structure now describe what Phase 3 changes on Android.
 - **Phase 2 on both platforms:** every Step A and Step B piece is tested on Android and iOS.
 - **Shared data compatibility rule** (Phase 2 Step B): only add optional fields; never rename, remove or retype Android's fields; docs without the new fields must still work (missing `deviceId` = unknown device). The final reading/device doc shapes go in the Progress Log before Step B code.
+
+### 2026-10-05 — Expandable Dashboard cards
+- **New primitives:**
+  - `ExpandableCard`: `header(state)` render prop + expanded `children`. It uses `LayoutAnimation` (built into RN, no new package), keeps its own state per card (several can be open), starts collapsed (`initiallyExpanded` for previews), and gives the header button role + `accessibilityState.expanded`. `pressableHeader={false}` lets a card wire its own toggle area.
+  - `ExpandChevron`: rotates 180° when expanded.
+  - `CardLink`: "Open … ›" text link with a 44pt target.
+  - `TimeBarChart` gained `height`, plus a new token `layout.miniChartHeight`.
+- **Collapsed cards look as approved**, plus a small chevron (Heart Rate and Sleep: after the pill; Calories: in the header; Device card: next to "TODAY'S ACTIVITY"). Tapping a card now expands it; navigation moved into the expanded area.
+- **Expanded content:**
+  1. **Heart Rate:** Min/Avg/Max + 24 h line chart (or "No heart rate readings in the last 24 hours."), last reading time + source ("from Test data"), **Open Heart Rate ›**.
+  2. **Device & Today's Activity:**
+     - Only the activity side toggles; the ring keeps its tap → Devices tab, and the sync button stays.
+     - Expanded: a row per connected device (name, signal bars + dBm, battery or "Battery not reported", status, last sync) or "No device connected" + **Add device ›**; today's steps-per-hour mini chart (per-device bucketing) + "Steps updated x ago"; **Devices ›** and **Steps ›**.
+  3. **Sleep & Recovery:** bedtime → wake, Deep/REM/Light/Awake durations, a 7-night hours mini chart, **Open Sleep ›** (or "No sleep data yet.").
+  4. **Active Calories:** source line ("Reported by connected device" / "Not reported by connected devices yet") + **Open Steps ›**.
+- **Multi-device ring:** with 2+ devices the ring shows "<n> devices connected", the worst pending status, and "Weakest: <name> · <dBm>" (`ringViewFrom`). One device looks as before.
+- **Data:**
+  - Same hooks as the detail pages (`useSensorHistory` heart rate + steps, `useSampleSleep` trends).
+  - Device rows come from `connectionsOf(ble)` (`features/devices/connections.ts`): the single connection now, every device's state once the provider holds several (Part 2).
+  - `ConnectionState.rssi?` was added as an optional in-app field.
+  - Distance/floors/calories keep the "--" rule.
+- **Previews:** Dashboard adds Expanded: no device / one device / three devices (reconnecting + weak signal). Checked via temporary web screenshots at 375 wide and at X-Large text (entry restored). The Sleep stage durations now sit next to their labels so narrow screens can't cut them off.
