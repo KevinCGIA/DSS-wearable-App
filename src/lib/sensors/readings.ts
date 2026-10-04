@@ -113,3 +113,9 @@ export async function addSampleDay(_uid: string): Promise<void> {
 
   emit();
 }
+
+// Mock only (not in Android's API): load previously recorded readings, e.g. seeded device history.
+export function seedReadings(readings: SensorReading[]) {
+  for (const reading of readings) insert(reading.type, reading);
+  emit();
+}

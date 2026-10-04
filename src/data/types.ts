@@ -50,6 +50,9 @@ export type PairedDevice = {
   name: string;
   addedAt: Date | null;
   lastConnectedAt: Date | null;
+  // Optional additions (shared data compatibility rule): Android docs without them still work.
+  lastRssi?: number | null;
+  lastBattery?: number | null;
 };
 
 export type SensorType = 'heart_rate' | 'steps';

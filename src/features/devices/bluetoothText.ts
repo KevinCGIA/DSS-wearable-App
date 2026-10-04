@@ -36,7 +36,7 @@ export function isBusy(connection: ConnectionState): boolean {
 }
 
 // Android: confirmForget in components/PairedDeviceList.tsx
-export function confirmForget(device: PairedDevice, forget: (deviceId: string) => void) {
+export function confirmForget(device: Pick<PairedDevice, 'deviceId' | 'name'>, forget: (deviceId: string) => void) {
   Alert.alert('Forget Device', `Remove ${device.name}? You'll need to scan for it again to reconnect.`, [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Forget', style: 'destructive', onPress: () => forget(device.deviceId) },

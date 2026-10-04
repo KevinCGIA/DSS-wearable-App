@@ -12,6 +12,8 @@ export type StackRoute =
   | 'alert-thresholds'
   | 'notifications'
   | 'preferences'
+  | 'add-device'
+  | 'device-detail'
   | 'previews';
 
 export type Navigation = {

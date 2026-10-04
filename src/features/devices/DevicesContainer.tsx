@@ -1,52 +1,36 @@
-import React, { useEffect } from 'react';
-import type { PairedDevice } from '@/data/types';
-import { useNow } from '@/lib/useNow';
-import { useBle } from './BleProvider';
+import React from 'react';
 import { confirmForget } from './bluetoothText';
 import { DevicesScreen } from './DevicesScreen';
+import { useDevicesData } from './useDevicesData';
 
 type Props = {
   bottomInset: number;
+  onAddDevice: () => void;
+  onOpenDevice: (deviceId: string) => void;
 };
 
-// Android: app/(auth)/devices.tsx
-export function DevicesContainer({ bottomInset }: Props) {
-  const ble = useBle();
-  const now = useNow(60 * 1000);
-  const { stopScan } = ble;
-
-  // Stop scanning when leaving the screen to save battery (same as Android).
-  useEffect(() => () => {
-    stopScan();
-  }, [stopScan]);
+export function DevicesContainer({ bottomInset, onAddDevice, onOpenDevice }: Props) {
+  const { ble, now, model, loading, error } = useDevicesData();
 
   return (
     <DevicesScreen
       now={now}
       bluetoothState={ble.bluetoothState}
-      isScanning={ble.isScanning}
-      devices={ble.devices}
-      scanError={ble.scanError}
-      connection={ble.connection}
-      pairedDevices={ble.pairedDevices}
-      autoConnect={ble.autoConnect}
-      onStartScan={() => {
-        ble.startScan();
-      }}
-      onStopScan={() => {
-        ble.stopScan();
-      }}
-      onConnect={(device) => {
-        ble.connect(device);
-      }}
-      onDisconnect={() => {
-        ble.disconnect();
-      }}
-      onForgetDevice={(device: PairedDevice) => confirmForget(device, ble.forgetDevice)}
-      onSetAutoConnect={(enabled) => {
-        ble.setAutoConnect(enabled);
-      }}
+      loading={loading}
+      error={error}
+      connected={model.connected}
+      previous={model.previous}
+      summary={model.summary}
       bottomInset={bottomInset}
+      onAddDevice={onAddDevice}
+      onOpenDevice={onOpenDevice}
+      onConnect={(device) => {
+        ble.connect({ id: device.deviceId, name: device.name });
+      }}
+      onDisconnect={(device) => {
+        ble.disconnect(device.deviceId);
+      }}
+      onForget={(device) => confirmForget(device, ble.forgetDevice)}
     />
   );
 }
