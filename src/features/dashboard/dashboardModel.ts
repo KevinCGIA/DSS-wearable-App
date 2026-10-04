@@ -1,4 +1,4 @@
-import type { ConnectionState, ConnectionStatus, HistoryState, SensorReading } from '@/data/types';
+import type { ConnectionState, HistoryState, SensorReading } from '@/data/types';
 import { isSameDay } from '@/lib/time';
 
 export type RestingRange = { low: number; high: number; status: 'Low' | 'Normal' | 'High' };
@@ -24,26 +24,36 @@ export function stepsTodayFrom(reading: SensorReading | null, now: number): numb
   return isSameDay(reading.timestamp, new Date(now)) ? Math.round(reading.value) : 0;
 }
 
-// One chip on the Dashboard's connected-devices strip.
-export type DashboardDevice = {
-  deviceId: string;
+export type DeviceTone = 'idle' | 'active' | 'pending' | 'failed';
+
+export type DeviceView = {
+  tone: DeviceTone;
   name: string;
-  status: ConnectionStatus;
-  rssi: number | null;
+  status: string | null;
+  battery: number | null;
+  hint: string | null;
 };
 
-// Devices that are connected or on their way (not idle/failed). Phase 1 BLE is single-device;
-// Phase 2 Step B item 10 turns this into a per-device map.
-export function connectedDevicesFrom(
-  connections: ConnectionState[],
-  rssiFor: (deviceId: string) => number | null,
-): DashboardDevice[] {
-  return connections
-    .filter((c) => c.status !== 'disconnected' && c.deviceId)
-    .map((c) => ({
-      deviceId: c.deviceId as string,
-      name: c.deviceName ?? 'Unknown device',
-      status: c.status,
-      rssi: rssiFor(c.deviceId as string),
-    }));
+export function deviceViewFrom(connection: ConnectionState, refreshing: boolean): DeviceView {
+  const name = connection.deviceName ?? 'No Device';
+  const attempt = connection.attempt > 0 ? `Attempt ${connection.attempt} of 3` : null;
+
+  switch (connection.status) {
+    case 'connected':
+      return refreshing
+        ? { tone: 'active', name, status: 'SYNCING', battery: connection.batteryLevel, hint: null }
+        : { tone: 'active', name, status: 'CONNECTED', battery: connection.batteryLevel, hint: null };
+    case 'discovering':
+      return { tone: 'pending', name, status: 'SYNCING', battery: null, hint: 'Setting up device…' };
+    case 'connecting':
+      return { tone: 'pending', name, status: 'CONNECTING', battery: null, hint: attempt };
+    case 'reconnecting':
+      return { tone: 'pending', name, status: 'RECONNECTING', battery: null, hint: attempt };
+    case 'disconnecting':
+      return { tone: 'pending', name, status: 'DISCONNECTING', battery: null, hint: null };
+    case 'disconnected':
+      return connection.error
+        ? { tone: 'failed', name, status: 'FAILED', battery: null, hint: 'Tap to retry' }
+        : { tone: 'idle', name: 'No Device', status: null, battery: null, hint: 'Tap to connect' };
+  }
 }

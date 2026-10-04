@@ -28,28 +28,26 @@ The Android app is already wired up. **My UI keeps its own visual design and cop
 | Tab key | Label | Feather icon | Content |
 |---|---|---|---|
 | `devices` | Devices | `bluetooth` | Part 1: the existing Devices screen (scan/connect, six connection states, banners, auto-connect, paired list). **Part 2:** summary strip, Add device, one card per paired device with health/data stats, Device Detail. |
-| `dashboard` | Dashboard | `activity` | **Raised centre button, the default tab on sign-in.** Combines the old Home, Heart Rate, Fitness and Sleep tabs (below). |
+| `dashboard` | Dashboard | `activity` | **Raised centre button, the default tab on sign-in.** The old Home layout; Heart Rate, Steps and Sleep are detail pages opened from its cards (below). |
 | `settings` | Settings | `settings` | Profile row, Alert Thresholds, Notifications, Preferences, Development (`__DEV__`), Log Out. Part 1 still has the Devices section; **Part 2 removes it** (it's a tab now). |
 
 Android's tabs, for reference: Home, Heart Rate, Fitness, Sleep, Settings (+ hidden `devices` route). The mapping: Home + Heart Rate + Fitness + Sleep → **Dashboard** (with detail pages); `devices` → **Devices tab**.
 
-**Dashboard** (`features/dashboard/`), keeping Home's header and visual style:
+**Dashboard** (`features/dashboard/`): **the old Home layout, restored 2026-10-05 at Tarun's request**. The cards open the detail pages instead of tabs.
 
 | Element | Shows | Empty / no-device state | Tap action |
 |---|---|---|---|
-| Top bar | Time-of-day greeting + date; "?" help; avatar (photo/initials, green dot when any device is connected) | "?" avatar with no name | ? → Help sheet; avatar → **Profile** |
+| Top bar | Time-of-day greeting + date; "?" help; avatar (photo/initials, green dot when a device is connected) | "?" avatar with no name | ? → Help sheet; avatar → **Profile** |
 | Banner | "Welcome, {first name}!" + "Here is your daily summary" on the textured blue hero | "Welcome!" | — |
-| Connected devices strip | A chip per connected (or connecting) device: status dot, name, signal bars | "No device connected" + **Add device** | chip → Devices tab (Part 2: that device's card); Add device → Devices tab |
-| Device filter | "All devices" (default) or one device. **Only shown when more than one device is connected.** All cards below follow it, and readings keep their source device (`deviceId`). | hidden | select filter |
-| Card 1: Heart Rate | Live BPM, Live / Last seen, waveform, resting range, **source device** ("from Galaxy Watch8" / "from Test data") + **24 h line chart with Min/Avg/Max** | "--" BPM + "No readings yet…", no chart | → **Heart Rate** detail page (pushed, ‹) |
-| Card 2: Steps | Today's total, "Updated x ago" + **24 h steps-per-hour chart with Total**. **No goal bar.** | "No step data yet…" | → **Steps** detail page (pushed, ‹; the old Fitness screen renamed, goal bar removed) |
-| Card 3: Sleep & Recovery | The existing card | "No sleep data yet" | → **Sleep** detail page (pushed, ‹) |
-| Card 4: Distance · Floors · Calories | Values with km/mi from Preferences | **"--" for all three** in the real flow (no real source); filled only in previews | — |
+| Card 1: Heart Rate | Live BPM, square Live / Last seen badge, resting range, waveform | "--" BPM + "No readings yet…" | → **Heart Rate** detail page (pushed, ‹) |
+| Card 2 left: Device | Ring + name + CONNECTED/SYNCING/CONNECTING/RECONNECTING/DISCONNECTING/FAILED (+ battery), sync button (connected) / "Tap to retry" (failed) | Grey ring, "No Device", "Tap to connect" | ring → **Devices tab**; sync → refresh / retry |
+| Card 2 right: Today's Activity | Steps, Distance (km/mi), Floors | Steps 0; Distance and Floors "--" | → **Steps** detail page |
+| Card 3: Sleep & Recovery | The existing card | "No sleep data yet" | → **Sleep** detail page |
+| Card 4: Active Calories | kcal only (**no target, no "% achieved", no goal bar**) | "--" + "Not reported by connected devices yet." | → **Steps** detail page |
 
-- Dev test-data buttons (Add Test Reading, Add 24h of Sample Data, Add Test Steps) stay on the Heart Rate and Steps **detail pages**, `__DEV__` only.
-- Removed from the Dashboard (were on Home): the device ring + sync button (now the strip + Devices tab), the Active Calories target/"achieved" bar.
-- Keep my visual language (Barlow numerals, accent colours, vital colours for meaning only, blue textured hero, white rounded cards).
-- iOS-only improvements are logged in the Progress Log as suggestions for the Android team. Android bugs are in `ANDROID_BUGS.md`.
+- Distance, Floors and Calories stay **"--"** in the real flow (no real source); previews show values.
+- Dev test-data buttons stay on the Heart Rate and Steps detail pages (`__DEV__` only).
+- The Part 1 connected-devices strip, device filter, chart-in-card and Steps card were removed. Multi-device information moves to the **Devices tab** (Part 2). `DeviceFilterProvider` stays so the detail pages can follow a filter later; it's always "All devices" for now.
 
 **Profile and Settings are split (iOS difference from Android, 2026-10-04).** Android keeps everything on one Settings page.
 
@@ -1133,3 +1131,11 @@ Android bugs: see `ANDROID_BUGS.md`.
   - **Single connection:** the mock BLE still connects one device, so in the real flow the strip shows at most one chip and the filter only appears in Previews.
   - **Chip tap:** a chip opens the Devices tab, not that device's card yet.
 - **Checks:** typecheck clean, iOS + Android bundles build.
+
+### 2026-10-05 — Dashboard back to the old Home layout (requested after Part 1)
+- **Restored from the Phase 1 sign-off (`1611d27`), as approved then:** the Heart Rate card (no chart in the card), the device ring + sync beside Today's Activity, Sleep & Recovery and Active Calories, in the old order. `DeviceActivityCard`, `HeartRateCard` and the old model (now `dashboardModel.ts`: `deviceViewFrom`, `restingRangeFrom`, `stepsTodayFrom`) were restored as files. `DashboardScreen`/`useDashboardData`/`dashboard.preview` are the old Home ones renamed.
+- **Active Calories without fitness wording** (Tarun's choice): no "Target: 600", no "% achieved", no goal bar. Just kcal, or "--" + "Not reported by connected devices yet."
+- **Taps:** Heart Rate → Heart Rate detail; Today's Activity and Calories → **Steps** detail (was Fitness tab); Sleep → Sleep detail; device ring → **Devices tab**; avatar → Profile.
+- **Removed from Part 1:** the connected-devices strip, the device filter bar, the chart inside the Heart Rate card, the Steps card and the Distance/Floors/Calories card. Multi-device info goes to the Devices tab in Part 2. The fixes from Part 1 are kept: readings carry `deviceId`, and `stepsByBucketAcrossDevices` is used by the Steps detail page.
+- **Kept:** the 3 tabs, the pushed Heart Rate / Steps / Sleep detail pages, no fitness wording, and `DeviceFilterProvider` (always "All devices" for now).
+- **Previews:** Dashboard is back to No device, Connecting, Syncing, Connected (live), Imperial, Failed.
