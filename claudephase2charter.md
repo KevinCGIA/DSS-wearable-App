@@ -1241,3 +1241,12 @@ Android bugs: see `ANDROID_BUGS.md`.
 - Avatar processing uses image-manipulator/file-system in Kevin's code; determine SDK-compatible helper dependencies during the relevant implementation step. Alert thresholds are new work in A8, not a Kevin port. No BLE or UI changes in A1.
 - Click list: no device taps needed for this read-only planning step. PL reviews the function map and approves A1 before A2. Runtime auth testing comes after native builds.
 - Validation: npm run typecheck passed. A1 contains documentation only; included pending handover documents and AGENTS instructions in the documentation commit. No push. Mandatory A1 STOP: awaiting PL approval before A2.
+
+### 2026-10-05 — Phase 2 A2: install Firebase packages
+- PL approved A2 and requested opening localhost. Installed through the exact A2 npx expo install command: @react-native-firebase/app, auth and firestore ^26.4.0; @react-native-google-signin/google-signin ^16.1.5; expo-dev-client ~57.0.19; expo-build-properties ~57.0.22. package.json and package-lock.json updated.
+- Expo automatically appended four config plugins. Removed only those newly added entries to keep app.json configuration in A3; app.json matches the prior commit. No application code, UI, BLE or Firebase service wiring changed. No files ported from Kevin in A2.
+- Validation: npm run typecheck passed. Web preview started with npx --no-install expo start --web --offline --port 8081; opened http://localhost:8081 in the browser. Web bundled successfully (611 modules). Initial attempt combining --offline and --localhost was rejected; --offline alone worked. Existing web shadow-style deprecation warning remains.
+- npm reported 33 dependency vulnerabilities (8 moderate, 25 high); no audit fix or forced upgrades applied.
+- No native build/prebuild performed in this package-only step. Native Firebase/auth runtime tests remain pending A3 configuration and A10 development builds; run platform prebuild --clean before building. The current web preview still uses the existing mock/preview flows.
+- Click list (Mac browser): at localhost:8081 choose Preview the dashboard; confirm Devices, Dashboard and Settings tabs open. No real Firebase login is expected yet. Device auth tests are deferred to native builds.
+- A2 STOP: await PL approval before A3. No push; local preview left running.
