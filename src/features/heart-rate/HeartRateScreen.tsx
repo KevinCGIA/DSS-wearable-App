@@ -24,7 +24,9 @@ export type HeartRateScreenProps = {
   heartRate: LatestReadingState;
   history: HistoryState;
   restingTrends: RestingHrTrends | null;
-  bottomInset: number;
+  // "All devices" or the device picked in the Dashboard filter.
+  showing: string;
+  onBack: () => void;
   onOpenAlertThresholds: () => void;
   onAddTestReading?: () => void;
   onAddSampleData?: () => void;
@@ -35,7 +37,8 @@ export function HeartRateScreen({
   heartRate,
   history,
   restingTrends,
-  bottomInset,
+  showing,
+  onBack,
   onOpenAlertThresholds,
   onAddTestReading,
   onAddSampleData,
@@ -43,8 +46,7 @@ export function HeartRateScreen({
   return (
     <Screen
       scroll
-      bottomInset={bottomInset}
-      hero={<HeroHeader title="Heart Rate" subtitle="Live BPM from your watch and your last 24 hours." />}
+      hero={<HeroHeader title="Heart Rate" subtitle={`Live BPM and the last 24 hours · ${showing}`} onBack={onBack} />}
     >
       <LiveCard now={now} heartRate={heartRate} />
       <TrendCard history={history} />

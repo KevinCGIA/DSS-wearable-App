@@ -3,10 +3,10 @@ import { SleepScreen } from './SleepScreen';
 import { useSleepData } from './useSleepData';
 
 type Props = {
-  bottomInset: number;
+  onBack: () => void;
 };
 
-export function SleepContainer({ bottomInset }: Props) {
+export function SleepContainer({ onBack }: Props) {
   const data = useSleepData();
-  return <SleepScreen {...data} bottomInset={bottomInset} />;
+  return <SleepScreen {...data} onBack={onBack} />;
 }

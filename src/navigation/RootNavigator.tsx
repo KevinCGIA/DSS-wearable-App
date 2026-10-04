@@ -2,21 +2,23 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import { AlertThresholdsContainer } from '@/features/alerts/AlertThresholdsContainer';
+import { DashboardContainer } from '@/features/dashboard/DashboardContainer';
+import { DeviceFilterProvider } from '@/features/dashboard/DeviceFilterProvider';
 import { BleProvider } from '@/features/devices/BleProvider';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
-import { FitnessContainer } from '@/features/fitness/FitnessContainer';
 import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
-import { HomeContainer } from '@/features/home/HomeContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
 import { PreferencesContainer } from '@/features/preferences/PreferencesContainer';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import { PreviewsScreen } from '@/features/previews/PreviewsScreen';
+import { previewEntries } from '@/features/previews/registry';
 import { ProfileContainer } from '@/features/profile/ProfileContainer';
 import { ProfileProvider } from '@/features/profile/ProfileProvider';
-import { previewEntries } from '@/features/previews/registry';
 import { SettingsContainer } from '@/features/settings/SettingsContainer';
 import { SleepContainer } from '@/features/sleep/SleepContainer';
+import { StepsContainer } from '@/features/steps/StepsContainer';
 import { colors } from '@/theme';
+import { DEFAULT_TAB } from './routes';
 import type { Navigation, StackRoute, TabKey } from './routes';
 import { confirmLeave, GuardScope } from './unsavedChanges';
 import type { GuardRegistry } from './unsavedChanges';
@@ -32,7 +34,7 @@ type Props = {
 export function RootNavigator({ displayName, onSignOut }: Props) {
   // Subscribing re-renders the whole tree when text size changes (see applyTextScale).
   usePreferences();
-  const [tab, setTab] = useState<TabKey>('home');
+  const [tab, setTab] = useState<TabKey>(DEFAULT_TAB);
   const [stack, setStack] = useState<StackRoute[]>([]);
 
   const registry = useRef<GuardRegistry>(new Map()).current;
@@ -68,8 +70,8 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
       navigation.back();
       return true;
     }
-    if (tabRef.current !== 'home') {
-      navigation.openTab('home');
+    if (tabRef.current !== DEFAULT_TAB) {
+      navigation.openTab(DEFAULT_TAB);
       return true;
     }
     return false;
@@ -85,50 +87,48 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
   return (
     <BleProvider>
       <ProfileProvider displayName={displayName}>
-        <View style={styles.shell}>
-          <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
-            <GuardScope scope={tabScope(tab)} registry={registry}>
-              {tab === 'home' ? (
-                <HomeContainer
-                  displayName={displayName}
-                  bottomInset={tabBarBaseHeight}
-                  onOpenProfile={() => navigation.push('profile')}
-                  onOpenDevices={() => navigation.push('devices')}
-                  onOpenTab={navigation.openTab}
-                />
-              ) : null}
-              {tab === 'heart-rate' ? (
-                <HeartRateContainer
-                  bottomInset={tabBarBaseHeight}
-                  onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-                />
-              ) : null}
-              {tab === 'fitness' ? <FitnessContainer bottomInset={tabBarBaseHeight} /> : null}
-              {tab === 'sleep' ? <SleepContainer bottomInset={tabBarBaseHeight} /> : null}
-              {tab === 'settings' ? (
-                <SettingsContainer
-                  bottomInset={tabBarBaseHeight}
-                  signOut={onSignOut}
-                  onOpenProfile={() => navigation.push('profile')}
-                  onOpenDevices={() => navigation.push('devices')}
-                  onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-                  onOpenNotifications={() => navigation.push('notifications')}
-                  onOpenPreferences={() => navigation.push('preferences')}
-                  onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
-                />
-              ) : null}
-            </GuardScope>
-            <TabBar active={tab} onChange={navigation.openTab} />
-          </View>
-
-          {top ? (
-            <View style={styles.overlay} accessibilityViewIsModal>
-              <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
-                {renderStackRoute(top, navigation)}
+        <DeviceFilterProvider>
+          <View style={styles.shell}>
+            <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
+              <GuardScope scope={tabScope(tab)} registry={registry}>
+                {tab === 'devices' ? <DevicesContainer bottomInset={tabBarBaseHeight} /> : null}
+                {tab === 'dashboard' ? (
+                  <DashboardContainer
+                    displayName={displayName}
+                    bottomInset={tabBarBaseHeight}
+                    onOpenProfile={() => navigation.push('profile')}
+                    // Part 2: scroll to that device's card in the Devices tab.
+                    onOpenDevices={() => navigation.openTab('devices')}
+                    onOpenHeartRate={() => navigation.push('heart-rate')}
+                    onOpenSteps={() => navigation.push('steps')}
+                    onOpenSleep={() => navigation.push('sleep')}
+                  />
+                ) : null}
+                {tab === 'settings' ? (
+                  <SettingsContainer
+                    bottomInset={tabBarBaseHeight}
+                    signOut={onSignOut}
+                    onOpenProfile={() => navigation.push('profile')}
+                    onOpenDevices={() => navigation.openTab('devices')}
+                    onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+                    onOpenNotifications={() => navigation.push('notifications')}
+                    onOpenPreferences={() => navigation.push('preferences')}
+                    onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
+                  />
+                ) : null}
               </GuardScope>
+              <TabBar active={tab} onChange={navigation.openTab} />
             </View>
-          ) : null}
-        </View>
+
+            {top ? (
+              <View style={styles.overlay} accessibilityViewIsModal>
+                <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
+                  {renderStackRoute(top, navigation)}
+                </GuardScope>
+              </View>
+            ) : null}
+          </View>
+        </DeviceFilterProvider>
       </ProfileProvider>
     </BleProvider>
   );
@@ -138,8 +138,17 @@ function renderStackRoute(route: StackRoute, navigation: Navigation) {
   switch (route) {
     case 'profile':
       return <ProfileContainer onBack={navigation.back} />;
-    case 'devices':
-      return <DevicesContainer onBack={navigation.back} />;
+    case 'heart-rate':
+      return (
+        <HeartRateContainer
+          onBack={navigation.back}
+          onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
+        />
+      );
+    case 'steps':
+      return <StepsContainer onBack={navigation.back} />;
+    case 'sleep':
+      return <SleepContainer onBack={navigation.back} />;
     case 'alert-thresholds':
       return <AlertThresholdsContainer onBack={navigation.back} />;
     case 'notifications':

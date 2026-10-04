@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { mockDeviceA } from '@/data/mocks';
 import type { LatestReadingState } from '@/data/types';
 
 // Preview only: simulates a connected watch streaming BPM every 2s.
@@ -21,7 +22,8 @@ export function useLiveHeartRate(start = 72): LatestReadingState {
       value: bpm,
       unit: 'bpm',
       timestamp,
-      deviceName: 'Galaxy Watch8',
+      deviceId: mockDeviceA.id,
+      deviceName: mockDeviceA.name,
       source: 'ble',
     },
     loading: false,

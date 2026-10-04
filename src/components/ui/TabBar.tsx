@@ -6,10 +6,8 @@ import type { TabKey } from '@/navigation/routes';
 import { colors, elevation, layout, radius, spacing, type } from '@/theme';
 
 const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap; raised?: boolean }[] = [
-  { key: 'home', label: 'Home', icon: 'home' },
-  { key: 'heart-rate', label: 'Heart Rate', icon: 'heart' },
-  { key: 'fitness', label: 'Fitness', icon: 'activity', raised: true },
-  { key: 'sleep', label: 'Sleep', icon: 'moon' },
+  { key: 'devices', label: 'Devices', icon: 'bluetooth' },
+  { key: 'dashboard', label: 'Dashboard', icon: 'activity', raised: true },
   { key: 'settings', label: 'Settings', icon: 'settings' },
 ];
 

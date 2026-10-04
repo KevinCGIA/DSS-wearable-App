@@ -9,7 +9,6 @@ const base: SleepScreenProps = {
   trends: null,
   loading: false,
   error: null,
-  bottomInset: 0,
 };
 
 export const sleepPreview: PreviewEntry = {

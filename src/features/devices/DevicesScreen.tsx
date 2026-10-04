@@ -29,7 +29,8 @@ export type DevicesScreenProps = {
   onDisconnect: () => void;
   onForgetDevice: (device: PairedDevice) => void;
   onSetAutoConnect: (enabled: boolean) => void;
-  onBack: () => void;
+  bottomInset?: number;
+  onBack?: () => void;
 };
 
 export function DevicesScreen({
@@ -47,6 +48,7 @@ export function DevicesScreen({
   onDisconnect,
   onForgetDevice,
   onSetAutoConnect,
+  bottomInset = 0,
   onBack,
 }: DevicesScreenProps) {
   const busy = isBusy(connection);
@@ -55,7 +57,8 @@ export function DevicesScreen({
   return (
     <Screen
       scroll
-      hero={<HeroHeader title="Devices" subtitle="Find, connect and manage your watch." onBack={onBack} />}
+      bottomInset={bottomInset}
+      hero={<HeroHeader title="Devices" subtitle="Find, connect and manage your devices." onBack={onBack} />}
     >
       <ConnectionCard connection={connection} onDisconnect={onDisconnect} />
 

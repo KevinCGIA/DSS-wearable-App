@@ -6,11 +6,11 @@ import { confirmForget } from './bluetoothText';
 import { DevicesScreen } from './DevicesScreen';
 
 type Props = {
-  onBack: () => void;
+  bottomInset: number;
 };
 
 // Android: app/(auth)/devices.tsx
-export function DevicesContainer({ onBack }: Props) {
+export function DevicesContainer({ bottomInset }: Props) {
   const ble = useBle();
   const now = useNow(60 * 1000);
   const { stopScan } = ble;
@@ -46,7 +46,7 @@ export function DevicesContainer({ onBack }: Props) {
       onSetAutoConnect={(enabled) => {
         ble.setAutoConnect(enabled);
       }}
-      onBack={onBack}
+      bottomInset={bottomInset}
     />
   );
 }
