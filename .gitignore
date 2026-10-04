@@ -42,3 +42,7 @@ yarn-error.*
 
 # Local Firebase keys
 .env
+
+# Firebase native config (never commit)
+google-services.json
+GoogleService-Info.plist

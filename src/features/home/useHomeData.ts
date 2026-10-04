@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { mockProfile } from '@/data/mocks';
+import { mockProfile, noActivityExtras } from '@/data/mocks';
 import type { UserProfile } from '@/data/types';
 import { useBle } from '@/features/devices/BleProvider';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import { useProfile } from '@/features/profile/ProfileProvider';
-import { testActivityFrom, useSampleSleep } from '@/lib/sensors/testExtras';
+import { useSampleSleep } from '@/lib/sensors/testExtras';
 import { useLatestSensorReading, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 import { restingRangeFrom } from './homeModel';
@@ -59,7 +59,8 @@ export function useHomeData(displayName: string) {
     heartRate,
     restingRange: restingRangeFrom(heartRateHistory),
     steps,
-    activity: testActivityFrom(steps.reading, now),
+    // No source for distance, floors or calories (Android has none): always "--" until Phase 2 data exists.
+    activity: noActivityExtras,
     units,
     sleep: sampleSleep?.sleep ?? null,
     onRefresh,
