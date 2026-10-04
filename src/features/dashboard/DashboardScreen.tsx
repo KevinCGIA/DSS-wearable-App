@@ -4,8 +4,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import type {
+  ConnectionState,
   DailyActivityExtras,
-  HistoryState,
   LatestReadingState,
   SleepSummary,
   UserProfile,
@@ -13,55 +13,50 @@ import type {
 import { formatShortDate, greetingFor } from '@/lib/time';
 import type { Units } from '@/lib/measures';
 import { colors, spacing, type } from '@/theme';
-import type { DashboardDevice, RestingRange } from './dashboardModel';
-import { DeviceFilterBar } from './DeviceFilterBar';
-import { DevicesStrip } from './DevicesStrip';
+import { ActiveCaloriesCard } from './ActiveCaloriesCard';
+import { DeviceActivityCard } from './DeviceActivityCard';
 import { HeartRateCard } from './HeartRateCard';
 import { HelpSheet } from './HelpSheet';
-import { MetricsCard } from './MetricsCard';
+import { deviceViewFrom, stepsTodayFrom } from './dashboardModel';
+import type { RestingRange } from './dashboardModel';
 import { SleepRecoveryCard } from './SleepRecoveryCard';
-import { StepsCard } from './StepsCard';
 
 export type DashboardScreenProps = {
   now: number;
   profile: UserProfile | null;
   profileLoading: boolean;
-  devices: DashboardDevice[];
-  filterDeviceId: string | null;
+  connection: ConnectionState;
+  refreshing: boolean;
   heartRate: LatestReadingState;
-  heartRateHistory: HistoryState;
   restingRange: RestingRange | null;
   steps: LatestReadingState;
-  stepsHistory: HistoryState;
-  sleep: SleepSummary | null;
   activity: DailyActivityExtras;
   units: Units;
+  sleep: SleepSummary | null;
   bottomInset: number;
-  onChangeFilter: (deviceId: string | null) => void;
+  onRefresh: () => void;
   onOpenProfile: () => void;
-  onOpenDevices: (deviceId?: string) => void;
+  onOpenDevices: () => void;
   onOpenHeartRate: () => void;
   onOpenSteps: () => void;
   onOpenSleep: () => void;
 };
 
-// Combines Android's Home, Heart Rate, Fitness and Sleep tabs (iOS researcher layout, 2026-10-04).
+// The old Home layout (approved in Phase 1); cards open the Heart Rate, Steps and Sleep detail pages.
 export function DashboardScreen({
   now,
   profile,
   profileLoading,
-  devices,
-  filterDeviceId,
+  connection,
+  refreshing,
   heartRate,
-  heartRateHistory,
   restingRange,
   steps,
-  stepsHistory,
-  sleep,
   activity,
   units,
+  sleep,
   bottomInset,
-  onChangeFilter,
+  onRefresh,
   onOpenProfile,
   onOpenDevices,
   onOpenHeartRate,
@@ -70,8 +65,8 @@ export function DashboardScreen({
 }: DashboardScreenProps) {
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const firstName = profile?.name.trim().split(/s+/)[0] ?? '';
-  const connected = devices.some((d) => d.status === 'connected');
+  const firstName = profile?.name.trim().split(/\s+/)[0] ?? '';
+  const connected = connection.status === 'connected';
 
   return (
     <Screen
@@ -106,19 +101,27 @@ export function DashboardScreen({
         </>
       }
     >
-      <DevicesStrip devices={devices} onOpenDevices={onOpenDevices} />
-      <DeviceFilterBar devices={devices} deviceId={filterDeviceId} onChange={onChangeFilter} />
-
       <HeartRateCard
         heartRate={heartRate}
-        history={heartRateHistory}
         restingRange={restingRange}
         now={now}
         onPress={onOpenHeartRate}
       />
-      <StepsCard steps={steps} history={stepsHistory} now={now} onPress={onOpenSteps} />
+
+      <DeviceActivityCard
+        device={deviceViewFrom(connection, refreshing)}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        stepsToday={stepsTodayFrom(steps.reading, now)}
+        activity={activity}
+        units={units}
+        onOpenDevices={onOpenDevices}
+        onOpenSteps={onOpenSteps}
+      />
+
       <SleepRecoveryCard sleep={sleep} onPress={onOpenSleep} />
-      <MetricsCard activity={activity} units={units} />
+
+      <ActiveCaloriesCard activity={activity} onPress={onOpenSteps} />
 
       <HelpSheet visible={helpOpen} onClose={() => setHelpOpen(false)} />
     </Screen>

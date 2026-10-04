@@ -1,124 +1,70 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  emptyHistory,
+  connectedMock,
+  connectionIn,
   emptyLatest,
+  failedConnection,
   heartRateHistory,
   heartRateLatest,
-  mockActivityExtras,
-  mockDeviceA,
-  mockDeviceB,
-  mockProfile,
-  mockSleep,
-  noActivityExtras,
-  stepsHistory,
+  noDeviceMock,
   stepsLatest,
 } from '@/data/mocks';
-import type { HistoryState } from '@/data/types';
 import type { PreviewEntry } from '@/features/previews/types';
-import { filterHistory, filterLatest } from '@/lib/sensors/filterReadings';
 import { restingRangeFrom } from './dashboardModel';
-import type { DashboardDevice } from './dashboardModel';
 import { DashboardScreen } from './DashboardScreen';
 import type { DashboardScreenProps } from './DashboardScreen';
 import { useLiveHeartRate } from './useLiveHeartRate';
 
 const noop = () => undefined;
-const HOUR = 60 * 60 * 1000;
 
-const chipA: DashboardDevice = { deviceId: mockDeviceA.id, name: mockDeviceA.name, status: 'connected', rssi: -54 };
-const chipB: DashboardDevice = { deviceId: mockDeviceB.id, name: mockDeviceB.name, status: 'connected', rssi: -71 };
-
-const base = (): DashboardScreenProps => ({
-  now: Date.now(),
-  profile: mockProfile,
+const base: Omit<DashboardScreenProps, 'now'> = {
+  ...noDeviceMock,
   profileLoading: false,
-  devices: [],
-  filterDeviceId: null,
-  heartRate: emptyLatest,
-  heartRateHistory: emptyHistory(),
-  restingRange: null,
-  steps: emptyLatest,
-  stepsHistory: emptyHistory(),
-  sleep: null,
-  activity: noActivityExtras,
+  refreshing: false,
   units: 'metric',
+  restingRange: null,
   bottomInset: 0,
-  onChangeFilter: noop,
+  onRefresh: noop,
   onOpenProfile: noop,
   onOpenDevices: noop,
   onOpenHeartRate: noop,
   onOpenSteps: noop,
   onOpenSleep: noop,
+};
+
+const connected = (): Omit<DashboardScreenProps, 'now'> => ({
+  ...base,
+  ...connectedMock,
+  heartRate: heartRateLatest(),
+  steps: stepsLatest(),
+  restingRange: restingRangeFrom(heartRateHistory()),
 });
 
-function OneDeviceLive() {
+function LiveConnectedHome() {
   const heartRate = useLiveHeartRate();
-  const history = heartRateHistory();
-  return (
-    <DashboardScreen
-      {...base()}
-      devices={[chipA]}
-      heartRate={heartRate}
-      heartRateHistory={history}
-      restingRange={restingRangeFrom(history)}
-      steps={stepsLatest()}
-      stepsHistory={stepsHistory()}
-      sleep={mockSleep}
-      activity={mockActivityExtras}
-    />
-  );
-}
-
-const merge = (a: HistoryState, b: HistoryState): HistoryState => ({
-  ...a,
-  readings: [...a.readings, ...b.readings].sort((x, y) => x.timestamp.getTime() - y.timestamp.getTime()),
-});
-
-function TwoDevicesWithFilter() {
-  const [deviceId, setDeviceId] = useState<string | null>(null);
-  const hrAll = merge(heartRateHistory(mockDeviceA), heartRateHistory(mockDeviceB, 9));
-  const stepsAll = merge(stepsHistory(6842, mockDeviceA), stepsHistory(5120, mockDeviceB));
-  const latestHr = heartRateLatest(81, 20 * 1000, mockDeviceB);
-  const latestSteps = stepsLatest(6842, 3 * 60 * 1000, mockDeviceA);
-  const hr = filterHistory(hrAll, deviceId);
-
-  return (
-    <DashboardScreen
-      {...base()}
-      devices={[chipA, chipB]}
-      filterDeviceId={deviceId}
-      onChangeFilter={setDeviceId}
-      heartRate={filterLatest(latestHr, hrAll, deviceId)}
-      heartRateHistory={hr}
-      restingRange={restingRangeFrom(hr)}
-      steps={filterLatest(latestSteps, stepsAll, deviceId)}
-      stepsHistory={filterHistory(stepsAll, deviceId)}
-      sleep={mockSleep}
-      activity={mockActivityExtras}
-    />
-  );
+  return <DashboardScreen {...connected()} heartRate={heartRate} now={Date.now()} />;
 }
 
 export const dashboardPreview: PreviewEntry = {
   title: 'Dashboard',
   group: 'Screens',
   states: [
-    { label: 'No device', render: () => <DashboardScreen {...base()} /> },
-    { label: 'One device live', render: () => <OneDeviceLive /> },
-    { label: 'Two devices + filter', render: () => <TwoDevicesWithFilter /> },
+    { label: 'No device', render: () => <DashboardScreen {...base} now={Date.now()} /> },
     {
-      label: 'Stale data',
+      label: 'Connecting',
+      render: () => <DashboardScreen {...base} connection={connectionIn('connecting', 2)} now={Date.now()} />,
+    },
+    {
+      label: 'Syncing',
+      render: () => <DashboardScreen {...connected()} refreshing now={Date.now()} />,
+    },
+    { label: 'Connected', render: () => <LiveConnectedHome /> },
+    { label: 'Imperial', render: () => <DashboardScreen {...connected()} units="imperial" now={Date.now()} /> },
+    {
+      label: 'Failed',
       render: () => (
-        <DashboardScreen
-          {...base()}
-          heartRate={heartRateLatest(68, 3 * HOUR)}
-          heartRateHistory={heartRateHistory()}
-          restingRange={restingRangeFrom(heartRateHistory())}
-          steps={stepsLatest(4210, 3 * HOUR)}
-          stepsHistory={stepsHistory(4210)}
-        />
+        <DashboardScreen {...base} connection={failedConnection} heartRate={emptyLatest} now={Date.now()} />
       ),
     },
-    { label: 'Imperial', render: () => <DashboardScreen {...base()} activity={mockActivityExtras} units="imperial" /> },
   ],
 };
