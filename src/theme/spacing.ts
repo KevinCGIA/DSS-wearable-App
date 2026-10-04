@@ -40,6 +40,7 @@ export const layout = {
   heroOverscroll: 1000,
   heroBackdrop: 640,
   chartHeight: 140,
+  miniChartHeight: 80,
   heroRingCenterY: 56,
   heroRingInset: 84,
 } as const;

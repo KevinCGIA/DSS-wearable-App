@@ -6,8 +6,10 @@ import { Screen } from '@/components/ui/Screen';
 import type {
   ConnectionState,
   DailyActivityExtras,
+  HistoryState,
   LatestReadingState,
   SleepSummary,
+  SleepTrends,
   UserProfile,
 } from '@/data/types';
 import { formatShortDate, greetingFor } from '@/lib/time';
@@ -17,8 +19,8 @@ import { ActiveCaloriesCard } from './ActiveCaloriesCard';
 import { DeviceActivityCard } from './DeviceActivityCard';
 import { HeartRateCard } from './HeartRateCard';
 import { HelpSheet } from './HelpSheet';
-import { deviceViewFrom, stepsTodayFrom } from './dashboardModel';
-import type { RestingRange } from './dashboardModel';
+import { ringViewFrom, stepsTodayFrom } from './dashboardModel';
+import type { DeviceSummary, RestingRange } from './dashboardModel';
 import { SleepRecoveryCard } from './SleepRecoveryCard';
 
 export type DashboardScreenProps = {
@@ -26,14 +28,21 @@ export type DashboardScreenProps = {
   profile: UserProfile | null;
   profileLoading: boolean;
   connection: ConnectionState;
+  // Every connected (or connecting) device; one entry per device.
+  devices: DeviceSummary[];
   refreshing: boolean;
   heartRate: LatestReadingState;
+  heartRateHistory: HistoryState;
   restingRange: RestingRange | null;
   steps: LatestReadingState;
+  stepsHistory: HistoryState;
   activity: DailyActivityExtras;
   units: Units;
   sleep: SleepSummary | null;
+  sleepTrends: SleepTrends | null;
   bottomInset: number;
+  // Previews: open every card.
+  initiallyExpanded?: boolean;
   onRefresh: () => void;
   onOpenProfile: () => void;
   onOpenDevices: () => void;
@@ -42,20 +51,25 @@ export type DashboardScreenProps = {
   onOpenSleep: () => void;
 };
 
-// The old Home layout (approved in Phase 1); cards open the Heart Rate, Steps and Sleep detail pages.
+// The old Home layout (approved). Cards expand in place; links inside open the detail pages.
 export function DashboardScreen({
   now,
   profile,
   profileLoading,
   connection,
+  devices,
   refreshing,
   heartRate,
+  heartRateHistory,
   restingRange,
   steps,
+  stepsHistory,
   activity,
   units,
   sleep,
+  sleepTrends,
   bottomInset,
+  initiallyExpanded,
   onRefresh,
   onOpenProfile,
   onOpenDevices,
@@ -103,13 +117,20 @@ export function DashboardScreen({
     >
       <HeartRateCard
         heartRate={heartRate}
+        history={heartRateHistory}
         restingRange={restingRange}
         now={now}
-        onPress={onOpenHeartRate}
+        initiallyExpanded={initiallyExpanded}
+        onOpen={onOpenHeartRate}
       />
 
       <DeviceActivityCard
-        device={deviceViewFrom(connection, refreshing)}
+        device={ringViewFrom(devices, connection, refreshing)}
+        devices={devices}
+        stepsHistory={stepsHistory}
+        stepsUpdatedAt={steps.reading ? steps.reading.timestamp.getTime() : null}
+        now={now}
+        initiallyExpanded={initiallyExpanded}
         refreshing={refreshing}
         onRefresh={onRefresh}
         stepsToday={stepsTodayFrom(steps.reading, now)}
@@ -119,9 +140,9 @@ export function DashboardScreen({
         onOpenSteps={onOpenSteps}
       />
 
-      <SleepRecoveryCard sleep={sleep} onPress={onOpenSleep} />
+      <SleepRecoveryCard sleep={sleep} trends={sleepTrends} initiallyExpanded={initiallyExpanded} onOpen={onOpenSleep} />
 
-      <ActiveCaloriesCard activity={activity} onPress={onOpenSteps} />
+      <ActiveCaloriesCard activity={activity} initiallyExpanded={initiallyExpanded} onOpen={onOpenSteps} />
 
       <HelpSheet visible={helpOpen} onClose={() => setHelpOpen(false)} />
     </Screen>

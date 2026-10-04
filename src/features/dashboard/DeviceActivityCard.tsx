@@ -1,16 +1,29 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Card } from '@/components/ui/Card';
+import { CardLink } from '@/components/ui/CardLink';
+import { ExpandableCard, toggleA11y } from '@/components/ui/ExpandableCard';
+import { ExpandChevron } from '@/components/ui/ExpandChevron';
 import { IconButton } from '@/components/ui/IconButton';
-import type { DailyActivityExtras } from '@/data/types';
+import { SignalBars } from '@/components/ui/SignalBars';
+import { TimeBarChart } from '@/components/ui/TimeBarChart';
+import type { DailyActivityExtras, HistoryState } from '@/data/types';
+import { signalFor } from '@/features/devices/bluetoothText';
+import { formatAge } from '@/lib/time';
+import { HOUR_MS, stepsByBucketAcrossDevices } from '@/lib/trends';
 import { distanceFor, unitLabels } from '@/lib/measures';
 import type { Units } from '@/lib/measures';
 import { colors, layout, radius, spacing, type } from '@/theme';
-import type { DeviceTone, DeviceView } from './dashboardModel';
+import { statusLabel } from './dashboardModel';
+import type { DeviceSummary, DeviceTone, DeviceView } from './dashboardModel';
 
 type Props = {
   device: DeviceView;
+  devices: DeviceSummary[];
+  stepsHistory: HistoryState;
+  stepsUpdatedAt: number | null;
+  now: number;
+  initiallyExpanded?: boolean;
   refreshing: boolean;
   stepsToday: number;
   activity: DailyActivityExtras;
@@ -29,6 +42,11 @@ const ringTones: Record<DeviceTone, { border: string; fill: string; icon: string
 
 export function DeviceActivityCard({
   device,
+  devices,
+  stepsHistory,
+  stepsUpdatedAt,
+  now,
+  initiallyExpanded,
   refreshing,
   stepsToday,
   activity,
@@ -45,63 +63,144 @@ export function DeviceActivityCard({
   const canSync = device.tone === 'active' || device.tone === 'failed';
 
   return (
-    <Card padding={0} style={styles.card}>
-      <View style={styles.columns}>
-        <View style={styles.deviceColumn}>
-          <Pressable
-            onPress={onOpenDevices}
-            style={({ pressed }) => [styles.device, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={[device.name, statusLine, canSync ? null : device.hint]
-              .filter(Boolean)
-              .join(', ')}
-            accessibilityHint="Opens Devices"
-          >
-            <View style={[styles.ring, { borderColor: tone.border, backgroundColor: tone.fill }]}>
-              <Feather name="watch" size={30} color={tone.icon} />
-            </View>
-            <Text style={[type.subheading, styles.name]} numberOfLines={2}>
-              {device.name}
-            </Text>
-            {statusLine ? (
-              <Text style={[type.label, styles.status, { color: tone.status }]}>{statusLine}</Text>
+    <ExpandableCard
+      padding={0}
+      style={styles.card}
+      pressableHeader={false}
+      initiallyExpanded={initiallyExpanded}
+      header={({ expanded, toggle }) => (
+        <View style={styles.columns}>
+          <View style={styles.deviceColumn}>
+            <Pressable
+              onPress={onOpenDevices}
+              style={({ pressed }) => [styles.device, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={[device.name, statusLine, canSync ? null : device.hint]
+                .filter(Boolean)
+                .join(', ')}
+              accessibilityHint="Opens Devices"
+            >
+              <View style={[styles.ring, { borderColor: tone.border, backgroundColor: tone.fill }]}>
+                <Feather name="watch" size={30} color={tone.icon} />
+              </View>
+              <Text style={[type.subheading, styles.name]} numberOfLines={2}>
+                {device.name}
+              </Text>
+              {statusLine ? (
+                <Text style={[type.label, styles.status, { color: tone.status }]}>{statusLine}</Text>
+              ) : null}
+              {device.hint && !canSync ? <Text style={[type.caption, styles.hint]}>{device.hint}</Text> : null}
+            </Pressable>
+            {canSync ? (
+              <View style={styles.syncRow}>
+                <IconButton
+                  icon="refresh-cw"
+                  spinning={refreshing}
+                  onPress={onRefresh}
+                  accessibilityLabel={
+                    device.tone === 'failed' ? 'Retry connection' : refreshing ? 'Syncing device' : 'Sync device'
+                  }
+                />
+                {device.hint ? <Text style={[type.caption, styles.syncText]}>{device.hint}</Text> : null}
+              </View>
             ) : null}
-            {device.hint && !canSync ? <Text style={[type.caption, styles.hint]}>{device.hint}</Text> : null}
-          </Pressable>
-          {canSync ? (
-            <View style={styles.syncRow}>
-              <IconButton
-                icon="refresh-cw"
-                spinning={refreshing}
-                onPress={onRefresh}
-                accessibilityLabel={
-                  device.tone === 'failed' ? 'Retry connection' : refreshing ? 'Syncing device' : 'Sync device'
-                }
-              />
-              {device.hint ? <Text style={[type.caption, styles.syncText]}>{device.hint}</Text> : null}
+          </View>
+
+          <View style={styles.divider} />
+
+          <Pressable
+            onPress={toggle}
+            style={({ pressed }) => [styles.activity, pressed && styles.pressed]}
+            accessibilityLabel={`Today's activity: ${stepsToday} steps`}
+            {...toggleA11y(expanded)}
+          >
+            <View style={styles.eyebrowRow}>
+              <Text style={[type.caption, styles.eyebrow]}>TODAY'S ACTIVITY</Text>
+              <ExpandChevron expanded={expanded} />
             </View>
-          ) : null}
+            <ActivityRow label="Steps" value={stepsToday.toLocaleString()} />
+            <ActivityRow
+              label="Distance"
+              value={distance !== null ? distance.toFixed(1) : '--'}
+              unit={distance !== null ? unitLabels(units).distance : undefined}
+            />
+            <ActivityRow label="Floors" value={activity.floors !== null ? String(activity.floors) : '--'} />
+          </Pressable>
         </View>
+      )}
+    >
+      <View style={styles.expanded}>
+        <Text style={[type.caption, styles.section]}>DEVICES</Text>
+        {devices.length === 0 ? (
+          <>
+            <Text style={[type.body, styles.muted]}>No device connected</Text>
+            <CardLink label="Add device ›" onPress={onOpenDevices} />
+          </>
+        ) : (
+          devices.map((d) => <DeviceRow key={d.deviceId} device={d} now={now} />)
+        )}
 
-        <View style={styles.divider} />
+        <Text style={[type.caption, styles.section]}>TODAY</Text>
+        <TodaySteps history={stepsHistory} now={now} />
+        <Text style={[type.caption, styles.muted]}>
+          {stepsUpdatedAt ? `Steps updated ${formatAge(now - stepsUpdatedAt)}` : 'No steps recorded yet'}
+        </Text>
 
-        <Pressable
-          onPress={onOpenSteps}
-          style={({ pressed }) => [styles.activity, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={`Today's activity: ${stepsToday} steps. Open Steps`}
-        >
-          <Text style={[type.caption, styles.eyebrow]}>TODAY'S ACTIVITY</Text>
-          <ActivityRow label="Steps" value={stepsToday.toLocaleString()} />
-          <ActivityRow
-            label="Distance"
-            value={distance !== null ? distance.toFixed(1) : '--'}
-            unit={distance !== null ? unitLabels(units).distance : undefined}
-          />
-          <ActivityRow label="Floors" value={activity.floors !== null ? String(activity.floors) : '--'} />
-        </Pressable>
+        <View style={styles.links}>
+          <CardLink label="Devices ›" onPress={onOpenDevices} />
+          <CardLink label="Steps ›" onPress={onOpenSteps} />
+        </View>
       </View>
-    </Card>
+    </ExpandableCard>
+  );
+}
+
+function DeviceRow({ device, now }: { device: DeviceSummary; now: number }) {
+  const signal = device.rssi !== null ? signalFor(device.rssi) : null;
+  const battery = device.batteryLevel !== null ? `Battery ${device.batteryLevel}%` : 'Battery not reported';
+  const sync = device.lastSync ? `Last sync ${formatAge(now - device.lastSync)}` : 'No readings yet';
+  return (
+    <View
+      style={styles.deviceRow}
+      accessible
+      accessibilityLabel={[device.name, statusLabel(device.status), signal ? `${signal.label}, ${device.rssi} dBm` : null, battery, sync]
+        .filter(Boolean)
+        .join(', ')}
+    >
+      <Text style={[type.bodyStrong, styles.deviceName]}>{device.name}</Text>
+      <View style={styles.meta}>
+        {signal ? (
+          <View style={styles.metaItem}>
+            <SignalBars bars={signal.bars} />
+            <Text style={[type.caption, styles.muted]}>{device.rssi} dBm</Text>
+          </View>
+        ) : null}
+        <Text style={[type.caption, styles.muted]}>{battery}</Text>
+        <Text style={[type.caption, device.status === 'connected' ? styles.good : styles.pending]}>
+          {statusLabel(device.status)}
+        </Text>
+        <Text style={[type.caption, styles.muted]}>{sync}</Text>
+      </View>
+    </View>
+  );
+}
+
+// Steps per hour since midnight, summed per device (running totals are per device).
+function TodaySteps({ history, now }: { history: HistoryState; now: number }) {
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  const start = midnight.getTime();
+  const buckets = stepsByBucketAcrossDevices(history.readings, start, Math.max(now, start + HOUR_MS), HOUR_MS);
+  const total = Math.round(buckets.reduce((s, b) => s + (b.value ?? 0), 0));
+  if (total === 0) return <Text style={[type.body, styles.muted]}>No steps per hour to show yet today.</Text>;
+  return (
+    <TimeBarChart
+      buckets={buckets}
+      start={start}
+      end={Math.max(now, start + HOUR_MS)}
+      height={layout.miniChartHeight}
+      accessibilityLabel={`Steps per hour today, ${total} in total`}
+    />
   );
 }
 
@@ -144,7 +243,22 @@ const styles = StyleSheet.create({
   hint: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
   divider: { width: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.lg },
   activity: { flex: 1.15, padding: spacing.lg, justifyContent: 'center' },
-  eyebrow: { color: colors.textMuted, letterSpacing: 0.8, marginBottom: spacing.sm, textAlign: 'center' },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  eyebrow: { color: colors.textMuted, letterSpacing: 0.8, textAlign: 'center' },
+  expanded: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
+  section: { color: colors.textMuted, letterSpacing: 0.8, marginTop: spacing.xs },
+  muted: { color: colors.textMuted },
+  good: { color: colors.good },
+  pending: { color: colors.accentText },
+  deviceRow: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  deviceName: { color: colors.text },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.md, rowGap: spacing.xs, marginTop: spacing.xs },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.xl },
   row: {
     flexDirection: 'row',
     alignItems: 'baseline',

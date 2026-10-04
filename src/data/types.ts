@@ -25,6 +25,8 @@ export type ConnectionState = {
   attempt: number;
   batteryLevel: number | null;
   error: string | null;
+  // iOS addition (in-app only, not stored): last known signal. Phase 2: readRSSI while connected.
+  rssi?: number | null;
 };
 
 // Same string values as react-native-ble-plx's State enum.
