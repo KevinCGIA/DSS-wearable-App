@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radius, spacing, type } from '@/theme';
 
-type Tier = 'live' | 'session' | 'neutral' | 'alert' | 'good';
+type Tier = 'live' | 'session' | 'neutral' | 'alert' | 'warning' | 'good';
 
 type Props = {
   label: string;
@@ -19,6 +19,7 @@ const tiers: Record<Tier, { bg: string; fg: string; border: string }> = {
   session: { bg: colors.session.surface, fg: colors.session.text, border: colors.session.surface },
   neutral: { bg: colors.surfaceSunken, fg: colors.textSecondary, border: 'transparent' },
   alert: { bg: colors.dangerSurface, fg: colors.danger, border: 'transparent' },
+  warning: { bg: colors.warningSurface, fg: colors.warning, border: 'transparent' },
   good: { bg: colors.goodSurface, fg: colors.good, border: 'transparent' },
 };
 

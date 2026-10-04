@@ -6,26 +6,14 @@ import { Card } from '@/components/ui/Card';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
-import { Toggle } from '@/components/ui/Toggle';
-import type { ConnectionState, PairedDevice, UserProfile } from '@/data/types';
-import { CurrentDevice } from '@/features/devices/CurrentDevice';
-import { PairedDeviceList } from '@/features/devices/PairedDeviceList';
+import type { UserProfile } from '@/data/types';
 import { colors, layout, spacing, type } from '@/theme';
 
 export type SettingsScreenProps = {
   bottomInset: number;
-  now: number;
   profile: UserProfile | null;
   profileLoading: boolean;
-  connection: ConnectionState;
-  pairedDevices: PairedDevice[];
-  autoConnect: boolean;
   onOpenProfile: () => void;
-  onConnect: (device: { id: string; name: string | null }) => void;
-  onDisconnect: () => void;
-  onForgetDevice: (device: PairedDevice) => void;
-  onSetAutoConnect: (enabled: boolean) => void;
-  onOpenDevices: () => void;
   onOpenAlertThresholds: () => void;
   onOpenNotifications: () => void;
   onOpenPreferences: () => void;
@@ -39,9 +27,6 @@ export function SettingsScreen(props: SettingsScreenProps) {
   return (
     <Screen scroll bottomInset={bottomInset} hero={<HeroHeader title="Settings" />}>
       <ProfileRow {...props} />
-
-      <Section title="Devices" />
-      <DevicesCard {...props} />
 
       <Section title="Alerts & Preferences" />
       <Card padding={0}>
@@ -104,42 +89,6 @@ function ProfileRow({ profile, profileLoading, onOpenProfile }: SettingsScreenPr
   );
 }
 
-function DevicesCard({
-  now,
-  connection,
-  pairedDevices,
-  autoConnect,
-  onConnect,
-  onDisconnect,
-  onForgetDevice,
-  onSetAutoConnect,
-  onOpenDevices,
-}: SettingsScreenProps) {
-  return (
-    <Card padding={0}>
-      <CurrentDevice connection={connection} onDisconnect={onDisconnect} />
-      <Toggle
-        label="Auto-connect"
-        hint="Reconnect to your last device when the app opens"
-        value={autoConnect}
-        onValueChange={onSetAutoConnect}
-        divider
-      />
-      <ListRow icon="bluetooth" label="Pair a New Device" onPress={onOpenDevices} divider />
-      <View style={styles.pairedHead}>
-        <Text style={[type.label, styles.muted]}>Paired devices</Text>
-      </View>
-      <PairedDeviceList
-        pairedDevices={pairedDevices}
-        connection={connection}
-        now={now}
-        onConnect={onConnect}
-        onForgetDevice={onForgetDevice}
-      />
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   section: {
@@ -160,11 +109,4 @@ const styles = StyleSheet.create({
   profileText: { flex: 1 },
   name: { color: colors.text },
   muted: { color: colors.textMuted },
-  pairedHead: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
 });

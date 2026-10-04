@@ -6,7 +6,6 @@ type Props = {
   bottomInset: number;
   signOut: () => void;
   onOpenProfile: () => void;
-  onOpenDevices: () => void;
   onOpenAlertThresholds: () => void;
   onOpenNotifications: () => void;
   onOpenPreferences: () => void;

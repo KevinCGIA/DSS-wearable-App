@@ -1,62 +1,71 @@
 import React from 'react';
-import {
-  connectedConnection,
-  connectionIn,
-  disconnectedConnection,
-  failedConnection,
-  mockPairedDevices,
-  mockScannedDevices,
-} from '@/data/mocks';
 import type { PreviewEntry } from '@/features/previews/types';
+import type { DevicesModel } from './deviceModel';
+import { devicesFixture, fixtureDeviceD, fixtureDeviceE, mockDeviceA, mockDeviceB, mockDeviceC } from './devicesFixture';
 import { DevicesScreen } from './DevicesScreen';
 import type { DevicesScreenProps } from './DevicesScreen';
 
 const noop = () => undefined;
 
-const base = (): DevicesScreenProps => ({
-  now: Date.now(),
-  bluetoothState: 'PoweredOn',
-  isScanning: false,
-  devices: [],
-  scanError: null,
-  connection: disconnectedConnection,
-  pairedDevices: mockPairedDevices,
-  autoConnect: true,
-  onStartScan: noop,
-  onStopScan: noop,
-  onConnect: noop,
-  onDisconnect: noop,
-  onForgetDevice: noop,
-  onSetAutoConnect: noop,
-  onBack: noop,
-});
+const screen = (model: DevicesModel, extra: Partial<DevicesScreenProps> = {}) => (
+  <DevicesScreen
+    now={Date.now()}
+    bluetoothState="PoweredOn"
+    loading={false}
+    error={null}
+    connected={model.connected}
+    previous={model.previous}
+    summary={model.summary}
+    bottomInset={0}
+    onAddDevice={noop}
+    onOpenDevice={noop}
+    onConnect={noop}
+    onDisconnect={noop}
+    onForget={noop}
+    {...extra}
+  />
+);
 
-const found = mockScannedDevices;
+const watch = { device: mockDeviceA, connectedMinAgo: 25, rssi: -56, battery: 81 };
+const empty = () => devicesFixture(Date.now(), { keep: [] });
 
 export const devicesPreview: PreviewEntry = {
   title: 'Devices',
   group: 'Screens',
   states: [
-    { label: 'Idle', render: () => <DevicesScreen {...base()} /> },
-    { label: 'Scanning', render: () => <DevicesScreen {...base()} isScanning devices={found.slice(0, 2)} /> },
-    { label: 'Results', render: () => <DevicesScreen {...base()} devices={found} /> },
+    { label: 'No devices', render: () => screen(empty()) },
+    { label: 'One connected', render: () => screen(devicesFixture(Date.now(), { keep: [], live: [watch] })) },
     {
-      label: 'Connecting',
-      render: () => <DevicesScreen {...base()} devices={found} connection={connectionIn('connecting', 2)} />,
+      label: 'Three connected (Stable, Unstable, Not responding)',
+      render: () =>
+        screen(
+          devicesFixture(Date.now(), {
+            keep: [],
+            live: [
+              watch,
+              { device: mockDeviceB, connectedMinAgo: 12, rssi: -74, battery: null },
+              { device: mockDeviceC, connectedMinAgo: 9, silentMs: 3 * 60 * 1000, rssi: -88, battery: 22 },
+            ],
+          }),
+        ),
     },
-    { label: 'Setting up', render: () => <DevicesScreen {...base()} connection={connectionIn('discovering')} /> },
     {
-      label: 'Connected',
-      render: () => <DevicesScreen {...base()} devices={found} connection={connectedConnection} />,
+      label: 'Two connected + three previous',
+      render: () =>
+        screen(
+          devicesFixture(Date.now(), {
+            keep: [mockDeviceB.id, mockDeviceC.id, fixtureDeviceD.id],
+            copies: [{ device: fixtureDeviceD, from: mockDeviceA, shiftDays: 4 }],
+            live: [watch, { device: fixtureDeviceE, connectedMinAgo: 6, rssi: -63, battery: 64 }],
+          }),
+        ),
     },
-    { label: 'Reconnecting', render: () => <DevicesScreen {...base()} connection={connectionIn('reconnecting', 3)} /> },
-    { label: 'Disconnecting', render: () => <DevicesScreen {...base()} connection={connectionIn('disconnecting')} /> },
-    { label: 'Failed', render: () => <DevicesScreen {...base()} connection={failedConnection} /> },
-    { label: 'Bluetooth off', render: () => <DevicesScreen {...base()} bluetoothState="PoweredOff" /> },
-    { label: 'Permission denied', render: () => <DevicesScreen {...base()} bluetoothState="Unauthorized" /> },
+    { label: 'Previous only', render: () => screen(devicesFixture(Date.now())) },
+    { label: 'Bluetooth off', render: () => screen(devicesFixture(Date.now()), { bluetoothState: 'PoweredOff' }) },
+    { label: 'Loading', render: () => screen(empty(), { loading: true }) },
     {
-      label: 'No paired',
-      render: () => <DevicesScreen {...base()} pairedDevices={[]} autoConnect={false} />,
+      label: 'Error',
+      render: () => screen(devicesFixture(Date.now()), { error: "Couldn't load your history." }),
     },
   ],
 };

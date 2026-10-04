@@ -5,6 +5,8 @@ import { AlertThresholdsContainer } from '@/features/alerts/AlertThresholdsConta
 import { DashboardContainer } from '@/features/dashboard/DashboardContainer';
 import { DeviceFilterProvider } from '@/features/dashboard/DeviceFilterProvider';
 import { BleProvider } from '@/features/devices/BleProvider';
+import { AddDeviceContainer } from '@/features/devices/AddDeviceContainer';
+import { DeviceDetailContainer } from '@/features/devices/DeviceDetailContainer';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
 import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
@@ -36,6 +38,8 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
   usePreferences();
   const [tab, setTab] = useState<TabKey>(DEFAULT_TAB);
   const [stack, setStack] = useState<StackRoute[]>([]);
+  // The device Device Detail shows (one detail screen at a time).
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
   const registry = useRef<GuardRegistry>(new Map()).current;
   const tabRef = useRef(tab);
@@ -91,13 +95,21 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
           <View style={styles.shell}>
             <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
               <GuardScope scope={tabScope(tab)} registry={registry}>
-                {tab === 'devices' ? <DevicesContainer bottomInset={tabBarBaseHeight} /> : null}
+                {tab === 'devices' ? (
+                  <DevicesContainer
+                    bottomInset={tabBarBaseHeight}
+                    onAddDevice={() => navigation.push('add-device')}
+                    onOpenDevice={(deviceId) => {
+                      setSelectedDevice(deviceId);
+                      navigation.push('device-detail');
+                    }}
+                  />
+                ) : null}
                 {tab === 'dashboard' ? (
                   <DashboardContainer
                     displayName={displayName}
                     bottomInset={tabBarBaseHeight}
                     onOpenProfile={() => navigation.push('profile')}
-                    // Part 2: scroll to that device's card in the Devices tab.
                     onOpenDevices={() => navigation.openTab('devices')}
                     onOpenHeartRate={() => navigation.push('heart-rate')}
                     onOpenSteps={() => navigation.push('steps')}
@@ -109,7 +121,6 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
                     bottomInset={tabBarBaseHeight}
                     signOut={onSignOut}
                     onOpenProfile={() => navigation.push('profile')}
-                    onOpenDevices={() => navigation.openTab('devices')}
                     onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
                     onOpenNotifications={() => navigation.push('notifications')}
                     onOpenPreferences={() => navigation.push('preferences')}
@@ -123,7 +134,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
             {top ? (
               <View style={styles.overlay} accessibilityViewIsModal>
                 <GuardScope key={stack.length} scope={stackScope(stack.length - 1, top)} registry={registry}>
-                  {renderStackRoute(top, navigation)}
+                  {renderStackRoute(top, navigation, selectedDevice)}
                 </GuardScope>
               </View>
             ) : null}
@@ -134,7 +145,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
   );
 }
 
-function renderStackRoute(route: StackRoute, navigation: Navigation) {
+function renderStackRoute(route: StackRoute, navigation: Navigation, selectedDevice: string | null) {
   switch (route) {
     case 'profile':
       return <ProfileContainer onBack={navigation.back} />;
@@ -160,6 +171,10 @@ function renderStackRoute(route: StackRoute, navigation: Navigation) {
       );
     case 'preferences':
       return <PreferencesContainer onBack={navigation.back} />;
+    case 'add-device':
+      return <AddDeviceContainer onBack={navigation.back} />;
+    case 'device-detail':
+      return selectedDevice ? <DeviceDetailContainer deviceId={selectedDevice} onBack={navigation.back} /> : null;
     case 'previews':
       return __DEV__ ? <PreviewsScreen entries={previewEntries} onBack={navigation.back} /> : null;
   }
