@@ -1250,3 +1250,12 @@ Android bugs: see `ANDROID_BUGS.md`.
 - No native build/prebuild performed in this package-only step. Native Firebase/auth runtime tests remain pending A3 configuration and A10 development builds; run platform prebuild --clean before building. The current web preview still uses the existing mock/preview flows.
 - Click list (Mac browser): at localhost:8081 choose Preview the dashboard; confirm Devices, Dashboard and Settings tabs open. No real Firebase login is expected yet. Device auth tests are deferred to native builds.
 - A2 STOP: await PL approval before A3. No push; local preview left running.
+
+### 2026-10-05 — Phase 2 A3: Firebase app.json config
+- Read the exact Expo SDK 57 reference at https://docs.expo.dev/versions/v57.0.0/ and inspected installed Google Sign-In/Firebase Auth plugin code before editing configuration.
+- Set ios.bundleIdentifier to com.galaxies.firebase and ios.googleServicesFile to ./GoogleService-Info.plist; set android.package to com.dsswearablecool.firebase and android.googleServicesFile to ./google-services.json.
+- Appended @react-native-firebase/app, @react-native-firebase/auth, expo-build-properties with ios.useFrameworks static, and the Google Sign-In plugin with iosUrlScheme copied from the plist's REVERSED_CLIENT_ID. No API keys embedded.
+- Preserved all existing settings and plugins, including name DSS Wearables, supportsTablet false, icon/adaptive icons, font and splash configuration. No screens, BLE or service code changed. Files ported: none.
+- Validation: npm run typecheck passed; EXPO_OFFLINE=1 npx --no-install expo config --type public resolved successfully. Compared configuration with HEAD to verify only the required A3 additions and identifier replacement. Native build/auth runtime verification remains deferred to A10/A11.
+- Click list: no device taps validate native configuration at this step. On Mac, review app.json for the two platform IDs and retained icon/splash settings; real sign-in tests require the later iOS Simulator / Android development builds.
+- A3 STOP: await PL approval before A4 (Android debug SHA-1). No Firebase console changes, native prebuild, or push performed.
