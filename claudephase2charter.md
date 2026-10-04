@@ -1193,3 +1193,51 @@ Android bugs: see `ANDROID_BUGS.md`.
 - **Settings:** the Devices section is gone (Profile row, Alert Thresholds, Notifications, Preferences, Previews in dev, Log Out). `CurrentDevice.tsx` was deleted (no longer used).
 - **Previews:** Devices (no devices, one connected, three connected Stable/Unstable/Not responding, two connected + three previous, previous only, Bluetooth off, loading, error); Device detail (connected with long history, previous Unstable, Not responding, Bluetooth off, not found); Add device (the 12 old states). Previews use `devicesFixture.ts`, which runs the same model (`buildDevicesModel`) as the real tab. Checked via temporary web screenshots at 390 wide (entry restored).
 - **Known limits:** the log and stats reset when the app restarts (persistence is Phase 2.5). Because the seeded history is real-looking readings, the Dashboard's Heart Rate card can show the Galaxy Watch8's last reading from ~1 day ago until a device connects.
+
+
+### 2026-10-05 — Phase 2 handover to PL
+- Starting main commit: `f93454fd9ff40a9c5b3a5bcc4ed264b21a73a8dd` (Devices tab with connected and previous device stats).
+- Setup step 1: Xcode 27.0 (27A266a), CocoaPods 1.17.0, Node v22.18.0, npm 10.9.3, Git 2.54.0 (Apple Git-157), Java 21.0.2. Android SDK and Android Studio absent from standard locations; Android testing not ready.
+- Setup step 2: both Git repos exist under `/Users/praneetlondhe/DSSWEARABLE`; commands run in `DSS-iOS-UI`. Session workspace remains the parent; PL asked to proceed with checks. Commands individually submitted for approval.
+- Setup step 3: origins verified as TarunKrishnan6/DSS-iOS-UI and KevinCGIA/DSS-wearable-App on GitHub.
+- Setup step 4: approved fetch completed in Kevin's repo; working tree clean. BLE tip `e65c84b239fb4ece5dacb098e96354de11aedbd5`, 2026-10-02T22:56:14+10:00, "Add sensor readings, health displays, trend charts and device management". Two BLE commits remain outside origin/main; branch not merged. No working files modified there.
+- Setup step 5: main pulled with --ff-only; already up to date. Phase 1 sign-off (`1611d27`), expandable Dashboard (`d62054c`), and Devices tab (`f93454f`) verified.
+- Setup step 6: created `phase-2`; both PL handover documents already present in root. Appended handover instructions to AGENTS.md, preserving Expo notes. CLAUDE.md untouched. Documentation commit pending review; Firebase and app checks still pending. No Phase 2 implementation started.
+- Setup stopped during step 6 validation: `npm run typecheck` exited 127 (`tsc: command not found`). Dependencies are not ready. No handover commit made; Firebase checks and setup steps 7–11 remain pending. Next fix requires an approved dependency installation before retrying typecheck. No push performed.
+
+### 2026-10-05 — Setup dependency installation and typecheck recovery
+- PL authorised installing the relevant dependencies. Approved `npm install` completed in DSS-iOS-UI: 566 packages added. No new Phase 2 packages requested.
+- `npm run typecheck` now passes (exit 0), resolving the missing-tsc blocker.
+- npm reported 29 dependency vulnerabilities (8 moderate, 21 high); no audit fixes or dependency upgrades applied.
+- Handover commit, Firebase configuration verification, Expo config resolution and baseline runtime verification remain pending. No Phase 2 implementation started.
+
+### 2026-10-05 — Firebase setup configuration verified
+- Both root configuration files exist with exact required filenames and parse successfully.
+- GoogleService-Info.plist: PROJECT_ID wearable-app-f9d83, GCM_SENDER_ID 944450266341, BUNDLE_ID com.galaxies.firebase; nonempty REVERSED_CLIENT_ID present.
+- google-services.json: project_id wearable-app-f9d83, project_number 944450266341; Android client package com.dsswearablecool.firebase present.
+- Both files are gitignored and untracked. Configuration files unchanged; API keys not printed. Local configuration validation only; live Firebase connectivity and authentication not tested.
+
+
+### 2026-10-05 — Phase 2 A1: config re-verification and auth port map
+- PL explicitly confirmed all setup checks manually verified and authorised starting Phase 2. This records PL's verification; it does not claim Codex ran the remaining setup checks.
+- Rechecked both exact Firebase filenames, project wearable-app-f9d83 / number 944450266341, iOS com.galaxies.firebase, Android com.dsswearablecool.firebase, nonempty REVERSED_CLIENT_ID, gitignored and untracked. No API keys printed or config files changed.
+- Read Kevin's auth/profile code from local origin/feature/ble-connection (e65c84b) using git show. No fetch needed for A1. No implementation ported yet; planned sources and destinations follow.
+
+| Kevin source and exact function | Planned destination | Behaviour to adapt |
+|---|---|---|
+| app/login.tsx: signIn | src/features/auth/authService.ts | Email/password sign-in; sign out and reject unverified users |
+| app/login.tsx: signInWithGoogle; module-level GoogleSignin.configure | src/features/auth/authService.ts | Google credential flow; shared config from supplied client IDs; Play Services check only on Android |
+| app/register.tsx: signUp | src/features/auth/authService.ts, with profile/avatar helpers in src/features/profile/accountService.ts | Create auth user, users/{uid}, optional private/avatarData, send verification, sign out |
+| app/register.tsx: signUpWithGoogle | src/features/auth/authService.ts, with profile helpers in src/features/profile/accountService.ts | Google auth and ensure profile exists without overwriting existing fields |
+| app/register.tsx: chooseProfilePicture; app/(auth)/settings.tsx: chooseProfilePicture | src/lib/pickImage.ts and src/features/profile/accountService.ts | Keep existing picker; adapt 300x300 JPEG/base64 persistence under users/{uid}/private/avatarData.imageData |
+| app/(auth)/settings.tsx: loadProfile, saveProfile | src/features/profile/accountService.ts and ProfileProvider.tsx | Read/write name, height, weight; preserve Kevin's string field types and metric storage |
+| app/(auth)/home.tsx: loadProfilePicture; avatar read within settings.tsx: loadProfile | src/features/profile/accountService.ts and ProfileProvider.tsx | Shared avatar read with Google photo/initials fallback |
+| app/(auth)/settings.tsx: changeEmail | src/features/profile/accountService.ts | verifyBeforeUpdateEmail |
+| app/(auth)/settings.tsx: changePassword | src/features/profile/accountService.ts; reset-email behaviour reused in src/features/auth/authService.ts | sendPasswordResetEmail; Kevin has no separate forgot-password function |
+| app/(auth)/settings.tsx: logout; app/(auth)/home.tsx: logout | src/features/auth/authService.ts | signOut; retain Tarun's existing confirmation UI |
+| app/_layout.tsx: handleAuthStateChanged and onAuthStateChanged subscription effect | src/features/auth/useAuthSession.ts | Native auth session and subscription cleanup; retain Tarun's navigator |
+
+- Fixes planned, not implemented: missing Google sign-in profile, destructive Google sign-up writes, and Google avatar fallback (ANDROID_BUGS 1-3). Keep existing Firestore field types despite the older bug note proposing numeric height/weight. App IDs are settled; old bug 9 is superseded.
+- Avatar processing uses image-manipulator/file-system in Kevin's code; determine SDK-compatible helper dependencies during the relevant implementation step. Alert thresholds are new work in A8, not a Kevin port. No BLE or UI changes in A1.
+- Click list: no device taps needed for this read-only planning step. PL reviews the function map and approves A1 before A2. Runtime auth testing comes after native builds.
+- Validation: npm run typecheck passed. A1 contains documentation only; included pending handover documents and AGENTS instructions in the documentation commit. No push. Mandatory A1 STOP: awaiting PL approval before A2.
