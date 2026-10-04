@@ -24,9 +24,9 @@ export function HeartRateCard({ heartRate, restingRange, now, onPress }: Props) 
 
   const badge = reading ? (
     live ? (
-      <Pill label="Live" tier="live" dot />
+      <Pill label="Live" tier="live" dot shape="square" />
     ) : (
-      <Pill label={`Last seen ${formatAge(age)}`} tier="neutral" />
+      <Pill label={`Last seen ${formatAge(age)}`} tier="neutral" shape="square" />
     )
   ) : null;
 

@@ -946,3 +946,4 @@ Android bugs: see `ANDROID_BUGS.md`.
 | `lib/alerts/thresholds.ts` / `alertHistory.ts` | new Firestore paths + alert engine |
 | `lib/sensors/testExtras.ts` | delete once real sources exist |
 | `lib/preferences` | keep (device-local) |
+- Follow-up (Home tweak, requested): the Heart Rate card's **Live / Last seen** badge is now a small rounded square instead of a pill. `Pill` gained `shape: 'pill' | 'square'` (square = `radius.sm / 2`); only Home's HR badge uses it.

@@ -10,6 +10,7 @@ type Props = {
   tier?: Tier;
   icon?: keyof typeof Feather.glyphMap;
   dot?: boolean;
+  shape?: 'pill' | 'square';
   style?: ViewStyle;
 };
 
@@ -21,11 +22,11 @@ const tiers: Record<Tier, { bg: string; fg: string; border: string }> = {
   good: { bg: colors.goodSurface, fg: colors.good, border: 'transparent' },
 };
 
-export function Pill({ label, tier = 'neutral', icon, dot = false, style }: Props) {
+export function Pill({ label, tier = 'neutral', icon, dot = false, shape = 'pill', style }: Props) {
   const t = tiers[tier];
 
   return (
-    <View style={[styles.base, { backgroundColor: t.bg, borderColor: t.border }, style]}>
+    <View style={[styles.base, shape === 'square' && styles.square, { backgroundColor: t.bg, borderColor: t.border }, style]}>
       {dot ? <View style={[styles.dot, { backgroundColor: t.fg }]} /> : null}
       {icon ? <Feather name={icon} size={13} color={t.fg} style={styles.icon} /> : null}
       <Text style={[type.label, { color: t.fg }]} numberOfLines={1}>
@@ -45,6 +46,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
   },
+  square: { borderRadius: radius.sm / 2 },
   dot: { width: 7, height: 7, borderRadius: radius.pill, marginRight: spacing.sm },
   icon: { marginRight: spacing.xs + 2 },
 });
