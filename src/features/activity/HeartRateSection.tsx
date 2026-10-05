@@ -31,7 +31,7 @@ export function HeartRateSection({ now, view, notReported }: Props) {
 
   return (
     <>
-      <Card style={styles.first}>
+      <Card>
         <CardTitle icon="heart" title="Heart Rate" />
         <View
           style={styles.center}
@@ -42,7 +42,7 @@ export function HeartRateSection({ now, view, notReported }: Props) {
             <Text style={[type.hero, styles.value, stale && styles.muted]} maxFontSizeMultiplier={1.3}>
               {bpm}
             </Text>
-            <Text style={[type.subheading, styles.unit, stale && styles.muted]}>BPM</Text>
+            <Text style={[type.unit, styles.unit, stale && styles.muted]}>BPM</Text>
           </View>
           <Text style={[type.label, stale ? styles.muted : styles.secondary]}>Updated {formatAge(age)}</Text>
           {restingRange ? (
@@ -118,12 +118,11 @@ function RestingCard({ trends }: { trends: RestingHrTrends }) {
 }
 
 const styles = StyleSheet.create({
-  first: { marginTop: spacing.sm },
   card: { marginTop: spacing.lg },
   center: { alignItems: 'center', marginTop: spacing.lg },
   valueRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { color: colors.text },
-  unit: { color: colors.accent, marginLeft: spacing.sm },
+  unit: { color: colors.accent, marginLeft: spacing.xs },
   muted: { color: colors.textMuted },
   secondary: { color: colors.textSecondary, textAlign: 'center' },
   resting: { marginTop: spacing.md },

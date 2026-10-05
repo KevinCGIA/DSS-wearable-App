@@ -39,7 +39,7 @@ function LastNightCard({ sleep }: { sleep: SleepSummary }) {
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
   return (
-    <Card style={styles.first}>
+    <Card>
       <CardTitle icon="moon" title="Last night" right={<Pill label={sleep.rating} tier="good" />} />
 
       <View style={styles.columns}>
@@ -48,10 +48,10 @@ function LastNightCard({ sleep }: { sleep: SleepSummary }) {
           <Text style={[type.caption, styles.muted]}>Sleep Duration</Text>
         </View>
         <View style={styles.column}>
-          <Text style={[type.statLarge, styles.value]}>
-            {sleep.score}
-            <Text style={[type.unit, styles.muted]}> /100</Text>
-          </Text>
+          <View style={styles.valueRow}>
+            <Text style={[type.statLarge, styles.value]}>{sleep.score}</Text>
+            <Text style={[type.unit, styles.muted, styles.unitGap]}>/100</Text>
+          </View>
           <Text style={[type.caption, styles.muted]}>Sleep Score</Text>
         </View>
       </View>
@@ -101,10 +101,10 @@ function TrendsSection({ trends }: { trends: SleepTrends }) {
       />
 
       <View style={styles.summaryRow}>
-        <Card style={styles.summaryCard} padding={spacing.lg}>
+        <Card style={styles.summaryCard}>
           <StatReadout value={Math.round(average(data.score))} label="Avg score" icon="moon" size="medium" />
         </Card>
-        <Card style={styles.summaryCard} padding={spacing.lg}>
+        <Card style={styles.summaryCard}>
           <StatReadout value={average(data.hours).toFixed(1)} unit="h" label="Avg sleep" icon="clock" size="medium" />
         </Card>
       </View>
@@ -135,9 +135,10 @@ function TrendsSection({ trends }: { trends: SleepTrends }) {
 }
 
 const styles = StyleSheet.create({
-  first: { marginTop: spacing.sm },
   card: { marginTop: spacing.lg },
-  columns: { flexDirection: 'row', marginTop: spacing.lg },
+  columns: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  unitGap: { marginLeft: spacing.xs },
   column: { flex: 1 },
   value: { color: colors.text },
   muted: { color: colors.textMuted },

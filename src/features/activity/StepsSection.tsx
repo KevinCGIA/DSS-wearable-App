@@ -32,7 +32,7 @@ export function StepsSection({ now, view, notReported }: Props) {
 
   return (
     <>
-      <Card style={styles.first}>
+      <Card>
         <CardTitle icon="trending-up" title="Steps today" />
         <Text
           style={[type.hero, styles.value]}
@@ -92,7 +92,6 @@ export function StepsSection({ now, view, notReported }: Props) {
 }
 
 const styles = StyleSheet.create({
-  first: { marginTop: spacing.sm },
   card: { marginTop: spacing.lg },
   value: { color: colors.text, marginTop: spacing.md },
   secondary: { color: colors.textSecondary, marginTop: spacing.sm },

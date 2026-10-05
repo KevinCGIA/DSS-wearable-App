@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { colors, spacing, type } from '@/theme';
 import type { ScrollRequest } from './ActivityFocusProvider';
 import { TEST_SOURCE } from './activityModel';
@@ -102,17 +103,17 @@ export function ActivityScreen({
           <SourceChips sources={view.sources} selected={view.selected} onSelect={onSelect} />
 
           <View ref={heartRateRef} collapsable={false}>
-            <Section title="Heart Rate" />
+            <SectionLabel title="Heart Rate" />
             <HeartRateSection now={now} view={view.heartRate} notReported={notReported} />
           </View>
 
           <View ref={stepsRef} collapsable={false}>
-            <Section title="Steps" />
+            <SectionLabel title="Steps" />
             <StepsSection now={now} view={view.steps} notReported={notReported} />
           </View>
 
           <View ref={sleepRef} collapsable={false}>
-            <Section title="Sleep" />
+            <SectionLabel title="Sleep" />
             <SleepSection view={view.sleep} notReported={notReported} />
           </View>
         </>
@@ -139,19 +140,11 @@ export function ActivityScreen({
   );
 }
 
-function Section({ title }: { title: string }) {
-  return (
-    <Text style={[type.label, styles.section]} accessibilityRole="header">
-      {title.toUpperCase()}
-    </Text>
-  );
-}
 
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   loading: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.huge },
   muted: { color: colors.textMuted },
-  section: { color: colors.textMuted, letterSpacing: 0.6, marginTop: spacing.xxl, marginBottom: spacing.sm, marginLeft: spacing.xs },
   dev: { marginTop: spacing.xxl },
   devButtons: { gap: spacing.md, marginTop: spacing.lg },
 });
