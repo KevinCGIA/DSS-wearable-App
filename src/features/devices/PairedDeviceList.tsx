@@ -47,7 +47,7 @@ export function PairedDeviceList({ pairedDevices, connection, now, onConnect, on
         return (
           <View key={device.deviceId} style={[styles.row, index > 0 && styles.divider]}>
             <View style={styles.text}>
-              <Text style={[type.bodyStrong, styles.name]} numberOfLines={1}>
+              <Text style={[type.bodyStrong, styles.name]} numberOfLines={2}>
                 {device.name}
               </Text>
               <Text style={[type.caption, connected ? styles.connected : styles.detail]}>{detail}</Text>
@@ -70,17 +70,17 @@ export function PairedDeviceList({ pairedDevices, connection, now, onConnect, on
 }
 
 const styles = StyleSheet.create({
-  empty: { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  empty: { color: colors.textMuted, paddingHorizontal: spacing.xl, paddingBottom: spacing.lg },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: layout.rowHeight,
-    paddingLeft: spacing.lg,
+    minHeight: layout.rowHeightTall,
+    paddingLeft: spacing.xl,
     paddingRight: spacing.xs,
   },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   text: { flex: 1, paddingVertical: spacing.sm },
   name: { color: colors.text },
-  detail: { color: colors.textMuted, marginTop: 2 },
-  connected: { color: colors.good, marginTop: 2 },
+  detail: { color: colors.textMuted, marginTop: spacing.xxs },
+  connected: { color: colors.good, marginTop: spacing.xxs },
 });
