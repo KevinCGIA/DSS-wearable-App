@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Firestore security rules for the DSS Wearable app.
+//
+// All app data lives under the signed-in user's own document:
+//   users/{uid}                                        profile, preferences
+//   users/{uid}/private/avatarData                     profile picture
+//   users/{uid}/sensor_readings/{type}/readings/{id}   heart rate, steps
+//   users/{uid}/devices/{id}                           paired wearables
+//
+// A user can only read and write their own data; everything else is denied.
+//
+// These rules are NOT applied until deployed, either by pasting them into
+// Firebase console -> Firestore Database -> Rules, or with the Firebase CLI:
+//   firebase deploy --only firestore:rules
+// Check the rules currently in the console first so nothing is lost.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // Sensor readings: only numeric values with a timestamp can be saved,
+      // so bad data can't break the charts on Android or iOS
+      match /sensor_readings/{type}/readings/{readingId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && type in ['heart_rate', 'steps']
+          && request.resource.data.value is number
+          && request.resource.data.value >= 0
+          && request.resource.data.timestamp is timestamp;
+      }
+
+      // Listed explicitly rather than with a {document=**} wildcard:
+      // Firestore ORs matching rules together, so a wildcard here would
+      // also allow any write to sensor_readings and skip the checks above
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /devices/{deviceId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+  }
+}
