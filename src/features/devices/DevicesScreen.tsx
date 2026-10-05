@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import type { BluetoothState } from '@/data/types';
 import { colors, spacing, type } from '@/theme';
 import { bluetoothProblem } from './bluetoothText';
@@ -75,23 +76,29 @@ export function DevicesScreen(props: DevicesScreenProps) {
         <>
           <Button label="Add device" icon="plus" onPress={onAddDevice} fullWidth style={styles.add} />
 
-          <Section title={`Connected now (${connected.length})`} />
+          <SectionLabel title={`Connected now (${connected.length})`} />
           {connected.length === 0 ? (
-            <Card style={styles.note}>
+            <Card>
               <Text style={[type.body, styles.muted]}>
                 No device connected right now. Connect one below, or add a new one.
               </Text>
             </Card>
           ) : (
-            connected.map((device) => <Item key={device.deviceId} device={device} blocked={Boolean(problem)} {...props} />)
+            <View style={styles.list}>
+              {connected.map((device) => (
+                <Item key={device.deviceId} device={device} blocked={Boolean(problem)} {...props} />
+              ))}
+            </View>
           )}
 
           {previous.length > 0 ? (
             <>
-              <Section title={`Previously connected (${previous.length})`} />
-              {previous.map((device) => (
-                <Item key={device.deviceId} device={device} blocked={Boolean(problem)} {...props} />
-              ))}
+              <SectionLabel title={`Previously connected (${previous.length})`} />
+              <View style={styles.list}>
+                {previous.map((device) => (
+                  <Item key={device.deviceId} device={device} blocked={Boolean(problem)} {...props} />
+                ))}
+              </View>
             </>
           ) : null}
         </>
@@ -122,20 +129,13 @@ function Item({
   );
 }
 
-function Section({ title }: { title: string }) {
-  return (
-    <Text style={[type.label, styles.section]} accessibilityRole="header">
-      {title.toUpperCase()}
-    </Text>
-  );
-}
 
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   banner: { marginTop: spacing.lg },
   add: { marginTop: spacing.lg },
-  section: { color: colors.textMuted, letterSpacing: 0.6, marginTop: spacing.xxl, marginLeft: spacing.xs },
-  note: { marginTop: spacing.md },
+  // One gap between cards.
+  list: { gap: spacing.lg },
   muted: { color: colors.textMuted },
   loading: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.huge },
   emptyCard: { marginTop: spacing.lg },
