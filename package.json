@@ -38,7 +38,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test:auth": "node --experimental-strip-types --test tests/nativeAuth*.test.mjs"
+    "test:auth": "node --experimental-strip-types --test tests/nativeAuth*.test.mjs",
+    "test:profile": "node --experimental-strip-types --test tests/nativeAccount*.test.mjs"
   },
   "private": true
 }

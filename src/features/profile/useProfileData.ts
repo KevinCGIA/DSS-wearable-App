@@ -84,7 +84,7 @@ export function useProfileData() {
         weight: weightToKg(units, parseMeasure(form.weight)),
       };
       await accountService.saveProfile(changes);
-      update(changes);
+      update(changes, profile?.uid);
       setForm(toForm({ ...(profile as UserProfile), ...changes }, units));
       setProfileNotice({ tone: 'success', message: 'Profile updated successfully!' });
     } catch (error) {
@@ -104,8 +104,8 @@ export function useProfileData() {
     }
     if (picked.status !== 'picked') return;
     try {
-      await accountService.saveProfilePicture(picked.uri);
-      update({ avatarData: picked.uri });
+      const savedAvatar = await accountService.saveProfilePicture(picked.uri);
+      update({ avatarData: savedAvatar ?? picked.uri }, profile?.uid);
       setProfileNotice({ tone: 'success', message: 'Profile picture updated successfully!' });
     } catch (error) {
       setProfileNotice({ tone: 'error', message: `Failed to update profile picture: ${describeAuthError(error)}` });

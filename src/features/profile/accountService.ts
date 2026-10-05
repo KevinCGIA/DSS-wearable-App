@@ -2,19 +2,11 @@ import { sendPasswordResetEmail, updateProfile, verifyBeforeUpdateEmail } from '
 import { mockProfile } from '@/data/mocks';
 import type { UserProfile } from '@/data/types';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase';
+import type { AccountService } from './accountTypes';
+export type { AccountService, ProfileUpdate } from './accountTypes';
 
 // Mirrors loadProfile / saveProfile / changeEmail / changePassword in Android's app/(auth)/settings.tsx.
 // Phase 2: profile reads/writes go to users/{uid} (+ private/avatarData) with Android's Firestore helpers.
-
-export type ProfileUpdate = { name: string; height: number | null; weight: number | null };
-
-export type AccountService = {
-  loadProfile: (fallbackName: string) => Promise<UserProfile>;
-  saveProfile: (update: ProfileUpdate) => Promise<void>;
-  saveProfilePicture: (uri: string) => Promise<void>;
-  changeEmail: (newEmail: string) => Promise<void>;
-  changePassword: () => Promise<string>;
-};
 
 function currentUser() {
   const user = getFirebaseAuth().currentUser;

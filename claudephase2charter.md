@@ -1289,3 +1289,28 @@ Android bugs: see `ANDROID_BUGS.md`.
 - npm audit still reports 33 vulnerabilities (8 moderate, 25 high); no automatic audit upgrades.
 - Click list now (Mac web preview): Preview the dashboard → Devices → Dashboard → Settings should remain the existing mock flow. This does not exercise the native service yet. After A9/A10 on iOS Simulator (Android emulator/Tarun phone once SHA-1 is configured): Register with avatar → verification-sent; login unverified → blocked; verify then login → Dashboard; Forgot password/Change Password → reset email; Change Email → verification at new address; Log Out → sign-in. These native clicks are pending, not claimed passed.
 - STOP after A5: await PL approval before A6. No push.
+
+### 2026-10-05 — Phase 2 A7: Firestore profile and avatar (A6 skipped by PL)
+- PL explicitly requested skipping the standalone A6 step and beginning A7. There is no A6 commit or A6 approval checkpoint. The safe Google profile creation work was already implemented and tested in A5; A7 adds the Google/custom-avatar read fallback required by real profiles. A4 SHA-1 remains deferred, so Android Google sign-in remains unverified.
+- Native iOS/Android builds now resolve `accountService.native.ts` to the Firestore-backed service. Web continues to resolve the existing `accountService.ts`, preserving the browser preview until the JS Firebase removal and final container swap in A9. Screens, navigation, presentation and mock BLE are unchanged.
+- Profile reads use `users/{uid}` and `users/{uid}/private/avatarData` in parallel. Auth remains authoritative for UID, email and verification. Name falls back through Firestore, Auth display name, the supplied session name and the email prefix. Avatar priority is custom `private/avatarData.imageData`, then Kevin's existing `users/{uid}.profilePictureUrl`, then the Auth Google photo, then the existing initials UI.
+- Height and weight accept Kevin-compatible stored strings and tolerate older numeric documents, returning `null` for missing/malformed/non-positive values. Saves merge only `name`, `height` and `weight` into `users/{uid}`, retain metric storage as strings, and preserve all other shared fields such as `autoConnectDevice` and `profilePictureUrl`. No existing Firestore field is renamed, removed or retyped.
+- Avatar saves reuse A5's 300x300 JPEG/base64 helper and merge `imageData` at Kevin's existing private document. The service returns the durable data URI after the write, so the UI does not retain a temporary picker URI. ProfileProvider cancels stale loads and rejects updates/results if the signed-in account changes during an operation.
+- Firestore errors, including permission errors, propagate to the existing inline profile error UI. No security rules or Firebase console settings changed.
+
+**Ported source map (Kevin `origin/feature/ble-connection` @ `e65c84b` → this repo):**
+
+| Kevin source | Destination | Adaptation |
+|---|---|---|
+| `app/(auth)/settings.tsx`: `loadProfile` | `src/features/profile/nativeAccountFlow.ts`; `nativeAccountService.ts`; `accountService.native.ts` | Reads the same user/private docs, converts measurements for UI, adds safe Google photo/name fallbacks |
+| `app/(auth)/settings.tsx`: `saveProfile` | `src/features/profile/nativeAccountFlow.ts`; `nativeAccountService.ts` | `setDoc(..., { merge: true })` keeps Kevin's string field types and preserves optional/additive fields |
+| `app/(auth)/settings.tsx`: `chooseProfilePicture` | `src/features/profile/nativeProfileWrites.ts`; `useProfileData.ts` | Same private avatar document; returns durable data URI after successful save |
+| `app/(auth)/settings.tsx`: `changeEmail`, `changePassword` | `src/features/profile/nativeAccountService.ts` → A5 `nativeAuthService` | Reuses verified-email and reset-email native Auth paths |
+| `app/(auth)/home.tsx`: `loadProfilePicture` | `src/features/profile/nativeAccountFlow.ts`; `ProfileProvider.tsx` | One shared provider supplies Dashboard, Settings and Profile; custom/Google/initials fallback |
+
+**Validation and open items:**
+- `npm run test:profile`: 12 passing focused tests covering paths, merge preservation, string/number parsing, missing/malformed docs, avatar precedence, durable avatar state, auth requirements, account-switch races and permission errors.
+- `npm run test:auth`: all 15 A5 regression tests pass. `npm run typecheck` and `git diff --check` pass. Offline Expo exports pass for web (577 modules), iOS (984 modules) and Android (982 modules), confirming platform-specific service resolution and bundling. Node's test-only module-format warning remains harmless.
+- No live Firestore request, native prebuild or simulator/device test was performed. A7 native runtime testing depends on A9's native auth/session container swap and A10 builds. The browser preview remains mock by design. A release/native "Preview the dashboard" bypass can lack a native Firebase user before A9; use the browser preview for this intermediate step.
+- Click list now (Mac browser at localhost): `Preview the dashboard` → Settings → Profile; change name/height/weight and avatar and confirm the preview success states still work, then Dashboard and Settings reflect the change for the session. This validates unchanged UI only. After A9/A10 on iOS Simulator: sign in → Profile → edit/save metric or imperial values → reopen Profile and restart app → values persist; change avatar → Dashboard/Settings/Profile show it and it persists; a Google account without a custom avatar shows its Google photo or initials. Android equivalent remains Tarun-to-test after SHA-1 setup.
+- STOP after A7: await PL approval before A8. No push.
