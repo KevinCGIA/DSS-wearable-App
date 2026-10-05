@@ -14,6 +14,7 @@ import {
   stepsHistory,
   stepsLatest,
 } from '@/data/mocks';
+import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import type { PreviewEntry } from '@/features/previews/types';
 import { restingRangeFrom } from './dashboardModel';
 import type { DeviceSummary } from './dashboardModel';
@@ -99,6 +100,15 @@ export const dashboardPreview: PreviewEntry = {
     },
     { label: 'Syncing', render: () => <DashboardScreen {...connected()} refreshing now={Date.now()} /> },
     { label: 'Connected', render: () => <LiveConnected /> },
+    {
+      label: 'With tab bar',
+      render: () => (
+        <>
+          <DashboardScreen {...connected()} bottomInset={tabBarBaseHeight} now={Date.now()} />
+          <TabBar active="dashboard" onChange={noop} />
+        </>
+      ),
+    },
     { label: 'Imperial', render: () => <DashboardScreen {...connected()} units="imperial" now={Date.now()} /> },
     {
       label: 'Failed',

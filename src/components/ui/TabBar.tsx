@@ -3,11 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabKey } from '@/navigation/routes';
-import { colors, elevation, layout, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
-const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap; raised?: boolean }[] = [
+const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: 'grid' },
   { key: 'devices', label: 'Devices', icon: 'bluetooth' },
-  { key: 'dashboard', label: 'Dashboard', icon: 'activity', raised: true },
+  { key: 'activity', label: 'Activity', icon: 'activity' },
   { key: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -36,15 +37,9 @@ export function TabBar({ active, onChange }: Props) {
             accessibilityLabel={tab.label}
             accessibilityState={{ selected }}
           >
-            {tab.raised ? (
-              <View style={styles.fab}>
-                <Feather name={tab.icon} size={24} color={colors.textOnAccent} />
-              </View>
-            ) : (
-              <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
-                <Feather name={tab.icon} size={20} color={tint} />
-              </View>
-            )}
+            <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+              <Feather name={tab.icon} size={20} color={tint} />
+            </View>
             <Text style={[type.caption, { color: tint }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
               {tab.label}
             </Text>
@@ -55,7 +50,7 @@ export function TabBar({ active, onChange }: Props) {
   );
 }
 
-export const tabBarBaseHeight = layout.tabBarHeight + layout.tabFabLift;
+export const tabBarBaseHeight = layout.tabBarHeight;
 
 const styles = StyleSheet.create({
   bar: {
@@ -78,17 +73,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   iconWrapActive: { backgroundColor: colors.accentSurface },
-  fab: {
-    width: layout.tabFab,
-    height: layout.tabFab,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    borderWidth: spacing.xs,
-    borderColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -layout.tabFabLift,
-    marginBottom: spacing.xs,
-    ...elevation.fab,
-  },
 });

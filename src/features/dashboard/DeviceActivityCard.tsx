@@ -148,7 +148,7 @@ export function DeviceActivityCard({
 
         <View style={styles.links}>
           <CardLink label="Devices ›" onPress={onOpenDevices} />
-          <CardLink label="Steps ›" onPress={onOpenSteps} />
+          <CardLink label="Open in Activity ›" hint="Opens Steps in the Activity tab" onPress={onOpenSteps} />
         </View>
       </View>
     </ExpandableCard>

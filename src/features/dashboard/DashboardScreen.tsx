@@ -51,7 +51,7 @@ export type DashboardScreenProps = {
   onOpenSleep: () => void;
 };
 
-// The old Home layout (approved). Cards expand in place; links inside open the detail pages.
+// The old Home layout (approved). Cards expand in place; "Open in Activity" links open that Activity section.
 export function DashboardScreen({
   now,
   profile,

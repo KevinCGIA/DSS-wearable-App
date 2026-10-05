@@ -5,16 +5,19 @@ import { colors, layout, type } from '@/theme';
 type Props = {
   label: string;
   onPress: () => void;
+  // Where it goes, when the label alone is ambiguous (several "Open in Activity" links).
+  hint?: string;
   style?: ViewStyle;
 };
 
-// Text link at the end of an expanded card, e.g. "Open Heart Rate ›".
-export function CardLink({ label, onPress, style }: Props) {
+// Text link at the end of an expanded card, e.g. "Open in Activity ›".
+export function CardLink({ label, onPress, hint, style }: Props) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={label.replace('›', '').trim()}
+      accessibilityHint={hint}
       hitSlop={layout.hitSlop}
       style={({ pressed }) => [styles.link, pressed && styles.pressed, style]}
     >

@@ -91,7 +91,7 @@ export function SleepRecoveryCard({ sleep, trends, initiallyExpanded, onOpen }: 
           ) : null}
         </>
       )}
-      <CardLink label="Open Sleep ›" onPress={onOpen} />
+      <CardLink label="Open in Activity ›" hint="Opens Sleep in the Activity tab" onPress={onOpen} />
     </ExpandableCard>
   );
 }

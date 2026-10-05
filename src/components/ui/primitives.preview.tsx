@@ -8,8 +8,10 @@ import { Header } from '@/components/ui/Header';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { Stepper } from '@/components/ui/Stepper';
+import { TabBar } from '@/components/ui/TabBar';
 import { Toggle } from '@/components/ui/Toggle';
 import type { PreviewEntry } from '@/features/previews/types';
+import type { TabKey } from '@/navigation/routes';
 import { layout, spacing } from '@/theme';
 
 const noop = () => undefined;
@@ -97,6 +99,19 @@ function AvatarDemo() {
   );
 }
 
+// Tap the tabs: Dashboard | Devices | Activity | Settings, the app's final structure.
+function TabBarDemo({ start }: { start: TabKey }) {
+  const [active, setActive] = useState<TabKey>(start);
+  return (
+    <View style={styles.fill}>
+      <Screen scroll>
+        <Header title={`Tab bar · ${active}`} />
+      </Screen>
+      <TabBar active={active} onChange={setActive} />
+    </View>
+  );
+}
+
 export const primitivesPreview: PreviewEntry = {
   title: 'UI primitives',
   group: 'Primitives',
@@ -105,10 +120,13 @@ export const primitivesPreview: PreviewEntry = {
     { label: 'Stepper', render: () => <StepperDemo /> },
     { label: 'Feedback', render: () => <FeedbackDemo /> },
     { label: 'Avatar', render: () => <AvatarDemo /> },
+    { label: 'Tab bar: Dashboard', render: () => <TabBarDemo start="dashboard" /> },
+    { label: 'Tab bar: Activity', render: () => <TabBarDemo start="activity" /> },
   ],
 };
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   block: { marginTop: spacing.lg },
   stack: { gap: spacing.md, marginTop: spacing.lg },
   avatars: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

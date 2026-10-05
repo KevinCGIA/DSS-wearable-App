@@ -1,13 +1,10 @@
-// iOS structure (researcher / test-subject app). Android's tabs are home, heart-rate, fitness, sleep, settings.
-export type TabKey = 'devices' | 'dashboard' | 'settings';
+// The app's structure on both platforms (2026-10-05): Dashboard | Devices | Activity | Settings.
+export type TabKey = 'dashboard' | 'devices' | 'activity' | 'settings';
 
 export const DEFAULT_TAB: TabKey = 'dashboard';
 
 export type StackRoute =
   | 'profile'
-  | 'heart-rate'
-  | 'steps'
-  | 'sleep'
   | 'alert-thresholds'
   | 'notifications'
   | 'preferences'
