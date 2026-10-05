@@ -1547,3 +1547,10 @@ B1: real single-device BLE and paired devices, with Preview mock retained. B2: p
 ### 2026-10-06 — Main merge note
 - `ui-changes` is being merged into Kevin's `main` via pull request; the old app is backed up as tag `before-unified-app` (`d835fe3`).
 - Phase 2 continues on `ui-changes`; `main` is updated from `ui-changes` by pull request at each milestone.
+
+### 2026-10-06 — PL setup checklist
+- Branch `ui-changes` was pulled from KevinCGIA/DSS-wearable-App. Praneet confirmed the branch is reserved for this run. The history contains the 4-tab UI (`140a615`), IBM Plex Sans (`ab61c42`), polish commits and v2 handover (`d5e3465`).
+- Tools: Xcode 27.0, CocoaPods 1.17.0, Node 22.18.0, Git 2.54.0. Both ignored, untracked Firebase config files identify `wearable-app-f9d83` with the expected iOS and Android bundle IDs. `.gitignore` excludes both files, `.env`, `/ios` and `/android`; no forbidden files are tracked.
+- `npm install`, `npm run typecheck` and all 40 automated tests passed. Clean iOS prebuild and CocoaPods install succeeded. `npx expo run:ios` built with 0 errors and 4 script warnings; the iPhone 18 Pro Simulator opened to sign-in. The dev-only Preview badge is visible; live Firebase flows remain for T2. No differences from PL_1 section 7 were found.
+- Setup answers: commits go to `ui-changes`; pull `origin ui-changes` before starting and before pushing; never commit to `main`; never commit Firebase config files, `.env`, `/ios` or `/android`; Tarun approves UI changes; existing Firestore fields may not change, only additions.
+- The local continuous-run prompt was added as documentation to make the setup working tree clean. Open items remain live Firebase checks, Firebase rules confirmation for new paths, per-developer SHA-1, physical BLE checks, Android testing and JJ's Daily Insight.
