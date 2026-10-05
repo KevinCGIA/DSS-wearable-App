@@ -1357,3 +1357,11 @@ Android bugs: see `ANDROID_BUGS.md`.
 - The Expo package update reported 33 dependency audit findings (8 moderate, 25 high); no unrelated audit upgrades were applied in this build step.
 - Click list on iPhone 18 Pro Simulator: open DSS Wearables → confirm the sign-in screen appears and stays open; tap `Register` then `Log in` to confirm the two forms render; tap `Preview the dashboard` in this development build to confirm Dashboard opens, then `Log Out` returns to sign-in. Android emulator/phone: Tarun to run the same launch check on Windows after generating a development build. A11 contains the real Firebase click list.
 - STOP after A10: await PL approval before A11. No push.
+
+### 2026-10-05 — Phase 2 A11: Step A test handoff
+- The A11 iOS click list is ready for PL. The iPhone 18 Pro Simulator (iOS 27.0) is booted, and its installed development build displays the sign-in form. This confirms launch and rendering only; it does not establish a Firebase connection or validate an account flow.
+- No application code changed and no Kevin code was ported in A11 (Kevin source path → our path: none). No fixes were made.
+- `npm run typecheck` passed. All 38 local auth/profile/alert/session tests passed with `node --test tests/*.test.mjs`. These tests use local adapters and do not verify live Firebase, email delivery or cross-device persistence. Kevin's repo remained clean; no secrets or generated native folders are tracked.
+- Live iOS checks still require PL's test mailbox, Google accounts and Firebase Console access: registration plus Auth and `users/{uid}` fields; unverified login and verification; password reset; new and existing Google sign-in; profile/avatar persistence; email and password changes; alert settings persistence; logout and session persistence. None is marked passed without the live result.
+- Android testing is pending because this Mac has no Android Studio/SDK and A4's Android SHA-1 was skipped. Shared-data testing also requires a build of Kevin's Android app. Record the resulting iOS and Android outcomes in `BUGS.md`; report any Firestore rule denial to PL without changing rules.
+- ⛔ STOP after A11. Await PL's Step A test results and approval. Do not begin B0 or push.
