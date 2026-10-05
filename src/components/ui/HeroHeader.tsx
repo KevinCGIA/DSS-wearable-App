@@ -23,7 +23,7 @@ export function HeroHeader({ title, subtitle, onBack, right }: Props) {
             accessibilityLabel="Back"
             style={({ pressed }) => [styles.back, pressed && styles.pressed]}
           >
-            <Feather name="chevron-left" size={24} color={colors.textOnAccent} />
+            <Feather name="chevron-left" size={layout.icon.nav} color={colors.textOnAccent} />
           </Pressable>
         ) : null}
         <Text

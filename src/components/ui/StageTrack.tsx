@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
 export type Segment = { start: number; width: number };
 
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   label: { color: colors.textSecondary },
   duration: { color: colors.text },
   track: {
-    height: 14,
+    height: layout.stageBarHeight,
     borderRadius: radius.pill,
     backgroundColor: colors.sleep.track,
     overflow: 'hidden',

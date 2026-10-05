@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
 export type Bar = { label: string; value: number };
 
@@ -22,7 +22,7 @@ function defaultColor(value: number): string {
 
 export function BarChart({
   data,
-  height = 132,
+  height = layout.barChartHeight,
   max,
   showValues = true,
   colorFor = defaultColor,

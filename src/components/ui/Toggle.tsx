@@ -38,11 +38,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: layout.rowHeight,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   text: { flex: 1, marginRight: spacing.md },
   label: { color: colors.text },
-  hint: { color: colors.textMuted, marginTop: 2 },
+  hint: { color: colors.textMuted, marginTop: spacing.xxs },
 });

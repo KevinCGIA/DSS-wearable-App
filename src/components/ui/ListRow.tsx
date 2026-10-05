@@ -38,7 +38,7 @@ export function ListRow({
     <>
       {icon ? (
         <View style={[styles.badge, destructive && styles.badgeDanger]}>
-          <Feather name={icon} size={16} color={destructive ? colors.danger : colors.accentText} />
+          <Feather name={icon} size={layout.icon.row} color={destructive ? colors.danger : colors.accentText} />
         </View>
       ) : null}
       <View style={styles.text}>
@@ -52,7 +52,7 @@ export function ListRow({
       ) : null}
       {right}
       {chevron ? (
-        <Feather name="chevron-right" size={18} color={colors.textMuted} style={styles.chevron} />
+        <Feather name="chevron-right" size={layout.icon.action} color={colors.textMuted} style={styles.chevron} />
       ) : null}
     </>
   );
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: layout.rowHeight,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   badge: {
     width: layout.iconBadge,
     height: layout.iconBadge,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     backgroundColor: colors.accentSurface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   badgeDanger: { backgroundColor: colors.dangerSurface },
   text: { flex: 1 },
-  hint: { color: colors.textMuted, marginTop: 2 },
+  hint: { color: colors.textMuted, marginTop: spacing.xxs },
   value: { color: colors.textMuted, marginLeft: spacing.md, flexShrink: 1 },
   chevron: { marginLeft: spacing.sm },
 });

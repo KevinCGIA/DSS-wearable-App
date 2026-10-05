@@ -21,7 +21,7 @@ export function Header({ title, onBack, right, style }: Props) {
           accessibilityLabel="Back"
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         >
-          <Feather name="chevron-left" size={24} color={colors.text} />
+          <Feather name="chevron-left" size={layout.icon.nav} color={colors.text} />
         </Pressable>
       ) : null}
       <Text

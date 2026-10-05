@@ -1,4 +1,5 @@
 export const spacing = {
+  xxs: 2,
   xs: 4,
   sm: 8,
   md: 12,
@@ -25,6 +26,8 @@ export const layout = {
   tabBarHeight: 64,
   minTouch: 44,
   rowHeight: 52,
+  // Two-line rows and rows with an avatar.
+  rowHeightTall: 64,
   iconBadge: 32,
   avatar: 44,
   avatarLarge: 96,
@@ -38,6 +41,11 @@ export const layout = {
   heroOverscroll: 1000,
   heroBackdrop: 640,
   chartHeight: 140,
+  barChartHeight: 132,
+  emptyStateIcon: 48,
+  chipMaxWidth: 220,
+  // Icon sizes: inline with text, rows and card titles, chevrons and buttons, tabs, back.
+  icon: { inline: 14, row: 16, action: 18, tab: 20, nav: 24 },
   miniChartHeight: 80,
   heroRingCenterY: 56,
   heroRingInset: 84,

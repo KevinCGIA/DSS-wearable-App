@@ -22,6 +22,6 @@ export function SignalBars({ bars }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', height: spacing.md + 2, gap: 2 },
+  row: { flexDirection: 'row', alignItems: 'flex-end', height: spacing.md + 2, gap: spacing.xxs },
   bar: { width: spacing.xs, borderRadius: radius.pill },
 });

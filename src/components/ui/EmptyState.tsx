@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
 type Props = {
   icon: keyof typeof Feather.glyphMap;
@@ -37,9 +37,9 @@ export function EmptyState({ icon, title, message, actionLabel, onAction, style 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', paddingVertical: spacing.xl },
   icon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.lg,
+    width: layout.emptyStateIcon,
+    height: layout.emptyStateIcon,
+    borderRadius: radius.pill,
     backgroundColor: colors.accentSurface,
     alignItems: 'center',
     justifyContent: 'center',

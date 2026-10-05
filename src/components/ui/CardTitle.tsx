@@ -16,12 +16,12 @@ export function CardTitle({ title, icon, ionicon, right, style }: Props) {
     <View style={[styles.row, style]}>
       <View style={styles.badge}>
         {ionicon ? (
-          <Ionicons name={ionicon} size={17} color={colors.accentText} />
+          <Ionicons name={ionicon} size={layout.icon.row} color={colors.accentText} />
         ) : icon ? (
-          <Feather name={icon} size={16} color={colors.accentText} />
+          <Feather name={icon} size={layout.icon.row} color={colors.accentText} />
         ) : null}
       </View>
-      <Text style={[type.subheading, styles.title]} numberOfLines={1}>
+      <Text style={[type.subheading, styles.title]} numberOfLines={2}>
         {title}
       </Text>
       {right}

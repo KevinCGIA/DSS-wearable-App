@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors } from '@/theme';
+import { colors, layout } from '@/theme';
 
 type Props = {
   expanded: boolean;
@@ -25,7 +25,7 @@ export function ExpandChevron({ expanded, color = colors.textMuted }: Props) {
 
   return (
     <Animated.View style={{ transform: [{ rotate }] }} accessibilityElementsHidden importantForAccessibility="no">
-      <Feather name="chevron-down" size={20} color={color} />
+      <Feather name="chevron-down" size={layout.icon.action} color={color} />
     </Animated.View>
   );
 }

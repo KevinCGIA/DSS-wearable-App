@@ -67,8 +67,8 @@ export function Button({
         <ActivityIndicator size="small" color={tint} />
       ) : (
         <View style={styles.row}>
-          {icon ? <Feather name={icon} size={18} color={tint} style={styles.icon} /> : null}
-          {ionicon ? <Ionicons name={ionicon} size={18} color={tint} style={styles.icon} /> : null}
+          {icon ? <Feather name={icon} size={layout.icon.action} color={tint} style={styles.icon} /> : null}
+          {ionicon ? <Ionicons name={ionicon} size={layout.icon.action} color={tint} style={styles.icon} /> : null}
           <Text style={[type.subheading, { color: tint }]} numberOfLines={1}>
             {label}
           </Text>
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   sm: { height: layout.minTouch, paddingHorizontal: spacing.md },
   md: { height: layout.minTouch },
-  lg: { height: 54 },
+  lg: { height: layout.controlHeight },
   fullWidth: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: spacing.sm },
