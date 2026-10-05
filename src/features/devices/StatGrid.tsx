@@ -19,7 +19,7 @@ export function StatGrid({ items, columns = 3 }: Props) {
           accessible
           accessibilityLabel={`${item.label}: ${item.value}`}
         >
-          <Text style={[type.statSmall, styles.value]} numberOfLines={1} adjustsFontSizeToFit>
+          <Text style={[type.statSmall, styles.value]} numberOfLines={2}>
             {item.value}
           </Text>
           <Text style={[type.caption, styles.label]}>{item.label}</Text>
@@ -35,5 +35,5 @@ const styles = StyleSheet.create({
   third: { width: '33.33%' },
   half: { width: '50%' },
   value: { color: colors.text },
-  label: { color: colors.textMuted, marginTop: 2 },
+  label: { color: colors.textMuted, marginTop: spacing.xxs },
 });

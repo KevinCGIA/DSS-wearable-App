@@ -7,11 +7,12 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import type { BluetoothState } from '@/data/types';
 import type { Session } from '@/lib/devices/deviceStats';
 import { formatDurationMs } from '@/lib/devices/deviceStats';
 import { formatAge } from '@/lib/time';
-import { colors, spacing, type } from '@/theme';
+import { colors, layout, spacing, type } from '@/theme';
 import { bluetoothProblem } from './bluetoothText';
 import {
   badgeHint,
@@ -111,14 +112,14 @@ export function DeviceDetailScreen({
 
       {!idle ? (
         <>
-          <Section title="Right now" />
+          <SectionLabel title="Right now" />
           <Card>
             <StatGrid items={liveStats(device, now)} />
           </Card>
         </>
       ) : null}
 
-      <Section title="Totals" />
+      <SectionLabel title="Totals" />
       <Card>
         <StatGrid
           columns={2}
@@ -131,7 +132,7 @@ export function DeviceDetailScreen({
         />
       </Card>
 
-      <Section title="Reliability" />
+      <SectionLabel title="Reliability" />
       <Card>
         <StatGrid
           columns={2}
@@ -144,7 +145,7 @@ export function DeviceDetailScreen({
         />
       </Card>
 
-      <Section title="Data quality" />
+      <SectionLabel title="Data quality" />
       <Card>
         <StatGrid
           columns={2}
@@ -168,7 +169,7 @@ export function DeviceDetailScreen({
 
       {testTools && connected ? (
         <>
-          <Section title="Testing tools" />
+          <SectionLabel title="Testing tools" />
           <Card>
             <Text style={[type.caption, styles.muted]}>
               Simulated Bluetooth only. Pausing for over a minute shows Not responding.
@@ -186,7 +187,7 @@ export function DeviceDetailScreen({
         </>
       ) : null}
 
-      <Section title={`Session history (${stats.totalSessions})`} />
+      <SectionLabel title={`Session history (${stats.totalSessions})`} />
       <Card padding={0}>
         {stats.sessions.length === 0 ? (
           <Text style={[type.body, styles.muted, styles.empty]}>No sessions yet.</Text>
@@ -221,13 +222,6 @@ function SessionRow({ session, divider }: { session: Session; divider: boolean }
   );
 }
 
-function Section({ title }: { title: string }) {
-  return (
-    <Text style={[type.label, styles.section]} accessibilityRole="header">
-      {title.toUpperCase()}
-    </Text>
-  );
-}
 
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl, gap: spacing.md },
@@ -237,16 +231,9 @@ const styles = StyleSheet.create({
   text: { color: colors.text, flexShrink: 1 },
   error: { color: colors.danger },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  section: {
-    color: colors.textMuted,
-    letterSpacing: 0.6,
-    marginTop: spacing.xxl,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
   note: { marginTop: spacing.md },
   empty: { padding: spacing.xl, textAlign: 'center' },
-  session: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: 2 },
+  session: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md, gap: spacing.xxs, minHeight: layout.rowHeightTall },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   sessionTop: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
 });

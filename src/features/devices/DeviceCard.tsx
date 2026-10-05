@@ -50,7 +50,7 @@ export function DeviceCard({ device, now, bluetoothBlocked, onOpen, onConnect, o
     .join('. ');
 
   return (
-    <Card padding={0} style={styles.card}>
+    <Card padding={0}>
       <Pressable
         onPress={onOpen}
         accessibilityRole="button"
@@ -69,7 +69,7 @@ export function DeviceCard({ device, now, bluetoothBlocked, onOpen, onConnect, o
             </Text>
           </View>
           {device.badge && badge ? <Pill label={badge} tier={badgeTier[device.badge]} dot /> : null}
-          <Feather name="chevron-right" size={18} color={colors.textMuted} />
+          <Feather name="chevron-right" size={layout.icon.action} color={colors.textMuted} />
         </View>
 
         <DeviceSignal rssi={device.rssi} battery={device.battery} lastKnown={idle} />
@@ -113,8 +113,7 @@ export function DeviceCard({ device, now, bluetoothBlocked, onOpen, onConnect, o
 }
 
 const styles = StyleSheet.create({
-  card: { marginTop: spacing.md },
-  body: { padding: spacing.lg, gap: spacing.md },
+  body: { padding: spacing.xl, gap: spacing.md },
   pressed: { backgroundColor: colors.surfaceSunken },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   title: { flex: 1, gap: 2 },
@@ -128,7 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
