@@ -39,7 +39,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test:auth": "node --experimental-strip-types --test tests/nativeAuth*.test.mjs",
-    "test:profile": "node --experimental-strip-types --test tests/nativeAccount*.test.mjs"
+    "test:profile": "node --experimental-strip-types --test tests/nativeAccount*.test.mjs",
+    "test:alerts": "node --experimental-strip-types --test tests/nativeThreshold*.test.mjs"
   },
   "private": true
 }
