@@ -25,6 +25,7 @@ import {
 
 import {
     doc,
+    getDoc,
     getFirestore,
     setDoc,
 } from "@react-native-firebase/firestore";
@@ -72,10 +73,46 @@ if (!result.canceled) {
 }
 };
 
-  const signUp = async () => {
-    console.log("Sign Up button pressed");
+  const validateHeightAndWeight = () => {
+  // Height is optional, but must be valid if entered
+  if (height.trim() !== "") {
+    const heightNumber = Number(height);
 
-    // Check that passwords match
+    if (
+      !Number.isFinite(heightNumber) ||
+      heightNumber < 50 ||
+      heightNumber > 250
+    ) {
+      alert("Please enter a height between 50 and 250 cm.");
+      return false;
+    }
+  }
+
+  // Weight is optional, but must be valid if entered
+  if (weight.trim() !== "") {
+    const weightNumber = Number(weight);
+
+    if (
+      !Number.isFinite(weightNumber) ||
+      weightNumber < 2 ||
+      weightNumber > 500
+    ) {
+      alert("Please enter a weight between 2 and 500 kg.");
+      return false;
+    }
+  }
+
+  return true;
+};
+    const signUp = async () => {
+      console.log("Sign Up button pressed");
+
+      // Validate height and weight
+      if (!validateHeightAndWeight()) {
+        return;
+      }
+
+      // Check that passwords match
     if (password !== confirmPassword) {
       alert("Passwords do not match.");
       return;
@@ -194,6 +231,11 @@ if (profilePicture) {
   const signUpWithGoogle = async () => {
     console.log("Google Sign Up button pressed");
 
+    // Validate height and weight
+    if (!validateHeightAndWeight()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -239,17 +281,27 @@ if (profilePicture) {
       // Get the Google profile picture
       const profilePictureUrl = user.photoURL || "";
 
-      // Save the user's profile information to Firestore
-      await setDoc(doc(firestore, "users", uid), {
+      // Check whether this Google user already has a Firestore profile
+      const userDocRef = doc(firestore, "users", uid);
+      const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      // New Google user - create their profile
+      await setDoc(userDocRef, {
         name: firstName,
         height: height,
         weight: weight,
         profilePictureUrl: profilePictureUrl,
       });
 
-      console.log("Google user profile saved successfully!");
+      console.log("New Google user profile created successfully!");
+      alert("Account created with Google successfully!");
+    } else {
+      // Existing Google user - do not overwrite their profile
+      console.log("Existing Google user found. Profile was not overwritten.");
+      alert("Google account already exists. Signed in successfully!");
+    }
 
-      alert("Signed up with Google successfully!");
     } catch (e: any) {
       console.log("Google sign up failed:", e);
       console.log("Error code:", e.code);
