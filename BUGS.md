@@ -1,5 +1,13 @@
 # Phase 2 verification and bugs
 
+Report bugs on a branch (e.g. `android-testing`) with a pull request into `ui-changes`. See `ANDROID_TESTING.md`.
+
+## Bugs
+
+| Screen | Bug | Steps | Platform/device | Tester | Status |
+| --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |
+
 ## 2026-10-05 — A11 Step A test
 
 The iPhone 18 Pro Simulator development build opens to the sign-in form. Local typecheck and 38 adapter tests pass. Live Firebase account, email, Firestore, profile, alert, and persistence checks are pending PL's test credentials and clicks; no live result is claimed. Android emulator testing is unavailable on this Mac, and Kevin Android shared-data comparison requires an app build. No A11 runtime defect has been confirmed.
