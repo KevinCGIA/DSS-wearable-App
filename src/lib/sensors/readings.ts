@@ -10,6 +10,14 @@ const store: Record<SensorType, SensorReading[]> = { heart_rate: [], steps: [] }
 const listeners = new Set<() => void>();
 let nextId = 1;
 
+// Native B1 readings are live-only until B3 persists the full pipeline.
+// Clear them when the signed-in BLE provider changes accounts or unmounts.
+export function clearReadings() {
+  store.heart_rate = [];
+  store.steps = [];
+  emit();
+}
+
 function emit() {
   listeners.forEach((listener) => listener());
 }

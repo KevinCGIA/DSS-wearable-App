@@ -18,7 +18,7 @@ export function DeviceDetailContainer({ deviceId, onBack }: Props) {
       device={device}
       bluetoothState={ble.bluetoothState}
       testTools={
-        __DEV__ && device
+        __DEV__ && ble.supportsTestControls && device
           ? {
               onSimulateDropOut: () => ble.simulateDropOut(device.deviceId),
               onTogglePause: () => ble.setReadingsPaused(device.deviceId, !device.paused),

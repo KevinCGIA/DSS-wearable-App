@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Linking } from 'react-native';
 import type { PairedDevice } from '@/data/types';
 import { useNow } from '@/lib/useNow';
 import { useBle } from './BleProvider';
@@ -19,6 +20,10 @@ export function AddDeviceContainer({ onBack }: Props) {
   useEffect(() => () => {
     stopScan();
   }, [stopScan]);
+
+  useEffect(() => {
+    ble.ensureBluetoothReady?.();
+  }, [ble.ensureBluetoothReady]);
 
   return (
     <AddDeviceScreen
@@ -47,6 +52,9 @@ export function AddDeviceContainer({ onBack }: Props) {
         ble.setAutoConnect(enabled);
       }}
       onBack={onBack}
+      onOpenSettings={() => {
+        Linking.openSettings();
+      }}
     />
   );
 }

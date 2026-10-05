@@ -16,3 +16,16 @@ The iPhone 18 Pro Simulator development build opens to the sign-in form. Local t
 | 8. Alert thresholds Firestore save and reload | Pending live test and Console check | Pending Tarun's build |
 | 9. Logout and session persistence | Pending live test | Pending Tarun's build |
 | 10. Same profile in Kevin's Android app | Requires Kevin Android build | Requires Kevin Android build |
+
+## 2026-10-05 — B1 single-device BLE verification
+
+No B1 runtime BLE defect has been confirmed. The iOS Simulator build, installation and sign-in launch passed, but a Simulator cannot exercise Bluetooth. The physical iPhone is offline in Xcode; the Mac has no Android SDK.
+
+| Check | iOS | Android |
+| --- | --- | --- |
+| Native BLE package/config | Clean prebuild, pod install and Simulator build passed | Clean prebuild and Metro export passed; native build pending Tarun |
+| Permission denied, Settings; Bluetooth off/on | Pending physical iPhone | Pending physical phone |
+| Filtered/unfiltered scan, sort, heart marker, 15 s stop | Pending physical iPhone | Pending physical phone |
+| Three-attempt connect, Cancel, disconnect, reconnect | Pending physical iPhone and wearable | Pending physical phone and wearable |
+| Live measured BPM on Dashboard and Heart Rate | Pending physical iPhone and wearable | Pending physical phone and wearable |
+| Paired-device Firestore save/forget and auto-connect | Pending live account, physical iPhone and Console check | Pending live account and physical phone |

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { confirmForget } from './bluetoothText';
 import { DevicesScreen } from './DevicesScreen';
 import { useDevicesData } from './useDevicesData';
@@ -11,6 +12,10 @@ type Props = {
 
 export function DevicesContainer({ bottomInset, onAddDevice, onOpenDevice }: Props) {
   const { ble, now, model, loading, error } = useDevicesData();
+
+  useEffect(() => {
+    ble.ensureBluetoothReady?.();
+  }, [ble.ensureBluetoothReady]);
 
   return (
     <DevicesScreen
@@ -25,6 +30,14 @@ export function DevicesContainer({ bottomInset, onAddDevice, onOpenDevice }: Pro
       onAddDevice={onAddDevice}
       onOpenDevice={onOpenDevice}
       onConnect={(device) => {
+        const paired = ble.pairedDevices.find((item) => item.deviceId === device.deviceId);
+        if (
+          (Platform.OS === 'ios' && (paired?.platform ?? 'android') === 'android') ||
+          (Platform.OS === 'android' && paired?.platform === 'ios')
+        ) {
+          onAddDevice();
+          return;
+        }
         ble.connect({ id: device.deviceId, name: device.name });
       }}
       onDisconnect={(device) => {
