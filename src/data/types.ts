@@ -27,6 +27,8 @@ export type ConnectionState = {
   error: string | null;
   // iOS addition (in-app only, not stored): last known signal. Phase 2: readRSSI while connected.
   rssi?: number | null;
+  modelNumber?: string | null;
+  firmwareRevision?: string | null;
 };
 
 // Same string values as react-native-ble-plx's State enum.
@@ -57,6 +59,8 @@ export type PairedDevice = {
   // Optional additions (shared data compatibility rule): Android docs without them still work.
   lastRssi?: number | null;
   lastBattery?: number | null;
+  modelNumber?: string | null;
+  firmwareRevision?: string | null;
 };
 
 export type SensorType = 'heart_rate' | 'steps';

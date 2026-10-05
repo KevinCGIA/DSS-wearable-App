@@ -52,7 +52,12 @@ Same-account Android testing is assigned to the Android team.
 
 ## T6 device stats
 
-Pending implementation steps; perform these in the final combined session.
+1. With two devices connected, open Devices and each Device Detail. Check live RSSI/signal, battery when LightBlue reports it, and “Not reported” when it does not.
+2. Keep one device connected for at least a minute and watch its session time, readings count and badge update. Check that the other device has separate values.
+3. Turn off one LightBlue device or walk it out of range. Its drop-out count should increase as unexpected; the other device should keep streaming.
+4. Tap Disconnect on the second device. Its session should end as a user disconnect, without increasing its unexpected drop-out count.
+5. Relaunch the app and reopen both Device Details. Their connection history should remain on the phone under this account.
+6. Lock or background the app, then return. Background time must not add a gap or drop-out. B6 background recording is deferred, so readings need not continue while locked.
 
 ## T7 alerts
 

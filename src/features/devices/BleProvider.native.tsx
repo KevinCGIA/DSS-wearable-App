@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { getAuth } from '@react-native-firebase/auth';
 import { nativeAuthService } from '@/features/auth/nativeAuthService';
 import { deviceKey, nativeDeviceId } from '@/lib/ble/deviceKey';
@@ -19,9 +19,10 @@ import { addSensorReading, startReadingSession, flushReadings } from '@/lib/sens
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import type { BleContextValue } from './BleProvider';
 import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
+import { logConnectionEvent, startConnectionLog } from '@/lib/devices/connectionLog.native';
 
 const BleContext = createContext<BleContextValue | null>(null);
-const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+const platform: 'ios' | 'android' = Platform.OS === 'ios' ? 'ios' : 'android';
 
 export function BleProvider({ children }: { children: React.ReactNode }) {
   const [uid, setUid] = useState<string | null>(getAuth().currentUser?.uid ?? null);
@@ -33,8 +34,10 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
   const [connections, setConnections] = useState<Record<string, ConnectionState>>({});
   const connection = bleService.getConnectionState();
   const reset = useRef(Promise.resolve());
+  const ownerReady = useRef(false);
   const requests = useRef(new Map<string, number>());
   const previousStatuses = useRef<Record<string, string>>({});
+  const savedMetadata = useRef<Record<string, string>>({});
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
   const [pairedLoaded, setPairedLoaded] = useState(false);
   const [autoConnectLoaded, setAutoConnectLoaded] = useState(false);
@@ -66,22 +69,43 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
   }, [watchBluetoothState]);
 
   useEffect(() => {
+    let activeOwner = true;
+    ownerReady.current = false;
+    if (uid) void reset.current.then(() => { if (activeOwner && getAuth().currentUser?.uid === uid) ownerReady.current = true; });
+    const stopLog = uid ? startConnectionLog(uid, setScanError) : () => {};
+    const stopEvents = bleService.onConnectionEvent((event) => { if (uid && ownerReady.current) logConnectionEvent(event); });
     const stopReadings = uid ? startReadingSession(uid, (error) => {
       setScanError(error.message);
       void bleService.disconnectAll();
     }) : () => {};
     setConnections({});
     previousStatuses.current = {};
+    savedMetadata.current = {};
     const unsubscribe = bleService.subscribe(setConnections);
     return () => {
+      activeOwner = false;
+      ownerReady.current = false;
       unsubscribe();
+      stopEvents();
+      for (const [deviceId, state] of Object.entries(bleService.getConnections())) {
+        if (state.status === 'connected') logConnectionEvent({ type: 'disconnected', deviceId, reason: 'user' });
+      }
       stateSubscription.current?.remove();
       stateSubscription.current = null;
       void bleService.stopScan();
       requests.current.forEach((value, key) => requests.current.set(key, value + 1));
       reset.current = bleService.disconnectAll();
       stopReadings();
+      stopLog();
     };
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void bleService.pollRssi();
+    }, 10000);
+    return () => clearInterval(timer);
   }, [uid]);
 
   useEffect(() => {
@@ -134,20 +158,31 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
       const before = previousStatuses.current[id];
       previousStatuses.current[id] = current.status;
       if (before === 'connected' && current.status !== 'connected') flushReadings(id);
-      if (current.status !== 'connected' || before === 'connected') continue;
+      if (current.status !== 'connected') continue;
       if (current.error) setScanError(current.error);
       const scanned = scannedRef.current[id];
       const previous = pairedRef.current.find((device) => device.deviceId === id);
-      void withDeadline(savePairedDevice(uid, nativeDeviceId(id), current.deviceName ?? 'Unknown device', {
+      const metadata = {
         platform,
         localName: scanned?.name ?? previous?.localName,
         serviceUUIDs: scanned?.serviceUUIDs ?? previous?.serviceUUIDs,
+        lastRssi: current.rssi ?? scanned?.rssi ?? previous?.lastRssi ?? undefined,
+        lastBattery: current.batteryLevel ?? previous?.lastBattery ?? undefined,
+        modelNumber: current.modelNumber ?? previous?.modelNumber ?? undefined,
+        firmwareRevision: current.firmwareRevision ?? previous?.firmwareRevision ?? undefined,
+      };
+      // RSSI is polled every ten seconds but paired metadata need not be written that often.
+      const fingerprint = JSON.stringify({ battery: metadata.lastBattery, model: metadata.modelNumber, firmware: metadata.firmwareRevision });
+      if (before === 'connected' && savedMetadata.current[id] === fingerprint) continue;
+      savedMetadata.current[id] = fingerprint;
+      void withDeadline(savePairedDevice(uid, nativeDeviceId(id), current.deviceName ?? 'Unknown device', {
+        ...metadata, updateConnectionTime: before !== 'connected',
       })).catch(() => { if (getAuth().currentUser?.uid === uid) setScanError("Couldn't save the paired device."); });
     }
   }, [uid, connections]);
 
   useEffect(() => bleService.onHeartRate((bpm, deviceId, deviceName) => {
-    if (!uid || getAuth().currentUser?.uid !== uid) return;
+    if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
     void addSensorReading(SENSOR_UID, 'heart_rate', { value: bpm, deviceId, deviceName, source: 'ble' });
   }), [uid]);
 

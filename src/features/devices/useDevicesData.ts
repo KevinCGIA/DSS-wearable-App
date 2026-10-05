@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useConnectionLog } from '@/lib/devices/connectionLog';
+import { useConnectionLog, useConnectionLogError } from '@/lib/devices/connectionLog';
 import { useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 import { useBle } from './BleProvider';
@@ -13,6 +13,7 @@ export function useDevicesData() {
   // Every 5 s so session time, "last reading" and Not responding stay current.
   const now = useNow(5 * 1000);
   const events = useConnectionLog();
+  const logError = useConnectionLogError();
   const heartRate = useSensorHistory('heart_rate', HISTORY_HOURS);
   const steps = useSensorHistory('steps', 24);
 
@@ -35,6 +36,6 @@ export function useDevicesData() {
     now,
     model,
     loading: heartRate.loading,
-    error: heartRate.error ?? steps.error,
+    error: heartRate.error ?? steps.error ?? logError,
   };
 }
