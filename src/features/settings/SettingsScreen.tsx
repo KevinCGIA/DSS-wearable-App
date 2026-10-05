@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import type { UserProfile } from '@/data/types';
 import { colors, layout, spacing, type } from '@/theme';
 
@@ -28,7 +29,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     <Screen scroll bottomInset={bottomInset} hero={<HeroHeader title="Settings" />}>
       <ProfileRow {...props} />
 
-      <Section title="Alerts & Preferences" />
+      <SectionLabel title="Alerts & Preferences" />
       <Card padding={0}>
         <ListRow icon="bell" label="Alert Thresholds" onPress={props.onOpenAlertThresholds} />
         <ListRow icon="inbox" label="Notifications" onPress={props.onOpenNotifications} divider />
@@ -37,14 +38,14 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
       {onOpenPreviews ? (
         <>
-          <Section title="Development" />
+          <SectionLabel title="Development" />
           <Card padding={0}>
             <ListRow icon="eye" label="Previews" hint="Every screen in every state" onPress={onOpenPreviews} />
           </Card>
         </>
       ) : null}
 
-      <Section title="Account" />
+      <SectionLabel title="Account" />
       <Card padding={0}>
         <ListRow icon="log-out" label="Log Out" onPress={props.onLogout} destructive chevron={false} />
       </Card>
@@ -52,13 +53,6 @@ export function SettingsScreen(props: SettingsScreenProps) {
   );
 }
 
-function Section({ title }: { title: string }) {
-  return (
-    <Text style={[type.label, styles.section]} accessibilityRole="header">
-      {title.toUpperCase()}
-    </Text>
-  );
-}
 
 function ProfileRow({ profile, profileLoading, onOpenProfile }: SettingsScreenProps) {
   const name = profile?.name.trim() || 'Your profile';
@@ -83,7 +77,7 @@ function ProfileRow({ profile, profileLoading, onOpenProfile }: SettingsScreenPr
           ) : null}
         </View>
         {profileLoading ? <ActivityIndicator size="small" color={colors.accent} /> : null}
-        <Feather name="chevron-right" size={18} color={colors.textMuted} />
+        <Feather name="chevron-right" size={layout.icon.action} color={colors.textMuted} />
       </Pressable>
     </Card>
   );
@@ -91,19 +85,13 @@ function ProfileRow({ profile, profileLoading, onOpenProfile }: SettingsScreenPr
 
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
-  section: {
-    color: colors.textMuted,
-    letterSpacing: 0.6,
-    marginTop: spacing.xxl,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    padding: spacing.lg,
-    minHeight: layout.rowHeight + spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    minHeight: layout.rowHeightTall,
   },
   pressed: { backgroundColor: colors.surfaceSunken },
   profileText: { flex: 1 },
