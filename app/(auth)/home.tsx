@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import {
   getAuth,
@@ -24,19 +24,37 @@ import {
 
 import HeartRateDisplay from "../../components/HeartRateDisplay";
 import StepsDisplay from "../../components/StepsDisplay";
-import { useBle } from "../../services/ble/BleContext";
+import { activeConnections, useBle } from "../../services/ble/BleContext";
+import {
+  estimateActiveCalories,
+  estimateDistanceKm,
+  parseProfileNumber,
+  useStepsToday,
+} from "../../services/sensors/activity";
 
 export default function Home() {
   const router = useRouter();
-  const { connection } = useBle();
+  const { connections } = useBle();
+  const { steps } = useStepsToday();
   const [profilePictureData, setProfilePictureData] =
     useState("");
+  const [name, setName] = useState("");
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  const [weightKg, setWeightKg] = useState<number | null>(null);
+
+  const active = activeConnections(connections);
+  const connected = active.filter((c) => c.status === "connected");
+  const onlyDevice = active.length === 1 ? active[0] : null;
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadProfilePicture();
-  }, []);
+  // Reload whenever Home comes back into view, so a name, weight or
+  // picture changed in Settings shows up straight away
+  useFocusEffect(
+    useCallback(() => {
+      loadProfilePicture();
+    }, [])
+  );
 
   const loadProfilePicture = async () => {
     try {
@@ -59,6 +77,10 @@ export default function Home() {
         const userData = userDoc.data();
         googleProfilePictureUrl =
           userData?.profilePictureUrl || "";
+
+        setName(userData?.name || "");
+        setHeightCm(parseProfileNumber(userData?.height));
+        setWeightKg(parseProfileNumber(userData?.weight));
       }
 
       const avatarDoc = await getDoc(
@@ -112,7 +134,7 @@ export default function Home() {
 {/* Top bar */}
 <View style={Styles.topBar}>
   <Text style={Styles.welcome}>
-    Welcome!
+    {name ? `Welcome, ${name}!` : "Welcome!"}
   </Text>
 
   <Pressable
@@ -152,28 +174,34 @@ export default function Home() {
         >
           <View style={Styles.watchCircle}>
             <Text style={Styles.watchText}>
-              {connection.deviceName ?? "No Device"}
+              {active.length === 0
+                ? "No Device"
+                : onlyDevice
+                  ? onlyDevice.deviceName ?? "Unknown device"
+                  : `${active.length} Devices`}
             </Text>
           </View>
 
-          {connection.status === "connected" ? (
-            <Text style={Styles.deviceStatus}>
-              ● Connected
-            </Text>
-          ) : connection.status === "disconnected" ? (
+          {active.length === 0 ? (
             <Text style={Styles.deviceStatusOff}>
               Tap to connect
             </Text>
+          ) : connected.length === active.length ? (
+            <Text style={Styles.deviceStatus}>
+              ● Connected
+            </Text>
           ) : (
             <Text style={Styles.deviceStatusPending}>
-              Connecting...
+              {connected.length > 0
+                ? `● ${connected.length} of ${active.length} connected`
+                : "Connecting..."}
             </Text>
           )}
 
-          {connection.status === "connected" &&
-            connection.batteryLevel !== null && (
+          {onlyDevice?.status === "connected" &&
+            onlyDevice.batteryLevel !== null && (
               <Text style={Styles.battery}>
-                🔋 {connection.batteryLevel}%
+                🔋 {onlyDevice.batteryLevel}%
               </Text>
             )}
         </Pressable>
@@ -186,12 +214,11 @@ export default function Home() {
 
           <StepsDisplay variant="compact" />
 
+          {/* Estimated from steps; no supported device reports distance.
+              Floors are left out until a device provides them. */}
           <Text style={Styles.activityText}>
-            🚶 4.8 km
-          </Text>
-
-          <Text style={Styles.activityText}>
-            🪜 12 Floors
+            🚶 {estimateDistanceKm(steps, heightCm).toFixed(1)} km
+            <Text style={Styles.estimate}> est.</Text>
           </Text>
         </View>
 
@@ -205,8 +232,9 @@ export default function Home() {
 
         <View style={Styles.sleepRow}>
           <View>
+            {/* No sleep data source yet */}
             <Text style={Styles.sleepValue}>
-              7h 42m
+              --
             </Text>
 
             <Text style={Styles.smallText}>
@@ -216,7 +244,7 @@ export default function Home() {
 
           <View>
             <Text style={Styles.sleepScore}>
-              86/100
+              --
             </Text>
 
             <Text style={Styles.smallText}>
@@ -233,7 +261,13 @@ export default function Home() {
         </Text>
 
         <Text style={Styles.calorieValue}>
-          486 kcal
+          {Math.round(estimateActiveCalories(steps, weightKg))} kcal
+          <Text style={Styles.estimate}> est.</Text>
+        </Text>
+
+        <Text style={Styles.smallText}>
+          Estimated from today's steps
+          {weightKg ? "" : ". Add your weight in Settings for a better estimate."}
         </Text>
       </View>
 
@@ -353,6 +387,12 @@ const Styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
+  },
+
+  estimate: {
+    fontSize: 13,
+    fontWeight: "normal",
+    color: "#888",
   },
 
   activityText: {

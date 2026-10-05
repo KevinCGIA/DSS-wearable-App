@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { formatAge, isSameDay, useNow } from "../services/sensors/time";
-import { useLatestSensorReading } from "../services/sensors/useLatestSensorReading";
+import { useStepsToday } from "../services/sensors/activity";
+import { formatAge } from "../services/sensors/time";
 
 export const DAILY_STEP_GOAL = 10000;
 
@@ -12,15 +12,13 @@ type Props = {
 };
 
 export default function StepsDisplay({ variant = "compact" }: Props) {
-  const { reading, loading, error } = useLatestSensorReading("steps");
-  const now = useNow(60 * 1000);
-
-  // Readings are a running total for their day, so one from before
-  // midnight means no steps have been recorded today yet
-  const stepsToday =
-    reading && isSameDay(reading.timestamp, new Date(now))
-      ? Math.round(reading.value)
-      : 0;
+  const {
+    steps: stepsToday,
+    reading,
+    loading,
+    error,
+    now,
+  } = useStepsToday();
 
   if (variant === "compact") {
     if (loading) {
