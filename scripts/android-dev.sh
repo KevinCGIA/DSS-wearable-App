@@ -100,6 +100,22 @@ if [ -n "$SERIAL" ] && $RESTART; then
   SERIAL=""
 fi
 
+# The emulator can leave finished child processes behind ("zombies") that
+# are never cleaned up. After a few days they hit macOS's per-user process
+# limit and nothing new can start ("fork failed: resource temporarily
+# unavailable"). Restart it before that happens.
+if [ -n "$SERIAL" ]; then
+  EMU_PID="$(pgrep -f "qemu-system.*-avd $AVD" | head -1 || true)"
+  if [ -n "$EMU_PID" ]; then
+    ZOMBIES="$(ps -ax -o ppid=,stat= | awk -v p="$EMU_PID" '$1 == p && $2 ~ /Z/' | wc -l | tr -d ' ')"
+    if [ "$ZOMBIES" -gt 200 ]; then
+      log "Emulator is holding $ZOMBIES leftover processes; restarting it to free them."
+      stop_emulator "$SERIAL"
+      SERIAL=""
+    fi
+  fi
+fi
+
 if [ -n "$SERIAL" ]; then
   # Airplane mode also kills networking; turn it off if it was left on
   "$ADB" -s "$SERIAL" shell cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
