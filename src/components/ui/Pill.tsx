@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
 type Tier = 'live' | 'session' | 'neutral' | 'alert' | 'warning' | 'good';
 
@@ -29,7 +29,7 @@ export function Pill({ label, tier = 'neutral', icon, dot = false, shape = 'pill
   return (
     <View style={[styles.base, shape === 'square' && styles.square, { backgroundColor: t.bg, borderColor: t.border }, style]}>
       {dot ? <View style={[styles.dot, { backgroundColor: t.fg }]} /> : null}
-      {icon ? <Feather name={icon} size={13} color={t.fg} style={styles.icon} /> : null}
+      {icon ? <Feather name={icon} size={layout.icon.inline} color={t.fg} style={styles.icon} /> : null}
       <Text style={[type.label, { color: t.fg }]} numberOfLines={1}>
         {label}
       </Text>
@@ -45,9 +45,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.xs,
   },
   square: { borderRadius: radius.sm / 2 },
   dot: { width: 7, height: 7, borderRadius: radius.pill, marginRight: spacing.sm },
-  icon: { marginRight: spacing.xs + 2 },
+  icon: { marginRight: spacing.sm },
 });

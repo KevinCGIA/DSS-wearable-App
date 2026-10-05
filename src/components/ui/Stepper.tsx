@@ -77,7 +77,7 @@ function StepButton({
       accessibilityElementsHidden
       style={({ pressed }) => [styles.button, !enabled && styles.buttonOff, pressed && styles.buttonPressed]}
     >
-      <Feather name={icon} size={18} color={enabled ? colors.accentText : colors.disabledText} />
+      <Feather name={icon} size={layout.icon.action} color={enabled ? colors.accentText : colors.disabledText} />
     </Pressable>
   );
 }

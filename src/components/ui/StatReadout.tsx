@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, spacing, type } from '@/theme';
+import { colors, layout, spacing, type } from '@/theme';
 
 type Size = 'hero' | 'large' | 'medium';
 type Tone = 'live' | 'session' | 'onAccent';
@@ -37,7 +37,7 @@ export function StatReadout({
   return (
     <View style={[{ alignItems: alignment }, style]}>
       <View style={styles.labelRow}>
-        {icon ? <Feather name={icon} size={14} color={labelColor} style={styles.icon} /> : null}
+        {icon ? <Feather name={icon} size={layout.icon.inline} color={labelColor} style={styles.icon} /> : null}
         <Text style={[type.label, { color: labelColor }]} numberOfLines={1}>
           {label}
         </Text>
@@ -56,7 +56,7 @@ export function StatReadout({
 
 const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  icon: { marginRight: spacing.xs + 2 },
+  icon: { marginRight: spacing.sm },
   valueRow: { flexDirection: 'row', alignItems: 'baseline' },
-  unit: { marginLeft: spacing.xs + 2 },
+  unit: { marginLeft: spacing.xs },
 });

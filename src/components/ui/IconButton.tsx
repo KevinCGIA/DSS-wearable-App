@@ -66,7 +66,7 @@ export function IconButton({
     >
       {icon ? (
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
-          <Feather name={icon} size={18} color={tint} />
+          <Feather name={icon} size={layout.icon.action} color={tint} />
         </Animated.View>
       ) : (
         <Text style={[styles.glyph, { color: tint }]} maxFontSizeMultiplier={1.2}>

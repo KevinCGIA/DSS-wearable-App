@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, layout, radius, spacing, type } from '@/theme';
 
 type Props<T extends string> = {
   options: { value: T; label: string }[];
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    height: 44,
+    height: layout.minTouch,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,

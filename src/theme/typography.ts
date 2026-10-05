@@ -26,7 +26,8 @@ type Variant =
   | 'label'
   | 'caption'
   | 'unit'
-  | 'axis';
+  | 'axis'
+  | 'overline';
 
 export const type: Record<Variant, TextStyle> = {
   hero: { fontFamily: fonts.numericBold, fontSize: 76, lineHeight: 84, letterSpacing: -1.5, fontVariant: tabular },
@@ -43,6 +44,8 @@ export const type: Record<Variant, TextStyle> = {
   unit: { fontFamily: fonts.uiMedium, fontSize: 15, lineHeight: 20 },
   // Chart axis and value labels (numbers and times).
   axis: { fontFamily: fonts.numeric, fontSize: 12, lineHeight: 16, fontVariant: tabular },
+  // Section labels and in-card eyebrows (uppercase text).
+  overline: { fontFamily: fonts.uiMedium, fontSize: 13, lineHeight: 18, letterSpacing: 0.6 },
 };
 
 export type TextScale = 'default' | 'large' | 'xlarge';

@@ -25,7 +25,7 @@ export function ErrorBanner({ message, tone = 'error', actionLabel, onAction, st
 
   return (
     <View style={[styles.wrap, { backgroundColor: t.bg }, style]} accessibilityRole="alert">
-      <Feather name={t.icon} size={16} color={t.fg} style={styles.icon} />
+      <Feather name={t.icon} size={layout.icon.row} color={t.fg} style={styles.icon} />
       <Text style={[type.bodyStrong, styles.message, { color: t.fg }]}>{message}</Text>
       {actionLabel && onAction ? (
         <Pressable

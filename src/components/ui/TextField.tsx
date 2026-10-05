@@ -50,7 +50,7 @@ export function TextField({
         {icon ? (
           <Feather
             name={icon}
-            size={18}
+            size={layout.icon.action}
             color={focused ? colors.accent : colors.textMuted}
             style={styles.leading}
           />
@@ -75,7 +75,7 @@ export function TextField({
             hitSlop={layout.hitSlop}
             style={styles.trailing}
           >
-            <Feather name={revealed ? 'eye-off' : 'eye'} size={18} color={colors.textMuted} />
+            <Feather name={revealed ? 'eye-off' : 'eye'} size={layout.icon.action} color={colors.textMuted} />
           </Pressable>
         ) : null}
       </View>
@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
   leading: { marginRight: spacing.md },
   trailing: { marginLeft: spacing.md },
   input: { flex: 1, color: colors.text, paddingVertical: 0 },
-  error: { color: colors.danger, marginTop: spacing.xs + 2 },
+  error: { color: colors.danger, marginTop: spacing.xs },
 });

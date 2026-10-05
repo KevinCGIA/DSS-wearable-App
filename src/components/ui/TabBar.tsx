@@ -38,7 +38,7 @@ export function TabBar({ active, onChange }: Props) {
             accessibilityState={{ selected }}
           >
             <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
-              <Feather name={tab.icon} size={20} color={tint} />
+              <Feather name={tab.icon} size={layout.icon.tab} color={tint} />
             </View>
             <Text style={[type.caption, { color: tint }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
               {tab.label}
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', minHeight: layout.minTouch },
   iconWrap: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
     marginBottom: spacing.xs,
   },
