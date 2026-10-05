@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import type { ConnectionState, PairedDevice } from '@/data/types';
 import { formatAge } from '@/lib/time';
@@ -31,7 +31,12 @@ export function PairedDeviceList({ pairedDevices, connection, now, onConnect, on
       {pairedDevices.map((device, index) => {
         const current = device.deviceId === connection.deviceId;
         const connected = current && connection.status === 'connected';
-        const detail = connected
+        const foreignPlatform =
+          (Platform.OS === 'ios' && (device.platform ?? 'android') === 'android') ||
+          (Platform.OS === 'android' && device.platform === 'ios');
+        const detail = foreignPlatform
+          ? 'Reconnect by scanning'
+          : connected
           ? '● Connected'
           : current && busy
             ? 'Connecting…'
@@ -49,7 +54,7 @@ export function PairedDeviceList({ pairedDevices, connection, now, onConnect, on
             </View>
             {!current ? (
               <Button
-                label="Connect"
+                label={foreignPlatform ? 'Scan' : 'Connect'}
                 variant="ghost"
                 size="sm"
                 disabled={busy}

@@ -30,6 +30,7 @@ export type AddDeviceScreenProps = {
   onForgetDevice: (device: PairedDevice) => void;
   onSetAutoConnect: (enabled: boolean) => void;
   onBack: () => void;
+  onOpenSettings?: () => void;
 };
 
 export function AddDeviceScreen({
@@ -48,6 +49,7 @@ export function AddDeviceScreen({
   onForgetDevice,
   onSetAutoConnect,
   onBack,
+  onOpenSettings,
 }: AddDeviceScreenProps) {
   const busy = isBusy(connection);
   const problem = bluetoothProblem(bluetoothState);
@@ -59,7 +61,15 @@ export function AddDeviceScreen({
     >
       <ConnectionCard connection={connection} onDisconnect={onDisconnect} />
 
-      {problem ? <ErrorBanner message={problem} tone="warning" style={styles.banner} /> : null}
+      {problem ? (
+        <ErrorBanner
+          message={problem}
+          tone="warning"
+          actionLabel={bluetoothState === 'Unauthorized' ? 'Settings' : undefined}
+          onAction={onOpenSettings}
+          style={styles.banner}
+        />
+      ) : null}
       {scanError && !problem ? <ErrorBanner message={scanError} style={styles.banner} /> : null}
 
       <View style={styles.sectionRow}>

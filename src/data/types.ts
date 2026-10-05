@@ -43,6 +43,7 @@ export type ScannedDevice = {
   name: string;
   rssi: number;
   isHeartRateDevice: boolean;
+  serviceUUIDs?: string[];
 };
 
 export type PairedDevice = {
@@ -50,6 +51,9 @@ export type PairedDevice = {
   name: string;
   addedAt: Date | null;
   lastConnectedAt: Date | null;
+  platform?: 'ios' | 'android';
+  localName?: string;
+  serviceUUIDs?: string[];
   // Optional additions (shared data compatibility rule): Android docs without them still work.
   lastRssi?: number | null;
   lastBattery?: number | null;

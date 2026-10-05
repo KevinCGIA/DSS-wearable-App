@@ -9,7 +9,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.galaxies.firebase",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Allow DSS Wearables to connect to your wearable device over Bluetooth.",
+        "NSPhotoLibraryUsageDescription": "Allow DSS Wearables to choose a profile picture.",
+        "NSCameraUsageDescription": "Allow DSS Wearables to take a profile picture."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -58,6 +63,14 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.944450266341-b02tpaoo5h38ovk05fhmu3oldf2lr86o"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "neverForLocation": true,
+          "bluetoothAlwaysPermission": "Allow DSS Wearables to connect to your wearable device over Bluetooth."
         }
       ]
     ],

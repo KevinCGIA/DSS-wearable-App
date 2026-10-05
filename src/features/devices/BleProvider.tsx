@@ -30,6 +30,8 @@ export type BleContextValue = {
   simulateDropOut: (deviceId: string) => void;
   setReadingsPaused: (deviceId: string, paused: boolean) => void;
   pausedDevices: string[];
+  supportsTestControls?: boolean;
+  ensureBluetoothReady?: () => void;
 };
 
 // Android constants (services/ble/constants.ts)
@@ -291,6 +293,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
       simulateDropOut,
       setReadingsPaused,
       pausedDevices,
+      supportsTestControls: true,
     }),
     [
       isScanning,
