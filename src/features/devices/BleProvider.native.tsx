@@ -15,7 +15,7 @@ import {
   subscribeToAutoConnect,
   subscribeToPairedDevices,
 } from '@/lib/ble/pairedDevices.native';
-import { addSensorReading, clearReadings } from '@/lib/sensors/readings';
+import { addSensorReading, startReadingSession, flushReadings } from '@/lib/sensors/readings.native';
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import type { BleContextValue } from './BleProvider';
 import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
@@ -66,7 +66,10 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
   }, [watchBluetoothState]);
 
   useEffect(() => {
-    clearReadings();
+    const stopReadings = uid ? startReadingSession(uid, (error) => {
+      setScanError(error.message);
+      void bleService.disconnectAll();
+    }) : () => {};
     setConnections({});
     previousStatuses.current = {};
     const unsubscribe = bleService.subscribe(setConnections);
@@ -77,7 +80,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
       void bleService.stopScan();
       requests.current.forEach((value, key) => requests.current.set(key, value + 1));
       reset.current = bleService.disconnectAll();
-      clearReadings();
+      stopReadings();
     };
   }, [uid]);
 
@@ -130,6 +133,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     for (const [id, current] of Object.entries(connections)) {
       const before = previousStatuses.current[id];
       previousStatuses.current[id] = current.status;
+      if (before === 'connected' && current.status !== 'connected') flushReadings(id);
       if (current.status !== 'connected' || before === 'connected') continue;
       if (current.error) setScanError(current.error);
       const scanned = scannedRef.current[id];

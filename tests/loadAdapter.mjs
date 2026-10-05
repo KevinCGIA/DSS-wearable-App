@@ -11,7 +11,7 @@ export function loadAdapter(path, dependencies) {
   const exports = {};
   vm.runInNewContext(outputText, {
     exports,
-    setTimeout, clearTimeout, setInterval, clearInterval, atob, console,
+    setTimeout, clearTimeout, setInterval, clearInterval, atob, console, __DEV__: true,
     require: (name) => {
       assert.ok(name in dependencies, `Unexpected runtime dependency: ${name}`);
       return dependencies[name];

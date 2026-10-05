@@ -43,7 +43,12 @@ Same-account Android testing is assigned to the Android team.
 
 ## T5 saved readings
 
-Pending implementation steps; perform these in the final combined session.
+1. With two LightBlue devices streaming for two minutes, check `users/{uid}/reading_batches` in Firebase Console. Expect a separate document per device per minute with `samples`, timestamps, native `deviceId`, and `source: ble`.
+2. Check `users/{uid}/sensor_readings/heart_rate/readings`. Expect one representative BPM document per device per minute with Kevin's fields and `source: ble`.
+3. Change both devices' BPM, close and relaunch the app, and select each Activity chip. Its saved chart and Dashboard history should return from Firestore.
+4. Set Airplane Mode while connected, change BPM values, restore networking after a minute, and check that queued batches upload without duplicate IDs. The app should keep showing live readings while offline.
+5. In a development build, add a Test data reading. Confirm the batch and representative document use `source: test`, and the reading is excluded from device stats.
+6. If the app reports `permission-denied` on `reading_batches`, stop this test and send the exact error to Kevin/Jared. Do not edit Firestore rules.
 
 ## T6 device stats
 

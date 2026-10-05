@@ -61,7 +61,7 @@ export type PairedDevice = {
 
 export type SensorType = 'heart_rate' | 'steps';
 
-export type ReadingSource = 'ble' | 'manual';
+export type ReadingSource = 'ble' | 'manual' | 'test';
 
 // For steps, value is the running total for that calendar day.
 export type SensorReading = {
@@ -74,6 +74,7 @@ export type SensorReading = {
   deviceId: string | null;
   deviceName: string | null;
   source: ReadingSource;
+  resolution?: 'sample' | 'representative';
 };
 
 export type LatestReadingState = {
