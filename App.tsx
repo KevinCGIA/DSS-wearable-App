@@ -36,7 +36,7 @@ export default function App() {
         {session.signedIn ? (
           <RootNavigator displayName={session.displayName} onSignOut={session.signOut} />
         ) : (
-          <AuthContainer onPreview={session.enablePreview} />
+          <AuthContainer onPreview={__DEV__ ? session.enablePreview : undefined} />
         )}
       </PreferencesProvider>
     </SafeAreaProvider>

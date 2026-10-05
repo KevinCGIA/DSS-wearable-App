@@ -172,7 +172,7 @@ export function useAuthForm({ onPreview }: Options) {
     confirmation,
     busy,
     units,
-    previewMode: authService.mode === 'preview',
+    previewMode: __DEV__ && Boolean(onPreview),
     onChangeMode: setMode,
     onChangeValue: setValue,
     onSignIn: signIn,
@@ -182,6 +182,6 @@ export function useAuthForm({ onPreview }: Options) {
     onSendPasswordReset: sendPasswordReset,
     onChooseProfilePicture: chooseProfilePicture,
     onDismissConfirmation: dismissConfirmation,
-    onPreview: onPreview ? () => enterPreview(values.name.trim() || 'Tarun') : undefined,
+    onPreview: __DEV__ && onPreview ? () => enterPreview(values.name.trim() || 'Tarun') : undefined,
   };
 }
