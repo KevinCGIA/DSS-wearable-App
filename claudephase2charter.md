@@ -1519,3 +1519,27 @@ B1: real single-device BLE and paired devices, with Preview mock retained. B2: p
 | `lib/sensors/testExtras.ts` | Dev only; delete once a real sleep source exists |
 
 - **Checks:** `npm run typecheck` clean; 40/40 automated tests pass (none referenced the removed pages); web screenshots of the Activity states and tab bar at 375 wide (entry restored). iOS and Android JS bundles export, and a clean `expo prebuild --platform android` succeeds (Bluetooth permissions in the manifest; generated `android/` deleted, prebuild's package.json script change reverted). **Not run: `npx expo run:android`.** This Windows PC has no Android SDK, emulator or `adb` (no Android Studio), so the 4-tab emulator launch is still to verify once Android Studio is installed.
+
+### 2026-10-05 — Handover v2: work moves to Kevin's repo (`ui-changes`)
+- **The rules changed:**
+  - Work now happens in **Kevin's repo** (`KevinCGIA/DSS-wearable-App`) on branch **`ui-changes`**.
+  - `main` changes only through pull requests from `ui-changes`; nobody pushes to `main`, and nobody force-pushes.
+  - One person works on `ui-changes` at a time.
+  - **DSS-iOS-UI is now a frozen backup** (`phase-2` at `8f51881`); don't commit there any more.
+  - `ui-changes` joins Kevin's history with an `ours` merge, so the tree is the unified app. Kevin's `.github`, `docs` and `shared` folders are kept.
+  - See `AGENTS.md` ("Working on ui-changes") and `PL_1_SETUP_AND_CONTEXT.md` / `PL_2_PHASE2_TASKS.md` (v2).
+- **B0 approved by Tarun:**
+  - Kevin's reading fields plus the new `reading_batches` collection.
+  - Device ID = platform + the device's own ID.
+  - At most **4 devices** at once.
+  - The connection log stays **on the phone** (AsyncStorage).
+  - Weight range **20–300 kg**, pending team agreement (Kevin's app uses 2–500 kg).
+  - B1 was committed before this approval and reviewed afterwards.
+- **Tarun tested Kevin's old app with LightBlue on Android:** live heart rate works. Kevin's handshake may require a Battery service; **PL_2 T1** makes Battery and Device Information optional in our app.
+- **The final UI:**
+  - 4 tabs: Dashboard | Devices | Activity | Settings.
+  - A bio-stats Activity tab: device chips, "Not reported by this device", no estimates.
+  - IBM Plex Sans with tabular figures.
+  - The formatting polish is done (20 padding, 16 between cards, shared SectionLabel, wrapping at X-Large).
+- **Next:** Phase 2 continues from **PL_2 v2 step T0**, with Praneet on Codex.
+- **Android testers:** `ANDROID_TESTING.md` covers setup, the LightBlue fake heart-rate device, the UI checklist and the A11/B1 checks. They report in `BUGS.md` (Screen | Bug | Steps | Platform/device | Tester | Status) through a pull request into `ui-changes`.
