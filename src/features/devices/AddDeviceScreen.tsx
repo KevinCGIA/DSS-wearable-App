@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { SignalBars } from '@/components/ui/SignalBars';
 import { Toggle } from '@/components/ui/Toggle';
 import type { BluetoothState, ConnectionState, PairedDevice, ScannedDevice } from '@/data/types';
@@ -72,12 +73,10 @@ export function AddDeviceScreen({
       ) : null}
       {scanError && !problem ? <ErrorBanner message={scanError} style={styles.banner} /> : null}
 
-      <View style={styles.sectionRow}>
-        <Text style={[type.label, styles.section]} accessibilityRole="header">
-          NEARBY DEVICES
-        </Text>
-        {isScanning ? <ActivityIndicator size="small" color={colors.accent} /> : null}
-      </View>
+      <SectionLabel
+        title="Nearby devices"
+        right={isScanning ? <ActivityIndicator size="small" color={colors.accent} /> : null}
+      />
 
       <Button
         label={isScanning ? 'Stop Scanning' : 'Scan for Devices'}
@@ -109,9 +108,7 @@ export function AddDeviceScreen({
         )}
       </Card>
 
-      <Text style={[type.label, styles.section, styles.sectionGap]} accessibilityRole="header">
-        PAIRED DEVICES
-      </Text>
+      <SectionLabel title="Paired devices" />
       <Card padding={0}>
         <Toggle
           label="Auto-connect"
@@ -168,7 +165,7 @@ function DeviceRow({
       <View style={styles.rowText}>
         <View style={styles.nameRow}>
           {device.isHeartRateDevice ? (
-            <Feather name="heart" size={14} color={colors.vital.pulse} style={styles.heart} />
+            <Feather name="heart" size={layout.icon.inline} color={colors.vital.pulse} style={styles.heart} />
           ) : null}
           <Text style={[type.bodyStrong, styles.name]} numberOfLines={1}>
             {device.name}
@@ -181,30 +178,20 @@ function DeviceRow({
           </Text>
         </View>
       </View>
-      <Text style={[type.label, current ? styles.current : styles.action]}>{current ? 'Current' : 'Connect'}</Text>
+      <Text style={[type.bodyStrong, current ? styles.current : styles.action]}>{current ? 'Current' : 'Connect'}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   banner: { marginTop: spacing.lg },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxl,
-    marginBottom: spacing.sm,
-    minHeight: layout.minTouch / 2,
-  },
-  section: { color: colors.textMuted, letterSpacing: 0.6, marginLeft: spacing.xs },
-  sectionGap: { marginTop: spacing.xxl, marginBottom: spacing.sm },
-  card: { marginTop: spacing.md },
+  card: { marginTop: spacing.lg },
   empty: { color: colors.textMuted, textAlign: 'center', padding: spacing.xl },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: layout.rowHeight + spacing.md,
-    paddingHorizontal: spacing.lg,
+    minHeight: layout.rowHeightTall,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
@@ -213,7 +200,7 @@ const styles = StyleSheet.create({
   rowPressed: { backgroundColor: colors.surfaceSunken },
   rowText: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center' },
-  heart: { marginRight: spacing.xs + 2 },
+  heart: { marginRight: spacing.sm },
   name: { color: colors.text, flexShrink: 1 },
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   muted: { color: colors.textMuted },
