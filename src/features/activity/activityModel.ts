@@ -15,7 +15,7 @@ export type ActivitySource = { key: string; label: string; latest: number };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function sourceKeyOf(reading: SensorReading): string {
-  if (reading.source === 'manual') return TEST_SOURCE;
+  if (reading.source !== 'ble') return TEST_SOURCE;
   return reading.deviceId ?? UNKNOWN_SOURCE;
 }
 
@@ -61,7 +61,7 @@ export type ActivityInput = {
 
 export function buildActivity(input: ActivityInput): ActivityView {
   const { now, names, includeTest } = input;
-  const usable = (r: SensorReading) => includeTest || r.source !== 'manual';
+  const usable = (r: SensorReading) => includeTest || r.source === 'ble';
   const heartRate = input.heartRate.filter(usable);
   const steps = input.steps.filter(usable);
 

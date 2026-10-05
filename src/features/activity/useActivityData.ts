@@ -49,7 +49,7 @@ export function useActivityData() {
   const addTestReading = useCallback(() => {
     addSensorReading(SENSOR_UID, 'heart_rate', {
       value: 60 + Math.floor(Math.random() * 40),
-      source: 'manual',
+      source: 'test',
       deviceName: 'Test data',
     });
     select(TEST_SOURCE);
@@ -63,14 +63,14 @@ export function useActivityData() {
 
   // Test steps add to Test data's own running total for today (steps are a daily running total).
   const testStepsToday = useMemo(() => {
-    const today = steps.readings.filter((r) => r.source === 'manual' && isSameDay(r.timestamp, new Date(now)));
+    const today = steps.readings.filter((r) => r.source !== 'ble' && isSameDay(r.timestamp, new Date(now)));
     return today.length ? Math.max(...today.map((r) => r.value)) : 0;
   }, [steps.readings, now]);
 
   const addTestSteps = useCallback(() => {
     addSensorReading(SENSOR_UID, 'steps', {
       value: testStepsToday + 200 + Math.floor(Math.random() * 600),
-      source: 'manual',
+      source: 'test',
       deviceName: 'Test data',
     });
     select(TEST_SOURCE);

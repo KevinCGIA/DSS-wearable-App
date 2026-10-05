@@ -16,7 +16,7 @@ export function useLatestSensorReading(type: SensorType): LatestReadingState {
         SENSOR_UID,
         type,
         (reading) => setState({ reading, loading: false, error: null }),
-        () => setState({ reading: null, loading: false, error: "Couldn't load your latest reading." }),
+        (error) => setState({ reading: null, loading: false, error: error.message || "Couldn't load your latest reading." }),
       ),
     [type],
   );
@@ -36,7 +36,7 @@ export function useSensorHistory(type: SensorType, hours: number): HistoryState 
         type,
         new Date(start),
         (readings) => setState({ readings, loading: false, error: null }),
-        () => setState({ readings: [], loading: false, error: "Couldn't load your history." }),
+        (error) => setState({ readings: [], loading: false, error: error.message || "Couldn't load your history." }),
       ),
     [type, start],
   );
