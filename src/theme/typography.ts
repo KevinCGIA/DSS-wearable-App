@@ -60,9 +60,9 @@ export function scaledType(scale: TextScale): Record<Variant, TextStyle> {
   ) as Record<Variant, TextStyle>;
 }
 
-// Updates the shared `type` tokens in place; the caller re-renders the tree to pick them up.
+// Replace styles because React Native freezes style objects after rendering them.
 // The system text size (Dynamic Type) still applies on top of this.
 export function applyTextScale(scale: TextScale) {
   const next = scaledType(scale);
-  (Object.keys(type) as Variant[]).forEach((key) => Object.assign(type[key], next[key]));
+  (Object.keys(type) as Variant[]).forEach((key) => { type[key] = next[key]; });
 }
