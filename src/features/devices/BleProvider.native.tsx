@@ -15,6 +15,7 @@ import {
 import { addSensorReading, clearReadings } from '@/lib/sensors/readings';
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import type { BleContextValue } from './BleProvider';
+import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
 
 const BleContext = createContext<BleContextValue | null>(null);
 const platform = Platform.OS === 'ios' ? 'ios' : 'android';
@@ -76,8 +77,8 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     autoConnectAttempted.current = false;
     setPairedLoaded(false);
     setAutoConnectLoaded(false);
-    const unsubscribeDevices = subscribeToPairedDevices(
-      uid,
+    const unsubscribeDevices = subscribeWithDeadline<PairedDevice[]>(
+      (onData, onError) => subscribeToPairedDevices(uid, onData, onError),
       (devices) => {
         setPairedDevices(devices);
         setPairedLoaded(true);
@@ -87,8 +88,8 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
         setPairedLoaded(true);
       },
     );
-    const unsubscribeAutoConnect = subscribeToAutoConnect(
-      uid,
+    const unsubscribeAutoConnect = subscribeWithDeadline<boolean>(
+      (onData, onError) => subscribeToAutoConnect(uid, onData, onError),
       (enabled) => {
         setAutoConnectState(enabled);
         setAutoConnectLoaded(true);
@@ -132,6 +133,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!uid || connection.status !== 'connected' || !connection.deviceId) return;
+    if (connection.error) setScanError(connection.error);
     const scanned = scannedRef.current[connection.deviceId];
     const previous = pairedRef.current.find((device) => device.deviceId === connection.deviceId);
     void savePairedDevice(uid, connection.deviceId, connection.deviceName ?? 'Unknown device', {
@@ -218,7 +220,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     if (!uid) return;
     try {
       if (bleService.getConnectionState().deviceId === deviceId) await bleService.disconnect();
-      await forgetPairedDevice(uid, deviceId);
+      await withDeadline(forgetPairedDevice(uid, deviceId));
     } catch {
       setScanError("Couldn't forget the paired device.");
     }
@@ -229,7 +231,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     setAutoConnectState(enabled);
     if (!uid) return;
     try {
-      await saveAutoConnect(uid, enabled);
+      await withDeadline(saveAutoConnect(uid, enabled));
     } catch {
       setAutoConnectState(previous);
       setScanError("Couldn't save the auto-connect setting.");

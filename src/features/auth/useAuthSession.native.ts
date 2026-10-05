@@ -3,6 +3,7 @@ import { nativeAuthService } from './nativeAuthService';
 import type { NativeSessionUser } from './nativeAuthFlow';
 import type { AuthSession } from './authSessionTypes';
 import { displayNameFor } from './authSessionModel';
+import { subscribeWithDeadline } from '@/lib/asyncDeadline';
 
 export function useAuthSession(): AuthSession {
   const [user, setUser] = useState<NativeSessionUser | null>(null);
@@ -10,10 +11,10 @@ export function useAuthSession(): AuthSession {
   const [previewName, setPreviewName] = useState<string | null>(null);
 
   useEffect(
-    () => nativeAuthService.subscribe((next) => {
+    () => subscribeWithDeadline<NativeSessionUser | null>((onData) => nativeAuthService.subscribe(onData), (next) => {
       setUser(next);
       setReady(true);
-    }),
+    }, () => setReady(true)),
     [],
   );
 

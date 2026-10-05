@@ -18,6 +18,7 @@ import { pickSquareImage } from '@/lib/pickImage';
 import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
 import { accountService } from './accountService';
 import { useProfile } from './ProfileProvider';
+import { withDeadline } from '@/lib/asyncDeadline';
 
 // Moved unchanged from the old Settings hook. Handlers keep Android's names
 // (chooseProfilePicture, saveProfile, changeEmail, changePassword in app/(auth)/settings.tsx).
@@ -83,7 +84,7 @@ export function useProfileData() {
         height: heightToCm(units, parseMeasure(form.height)),
         weight: weightToKg(units, parseMeasure(form.weight)),
       };
-      await accountService.saveProfile(changes);
+      await withDeadline(accountService.saveProfile(changes));
       update(changes, profile?.uid);
       setForm(toForm({ ...(profile as UserProfile), ...changes }, units));
       setProfileNotice({ tone: 'success', message: 'Profile updated successfully!' });
@@ -104,7 +105,7 @@ export function useProfileData() {
     }
     if (picked.status !== 'picked') return;
     try {
-      const savedAvatar = await accountService.saveProfilePicture(picked.uri);
+      const savedAvatar = await withDeadline(accountService.saveProfilePicture(picked.uri));
       update({ avatarData: savedAvatar ?? picked.uri }, profile?.uid);
       setProfileNotice({ tone: 'success', message: 'Profile picture updated successfully!' });
     } catch (error) {

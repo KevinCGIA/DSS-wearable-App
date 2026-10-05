@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { withDeadline } from '../asyncDeadline';
 
 import {
   BleError,
@@ -78,7 +79,7 @@ const delay = (ms: number) =>
 
 class StaleConnectionError extends Error {}
 
-class BleService {
+export class BleService {
   private manager: BleManager | null = null;
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
   private scanPassTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,7 +121,7 @@ class BleService {
 
     await this.stopScan();
 
-    const state = await manager.state();
+    const state = await withDeadline(manager.state());
 
     if (state !== State.PoweredOn) {
       throw new Error(describeBluetoothState(state));
@@ -134,7 +135,7 @@ class BleService {
     // remainder also finds watches that omit 0x180D in advertisements.
     const scanPass = async (serviceUUIDs: string[] | null) => {
       const pass = ++currentPass;
-      await manager.startDeviceScan(
+      await withDeadline(manager.startDeviceScan(
         serviceUUIDs,
         { allowDuplicates: false },
         (error, device) => {
@@ -147,7 +148,7 @@ class BleService {
           const scanned = device ? toScannedDevice(device) : null;
           if (scanned) callbacks.onDevice(scanned);
         }
-      );
+      ));
     };
 
     try {
@@ -161,7 +162,7 @@ class BleService {
       if (generation !== this.scanGeneration || !this.scanCallbacks) return;
       try {
         currentPass++;
-        await manager.stopDeviceScan();
+        await withDeadline(manager.stopDeviceScan());
         if (generation === this.scanGeneration && this.scanCallbacks) await scanPass(null);
       } catch (e) {
         if (generation === this.scanGeneration && this.scanCallbacks) {
@@ -183,7 +184,7 @@ class BleService {
     this.finishScan();
 
     try {
-      await this.getManager().stopDeviceScan();
+      await withDeadline(this.getManager().stopDeviceScan());
     } catch (e) {
       console.log("Failed to stop BLE scan:", e);
     }
@@ -388,25 +389,23 @@ class BleService {
     this.setConnection({ status: "discovering" });
 
     // Characteristics can only be read or monitored after discovery
-    await manager.discoverAllServicesAndCharacteristicsForDevice(
-      deviceId
-    );
+    await withDeadline(manager.discoverAllServicesAndCharacteristicsForDevice(deviceId));
     this.throwIfStale(token);
 
-    // If the device requires bonding, Android shows its system pairing
-    // dialog here, the first time a protected characteristic is read.
-    const batteryLevel = await this.readBatteryLevel(deviceId);
+    // Device Information is optional and is not required by this handshake.
+    const hasHeartRate = await this.startHeartRateMonitor(deviceId);
     this.throwIfStale(token);
-
-    await this.startHeartRateMonitor(deviceId);
 
     this.watchForDisconnect(deviceId, token);
 
     this.setConnection({
       status: "connected",
       attempt: 0,
-      batteryLevel,
-      error: null,
+      batteryLevel: null,
+      error: hasHeartRate ? null : "This device doesn't provide heart rate.",
+    });
+    void this.readBatteryLevel(deviceId).then((batteryLevel) => {
+      if (!this.isStale(token) && this.connection.status === 'connected') this.setConnection({ batteryLevel });
     });
   }
 
@@ -442,13 +441,13 @@ class BleService {
   private async startHeartRateMonitor(deviceId: string) {
     this.stopHeartRateMonitor();
 
-    const services = await this.getManager().servicesForDevice(deviceId);
+    const services = await withDeadline(this.getManager().servicesForDevice(deviceId));
     const hasHeartRate = services.some(
       (service) => canonicalGattUuid(service.uuid) === GATT.HEART_RATE_SERVICE
     );
 
     if (!hasHeartRate) {
-      return;
+      return false;
     }
 
     this.heartRateSubscription =
@@ -470,6 +469,7 @@ class BleService {
           }
         }
       );
+    return true;
   }
 
   private stopHeartRateMonitor() {
@@ -482,20 +482,24 @@ class BleService {
   private async readBatteryLevel(
     deviceId: string
   ): Promise<number | null> {
+    const transaction = `battery-${deviceId}-${this.connectionToken}`;
     try {
       const characteristic =
-        await this.getManager().readCharacteristicForDevice(
+        await withDeadline(this.getManager().readCharacteristicForDevice(
           deviceId,
           GATT.BATTERY_SERVICE,
-          GATT.BATTERY_LEVEL
-        );
+          GATT.BATTERY_LEVEL,
+          transaction,
+        ), 2000, () => { void this.getManager().cancelTransaction(transaction).catch(() => undefined); });
 
       if (!characteristic.value) {
         return null;
       }
 
       // One byte, 0-100, base64 encoded by ble-plx
-      return atob(characteristic.value).charCodeAt(0);
+      const bytes = atob(characteristic.value);
+      const level = bytes.charCodeAt(0);
+      return bytes.length === 1 && level <= 100 ? level : null;
     } catch {
       return null;
     }
@@ -503,7 +507,7 @@ class BleService {
 
   private async cancelConnection(deviceId: string) {
     try {
-      await this.getManager().cancelDeviceConnection(deviceId);
+      await withDeadline(this.getManager().cancelDeviceConnection(deviceId));
     } catch {
       // Already disconnected
     }

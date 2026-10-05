@@ -8,6 +8,7 @@ import {
   validateThresholds,
 } from '@/lib/alerts/thresholds';
 import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
+import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
 
 type Notice = { tone: 'success' | 'error'; message: string };
 
@@ -31,8 +32,8 @@ export function useAlertThresholds(onBack: () => void) {
         setLoadError("Couldn't load your alert settings.");
         return () => undefined;
       }
-      return subscribeToAlertThresholds(
-        uid,
+      return subscribeWithDeadline<AlertThresholds>(
+        (onData, onError) => subscribeToAlertThresholds(uid, onData, onError),
         (thresholds) => {
           setSaved(thresholds);
           if (!seeded.current) {
@@ -64,7 +65,7 @@ export function useAlertThresholds(onBack: () => void) {
     }
     setSaving(true);
     try {
-      await saveAlertThresholds(uid, draft);
+      await withDeadline(saveAlertThresholds(uid, draft));
       setNotice({ tone: 'success', message: 'Alert thresholds saved.' });
     } catch {
       setNotice({ tone: 'error', message: "Couldn't save your alert thresholds. Try again." });

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadAdapter } from './loadAdapter.mjs';
+import * as deadlines from '../src/lib/asyncDeadline.ts';
 
 test('profile transaction creates missing docs but never replaces existing profile fields', async () => {
   const documents = new Map();
@@ -14,6 +15,7 @@ test('profile transaction creates missing docs but never replaces existing profi
     }),
   };
   const { ensureNativeProfile } = loadAdapter('../src/features/profile/nativeProfileWrites.ts', {
+    '@/lib/asyncDeadline': deadlines,
     '@react-native-firebase/firestore': firestore, 'expo-image-manipulator': {},
   });
   const original = { name: 'Saved name', height: '181', weight: '75', autoConnectDevice: false };
@@ -32,6 +34,7 @@ test('avatar encoder writes Kevin-compatible JPEG data and releases native resou
     const calls = [];
     let released = 0;
     const { saveNativeAvatar } = loadAdapter('../src/features/profile/nativeProfileWrites.ts', {
+      '@/lib/asyncDeadline': deadlines,
       '@react-native-firebase/firestore': {
         getFirestore: () => ({}), doc: (_, ...parts) => parts.join('/'),
         setDoc: async (path, value, options) => {
