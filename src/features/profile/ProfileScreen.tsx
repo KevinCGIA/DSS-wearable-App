@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { TextField } from '@/components/ui/TextField';
 import type { UserProfile } from '@/data/types';
 import { unitLabels } from '@/lib/measures';
@@ -53,9 +54,9 @@ export function ProfileScreen(props: ProfileScreenProps) {
         <ErrorBanner message={profileError} actionLabel="Retry" onAction={onRetryProfile} style={styles.first} />
       ) : (
         <>
-          <Section title="Personal details" first />
+          <SectionLabel title="Personal details" first />
           <DetailsCard {...props} />
-          <Section title="Account" />
+          <SectionLabel title="Account" />
           <AccountCard {...props} />
         </>
       )}
@@ -63,13 +64,6 @@ export function ProfileScreen(props: ProfileScreenProps) {
   );
 }
 
-function Section({ title, first = false }: { title: string; first?: boolean }) {
-  return (
-    <Text style={[type.label, styles.section, first && styles.sectionFirst]} accessibilityRole="header">
-      {title.toUpperCase()}
-    </Text>
-  );
-}
 
 function DetailsCard({
   units,
@@ -195,14 +189,6 @@ function AccountCard({
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   spinner: { marginVertical: spacing.xxl },
-  section: {
-    color: colors.textMuted,
-    letterSpacing: 0.6,
-    marginTop: spacing.xxl,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  sectionFirst: { marginTop: spacing.xl },
   avatarBlock: { alignItems: 'center', gap: spacing.xs },
   fields: { gap: spacing.lg, marginTop: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.md },

@@ -104,7 +104,7 @@ export function AlertThresholdsScreen({
 
           <Card style={styles.card}>
             <View style={styles.infoRow}>
-              <Feather name="info" size={16} color={colors.accentText} />
+              <Feather name="info" size={layout.icon.row} color={colors.accentText} />
               <Text style={[type.body, styles.info]}>
                 {draft.enabled
                   ? `You'll get an alert below ${draft.hrMin} or above ${draft.hrMax} BPM, at most once a minute for each type. Alerts appear in Notifications.`

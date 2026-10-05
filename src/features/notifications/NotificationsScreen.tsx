@@ -9,6 +9,7 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HeroHeader } from '@/components/ui/HeroHeader';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import type { AlertItem } from '@/data/types';
 import { formatShortDate, isSameDay } from '@/lib/time';
 import { colors, layout, radius, spacing, type } from '@/theme';
@@ -92,9 +93,7 @@ export function NotificationsScreen({
       ) : (
         groups.map((group, index) => (
           <View key={group.title}>
-            <Text style={[type.label, styles.section, index === 0 && styles.sectionFirst]} accessibilityRole="header">
-              {group.title.toUpperCase()}
-            </Text>
+            <SectionLabel title={group.title} first={index === 0} />
             <Card padding={0}>
               {group.items.map((alert, i) => (
                 <AlertRow key={alert.id} alert={alert} divider={i > 0} />
@@ -130,7 +129,7 @@ function AlertRow({ alert, divider }: { alert: AlertItem; divider: boolean }) {
       accessibilityLabel={`${high ? 'High' : 'Low'} heart rate alert, ${alert.value} BPM, ${alert.message}, at ${formatTime(alert.timestamp)}`}
     >
       <View style={[styles.badge, high ? styles.badgeHigh : styles.badgeLow]}>
-        <Feather name={high ? 'arrow-up' : 'arrow-down'} size={18} color={high ? colors.danger : colors.warning} />
+        <Feather name={high ? 'arrow-up' : 'arrow-down'} size={layout.icon.row} color={high ? colors.danger : colors.warning} />
       </View>
       <View style={styles.text}>
         <Text style={[type.bodyStrong, styles.title]}>{high ? 'High heart rate' : 'Low heart rate'}</Text>
@@ -139,10 +138,10 @@ function AlertRow({ alert, divider }: { alert: AlertItem; divider: boolean }) {
         </Text>
       </View>
       <View style={styles.meta}>
-        <Text style={[type.statSmall, high ? styles.valueHigh : styles.valueLow]}>
-          {alert.value}
-          <Text style={[type.caption, styles.muted]}> BPM</Text>
-        </Text>
+        <View style={styles.valueRow}>
+          <Text style={[type.statSmall, high ? styles.valueHigh : styles.valueLow]}>{alert.value}</Text>
+          <Text style={[type.unit, styles.muted, styles.unitGap]}>BPM</Text>
+        </View>
         <Text style={[type.caption, styles.muted]}>{formatTime(alert.timestamp)}</Text>
       </View>
     </View>
@@ -153,13 +152,11 @@ const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   card: { marginTop: spacing.lg },
   spinner: { marginVertical: spacing.huge },
-  section: { color: colors.textMuted, letterSpacing: 0.6, marginTop: spacing.xxl, marginBottom: spacing.sm, marginLeft: spacing.xs },
-  sectionFirst: { marginTop: spacing.xl },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, minHeight: layout.rowHeight },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, minHeight: layout.rowHeightTall },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   badge: {
-    width: layout.minTouch - spacing.xs,
-    height: layout.minTouch - spacing.xs,
+    width: layout.iconBadge,
+    height: layout.iconBadge,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -170,6 +167,8 @@ const styles = StyleSheet.create({
   title: { color: colors.text },
   muted: { color: colors.textMuted },
   meta: { alignItems: 'flex-end' },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  unitGap: { marginLeft: spacing.xs },
   valueHigh: { color: colors.danger },
   valueLow: { color: colors.warning },
   devButton: { marginTop: spacing.lg },
