@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { mockAlertThresholds } from '@/data/mocks';
 import type { AlertThresholds } from '@/data/types';
-import { saveAlertThresholds, subscribeToAlertThresholds, validateThresholds } from '@/lib/alerts/thresholds';
-import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
+import {
+  DEFAULT_ALERT_THRESHOLDS,
+  getAlertThresholdsUid,
+  saveAlertThresholds,
+  subscribeToAlertThresholds,
+  validateThresholds,
+} from '@/lib/alerts/thresholds';
 import { useUnsavedChangesGuard } from '@/navigation/unsavedChanges';
 
 type Notice = { tone: 'success' | 'error'; message: string };
@@ -13,7 +17,7 @@ const same = (a: AlertThresholds, b: AlertThresholds) =>
 // iOS only (no Android equivalent). Phase 2: the same calls hit users/{uid}/settings/alerts.
 export function useAlertThresholds(onBack: () => void) {
   const [saved, setSaved] = useState<AlertThresholds | null>(null);
-  const [draft, setDraft] = useState<AlertThresholds>(mockAlertThresholds);
+  const [draft, setDraft] = useState<AlertThresholds>({ ...DEFAULT_ALERT_THRESHOLDS });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -21,9 +25,14 @@ export function useAlertThresholds(onBack: () => void) {
   const seeded = useRef(false);
 
   useEffect(
-    () =>
-      subscribeToAlertThresholds(
-        SENSOR_UID,
+    () => {
+      const uid = getAlertThresholdsUid();
+      if (!uid) {
+        setLoadError("Couldn't load your alert settings.");
+        return () => undefined;
+      }
+      return subscribeToAlertThresholds(
+        uid,
         (thresholds) => {
           setSaved(thresholds);
           if (!seeded.current) {
@@ -33,7 +42,8 @@ export function useAlertThresholds(onBack: () => void) {
           setLoadError(null);
         },
         () => setLoadError("Couldn't load your alert settings."),
-      ),
+      );
+    },
     [attempt],
   );
 
@@ -47,9 +57,14 @@ export function useAlertThresholds(onBack: () => void) {
 
   const save = async () => {
     if (validationError) return;
+    const uid = getAlertThresholdsUid();
+    if (!uid) {
+      setNotice({ tone: 'error', message: "Couldn't save your alert thresholds. Try again." });
+      return;
+    }
     setSaving(true);
     try {
-      await saveAlertThresholds(SENSOR_UID, draft);
+      await saveAlertThresholds(uid, draft);
       setNotice({ tone: 'success', message: 'Alert thresholds saved.' });
     } catch {
       setNotice({ tone: 'error', message: "Couldn't save your alert thresholds. Try again." });
