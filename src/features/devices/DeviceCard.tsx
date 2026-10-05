@@ -4,7 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { colors, layout, spacing, type } from '@/theme';
+import { colors, fonts, layout, spacing, type } from '@/theme';
 import {
   badgeLabel,
   badgeTier,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   connected: { color: colors.good },
   pending: { color: colors.accentText },
   muted: { color: colors.textMuted },
-  strong: { color: colors.textSecondary, fontWeight: '600' },
+  strong: { color: colors.textSecondary, fontFamily: fonts.uiSemiBold },
   error: { color: colors.danger },
   actions: {
     flexDirection: 'row',

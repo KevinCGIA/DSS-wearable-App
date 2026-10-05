@@ -39,7 +39,7 @@ export function BarChart({
           return (
             <View key={bar.label} style={styles.column}>
               {showValues ? (
-                <Text style={[type.caption, styles.value]}>{bar.value}</Text>
+                <Text style={[type.axis, styles.value]}>{bar.value}</Text>
               ) : null}
               <View style={styles.barTrack}>
                 <View
