@@ -54,3 +54,8 @@ google-services.json
 GoogleService-Info.plist
 
 *.keystore
+# Exception: React Native's standard debug keystore. It's the same public key
+# in every RN project (password "android"), only signs debug builds, and is
+# the key whose SHA-1 is registered in Firebase for Google Sign-In, so every
+# teammate's debug build needs this exact file.
+!android/app/debug.keystore
