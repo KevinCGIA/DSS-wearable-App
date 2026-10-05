@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { UserProfile } from '@/data/types';
 import { describeAuthError } from '@/features/auth/authErrors';
 import { accountService } from './accountService';
+import { withDeadline } from '@/lib/asyncDeadline';
 
 // One loaded profile shared by the Settings "Profile" row and the Profile screen.
 // Android: loadProfile in app/(auth)/settings.tsx; native storage is users/{uid} + private/avatarData.
@@ -27,7 +28,7 @@ export function ProfileProvider({ displayName, children }: { displayName: string
     setError(null);
     setProfile(null);
     try {
-      const loaded = await accountService.loadProfile(displayName);
+      const loaded = await withDeadline(accountService.loadProfile(displayName));
       if (version === request.current) setProfile(loaded);
     } catch (e) {
       if (version === request.current) setError(`Failed to load profile: ${describeAuthError(e)}`);
