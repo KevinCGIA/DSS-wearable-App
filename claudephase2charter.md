@@ -1543,3 +1543,7 @@ B1: real single-device BLE and paired devices, with Preview mock retained. B2: p
   - The formatting polish is done (20 padding, 16 between cards, shared SectionLabel, wrapping at X-Large).
 - **Next:** Phase 2 continues from **PL_2 v2 step T0**, with Praneet on Codex.
 - **Android testers:** `ANDROID_TESTING.md` covers setup, the LightBlue fake heart-rate device, the UI checklist and the A11/B1 checks. They report in `BUGS.md` (Screen | Bug | Steps | Platform/device | Tester | Status) through a pull request into `ui-changes`.
+
+### 2026-10-06 — Main merge note
+- `ui-changes` is being merged into Kevin's `main` via pull request; the old app is backed up as tag `before-unified-app` (`d835fe3`).
+- Phase 2 continues on `ui-changes`; `main` is updated from `ui-changes` by pull request at each milestone.
