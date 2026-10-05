@@ -3,6 +3,7 @@
 ## Setup — iOS Simulator
 
 - Open DSS Wearables on the iPhone 18 Pro Simulator. Confirm the sign-in screen appears. Verified on 2026-10-06; the development build displays its Preview mode badge.
+- T0 review (Mac): read the 2026-10-06 T0 Progress Log entry. Confirm the approved four-device cap, platform device IDs, additive Firestore schema and phone-local connection log are recorded. This does not require a live app test.
 
 ## T2 Step A live checks — iOS Simulator
 
