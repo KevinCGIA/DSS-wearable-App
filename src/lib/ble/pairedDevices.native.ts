@@ -29,6 +29,10 @@ export type PairedDevice = {
   platform?: "ios" | "android";
   localName?: string;
   serviceUUIDs?: string[];
+  lastRssi?: number | null;
+  lastBattery?: number | null;
+  modelNumber?: string | null;
+  firmwareRevision?: string | null;
 };
 
 type PairedDeviceDoc = {
@@ -39,6 +43,10 @@ type PairedDeviceDoc = {
   platform?: "ios" | "android";
   localName?: string;
   serviceUUIDs?: string[];
+  lastRssi?: number | null;
+  lastBattery?: number | null;
+  modelNumber?: string | null;
+  firmwareRevision?: string | null;
 };
 
 function devicesCollection(uid: string) {
@@ -74,6 +82,10 @@ export function subscribeToPairedDevices(
             platform: data.platform,
             localName: data.localName,
             serviceUUIDs: data.serviceUUIDs,
+            lastRssi: data.lastRssi,
+            lastBattery: data.lastBattery,
+            modelNumber: data.modelNumber,
+            firmwareRevision: data.firmwareRevision,
           };
         })
       );
@@ -88,7 +100,7 @@ export async function savePairedDevice(
   uid: string,
   deviceId: string,
   name: string,
-  metadata: { platform: "ios" | "android"; localName?: string; serviceUUIDs?: string[] }
+  metadata: { platform: "ios" | "android"; localName?: string; serviceUUIDs?: string[]; lastRssi?: number; lastBattery?: number; modelNumber?: string; firmwareRevision?: string; updateConnectionTime?: boolean }
 ): Promise<void> {
   const ref = deviceDoc(uid, deviceId);
   const existing = await getDoc(ref);
@@ -96,10 +108,14 @@ export async function savePairedDevice(
     platform: metadata.platform,
     ...(metadata.localName ? { localName: metadata.localName } : {}),
     ...(metadata.serviceUUIDs?.length ? { serviceUUIDs: metadata.serviceUUIDs } : {}),
+    ...(typeof metadata.lastRssi === 'number' ? { lastRssi: metadata.lastRssi } : {}),
+    ...(typeof metadata.lastBattery === 'number' ? { lastBattery: metadata.lastBattery } : {}),
+    ...(metadata.modelNumber ? { modelNumber: metadata.modelNumber } : {}),
+    ...(metadata.firmwareRevision ? { firmwareRevision: metadata.firmwareRevision } : {}),
   };
 
   if (existing.exists()) {
-    await updateDoc(ref, { name, lastConnectedAt: serverTimestamp(), ...hints });
+    await updateDoc(ref, { name, ...(metadata.updateConnectionTime !== false ? { lastConnectedAt: serverTimestamp() } : {}), ...hints });
     return;
   }
 

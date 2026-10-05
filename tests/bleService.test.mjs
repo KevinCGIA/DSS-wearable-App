@@ -17,7 +17,8 @@ function serviceFor({ heartRate = true, battery = null, platform = 'ios', connec
     connectToDevice: async (id, options) => { connects.push({ id, options }); await connectHook?.(id); },
     discoverAllServicesAndCharacteristicsForDevice: async () => {},
     servicesForDevice: async () => heartRate ? [{ uuid: '180d' }] : [],
-    readCharacteristicForDevice: async () => { calls.push('battery'); if (battery === null) throw new Error('missing'); return { value: battery }; },
+    readCharacteristicForDevice: async (_, service) => { if (service !== constants.GATT.BATTERY_SERVICE) throw new Error('missing optional device info'); calls.push('battery'); if (battery === null) throw new Error('missing'); return { value: battery }; },
+    readRSSIForDevice: async (id) => ({ id, rssi: id === 'one' ? -58 : -74 }),
     monitorCharacteristicForDevice: (id, service, characteristic, callback) => { calls.push('monitor'); monitors.set(id, callback); return { remove() { monitors.delete(id); } }; },
     onDeviceDisconnected: (id, callback) => { drops.set(id, callback); return { remove() { drops.delete(id); } }; },
     cancelDeviceConnection: async (id) => { calls.push('disconnect'); cancelled.push(id); },
@@ -127,4 +128,23 @@ test('logical keys round-trip native iOS UUIDs and Android MACs without re-prefi
     assert.equal(keys.nativeDeviceId(key), id);
     assert.equal(keys.devicePlatform(key), platform);
   }
+});
+
+test('real connection events, optional RSSI and device info stay scoped to each device', async () => {
+  const { service, drops } = serviceFor();
+  const events = [];
+  service.onConnectionEvent((event) => events.push(event));
+  await service.connect('one', 'First');
+  await service.connect('two', 'Second');
+  await service.pollRssi();
+  assert.equal(service.getConnections()['ios:one'].rssi, -58);
+  assert.equal(service.getConnections()['ios:two'].rssi, -74);
+  assert.deepEqual(events.filter((event) => event.type === 'connected').map((event) => event.deviceId), ['ios:one', 'ios:two']);
+  drops.get('one')(null);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(events.filter((event) => event.reason === 'unexpected').length, 1);
+  await service.disconnect('ios:two');
+  assert.equal(events.filter((event) => event.reason === 'user').length, 1);
+  assert.equal(events.find((event) => event.reason === 'user').deviceId, 'ios:two');
+  await service.disconnectAll();
 });

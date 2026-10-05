@@ -23,6 +23,7 @@ import {
 } from "./constants";
 import { canonicalGattUuid, sharesAdvertisedService } from "./uuid";
 import { parseHeartRateMeasurement } from "./heartRateMeasurement";
+import type { ConnectionEvent } from '../devices/connectionLog';
 
 export type ScannedDevice = {
   id: string;
@@ -50,7 +51,12 @@ export type ConnectionState = {
   batteryLevel: number | null;
   // Last failure shown to the user, cleared on the next attempt
   error: string | null;
+  rssi?: number | null;
+  modelNumber?: string | null;
+  firmwareRevision?: string | null;
 };
+
+type BleEvent = Omit<ConnectionEvent, 'id' | 'timestamp'>;
 
 type ScanCallbacks = {
   onDevice: (device: ScannedDevice) => void;
@@ -93,6 +99,7 @@ export class BleService {
   private latestId: string | null = null;
   private listeners = new Set<(states: Record<string, ConnectionState>) => void>();
   private heartRateListeners = new Set<(bpm: number, deviceId: string, name: string | null) => void>();
+  private eventListeners = new Set<(event: BleEvent) => void>();
 
   private getManager(): BleManager {
     return this.manager ??= new BleManager();
@@ -241,6 +248,15 @@ export class BleService {
     return () => { this.heartRateListeners.delete(listener); };
   }
 
+  onConnectionEvent(listener: (event: BleEvent) => void) {
+    this.eventListeners.add(listener);
+    return () => { this.eventListeners.delete(listener); };
+  }
+
+  async pollRssi() {
+    await Promise.all([...this.sessions.values()].map((entry) => entry.connection.pollRssi()));
+  }
+
   connect(id: string, name: string | null): Promise<boolean> {
     const key = deviceKey(Platform.OS === 'ios' ? 'ios' : 'android', id);
     const existing = this.sessions.get(key);
@@ -253,7 +269,11 @@ export class BleService {
     if (existing?.connection.getConnectionState().status === 'disconnecting') return Promise.resolve(false);
     const active = [...this.sessions.values()].filter((entry) => entry.pending || entry.connection.getConnectionState().status !== 'disconnected');
     if (active.length >= MAX_CONNECTED_DEVICES) return Promise.reject(new Error('A maximum of 4 devices can be connected. Disconnect one first.'));
-    const entry: SessionEntry = { connection: new DeviceConnection(() => this.getManager()), cancelled: false };
+    const entry: SessionEntry = { connection: new DeviceConnection(() => this.getManager(), (event) => {
+      if (this.sessions.get(key) !== entry || (entry.cancelled && !(event.type === 'disconnected' && event.reason === 'user'))) return;
+      const tagged = { ...event, deviceId: event.deviceId ? key : null };
+      this.eventListeners.forEach((listener) => listener(tagged));
+    }), cancelled: false };
     this.sessions.set(key, entry);
     this.latestId = key;
     entry.connection.subscribe(() => { if (this.sessions.get(key) === entry) this.emit(); });
@@ -297,7 +317,7 @@ class DeviceConnection {
   private connection: ConnectionState = INITIAL_CONNECTION;
   private listeners = new Set<(state: ConnectionState) => void>();
   private connectionToken = 0;
-  constructor(private getManager: () => BleManager) {}
+  constructor(private getManager: () => BleManager, private onEvent: (event: BleEvent) => void) {}
 
   // ----- Connection state -----
 
@@ -328,6 +348,16 @@ class DeviceConnection {
   private setConnection(update: Partial<ConnectionState>) {
     this.connection = { ...this.connection, ...update };
     this.listeners.forEach((listener) => listener(this.connection));
+  }
+
+  async pollRssi() {
+    const deviceId = this.connection.deviceId;
+    if (!deviceId || this.connection.status !== 'connected') return;
+    const token = this.connectionToken;
+    try {
+      const device = await withDeadline(this.getManager().readRSSIForDevice(deviceId), 3000);
+      if (!this.isStale(token) && this.connection.status === 'connected' && typeof device.rssi === 'number') this.setConnection({ rssi: device.rssi });
+    } catch { /* RSSI is optional. */ }
   }
 
   // ----- Connection handshake -----
@@ -378,6 +408,7 @@ class DeviceConnection {
     }
 
     const token = this.connectionToken;
+    if (this.connection.status === 'connected') this.onEvent({ type: 'disconnected', deviceId, reason: 'user' });
     this.setConnection({ status: "disconnecting" });
     await this.cancelConnection(deviceId);
     if (!this.isStale(token)) this.setConnection({ ...INITIAL_CONNECTION, deviceId });
@@ -391,6 +422,7 @@ class DeviceConnection {
     status: "connecting" | "reconnecting"
   ): Promise<boolean> {
     let lastError: unknown = null;
+    const started = Date.now();
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (this.isStale(token)) {
@@ -405,9 +437,11 @@ class DeviceConnection {
         batteryLevel: null,
         error: null,
       });
+      this.onEvent({ type: 'connect_attempt', deviceId, attempt, auto: status === 'reconnecting' });
 
       try {
         await this.handshake(deviceId, token);
+        this.onEvent({ type: 'connected', deviceId, connectMs: Date.now() - started });
         return true;
       } catch (e) {
         lastError = e;
@@ -440,6 +474,7 @@ class DeviceConnection {
       ...INITIAL_CONNECTION,
       error: describeError(lastError),
     });
+    this.onEvent({ type: 'failed', deviceId });
 
     return false;
   }
@@ -477,6 +512,9 @@ class DeviceConnection {
     void this.readBatteryLevel(deviceId).then((batteryLevel) => {
       if (!this.isStale(token) && this.connection.status === 'connected') this.setConnection({ batteryLevel });
     });
+    void this.readDeviceInformation(deviceId).then((info) => {
+      if (!this.isStale(token) && this.connection.status === 'connected') this.setConnection(info);
+    });
   }
 
   private watchForDisconnect(deviceId: string, token: number) {
@@ -487,6 +525,7 @@ class DeviceConnection {
         if (this.isStale(token)) return;
         this.clearDisconnectSubscription();
         this.stopHeartRateMonitor();
+        this.onEvent({ type: 'disconnected', deviceId, reason: 'unexpected' });
 
         console.log("BLE device disconnected unexpectedly:", error);
 
@@ -570,6 +609,18 @@ class DeviceConnection {
     } catch {
       return null;
     }
+  }
+
+  private async readDeviceInformation(deviceId: string) {
+    const read = async (uuid: string) => {
+      try {
+        const characteristic = await withDeadline(this.getManager().readCharacteristicForDevice(deviceId, GATT.DEVICE_INFORMATION_SERVICE, uuid), 2000);
+        const value = characteristic.value ? atob(characteristic.value).trim().slice(0, 60) : '';
+        return value || null;
+      } catch { return null; }
+    };
+    const [modelNumber, firmwareRevision] = await Promise.all([read(GATT.MODEL_NUMBER), read(GATT.FIRMWARE_REVISION)]);
+    return { modelNumber, firmwareRevision };
   }
 
   private async cancelConnection(deviceId: string) {

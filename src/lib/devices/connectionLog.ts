@@ -59,3 +59,5 @@ export function useConnectionLog(): ConnectionEvent[] {
   useEffect(() => subscribeToConnectionLog(setState), []);
   return state;
 }
+
+export function useConnectionLogError(): string | null { return null; }

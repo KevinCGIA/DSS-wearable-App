@@ -86,16 +86,16 @@ export function computeDeviceStats(
   for (const e of own) {
     if (e.type === 'connected') open = e.timestamp;
     if (e.type === 'disconnected' && open !== null) {
-      sessions.push(makeSession(open, e.timestamp, e.reason ?? 'user', hr));
+      sessions.push(makeSession(open, e.timestamp, e.reason ?? 'user', hr, background));
       open = null;
     }
   }
-  if (open !== null) sessions.push(makeSession(open, null, 'ongoing', hr, now));
+  if (open !== null) sessions.push(makeSession(open, null, 'ongoing', hr, background, now));
 
   let gaps = 0;
   for (const s of sessions) {
     const end = s.end ?? now;
-    const times = [s.start, ...hr.map((r) => r.timestamp.getTime()).filter((t) => t >= s.start && t <= end), end];
+    const times = hr.filter((r) => r.resolution !== 'representative').map((r) => r.timestamp.getTime()).filter((t) => t >= s.start && t <= end);
     for (let i = 1; i < times.length; i++) {
       const span = { start: times[i - 1], end: times[i] };
       if (span.end - span.start - overlap(span, background) > GAP_MS) gaps += 1;
@@ -137,14 +137,14 @@ export function computeDeviceStats(
   };
 }
 
-function makeSession(start: number, end: number | null, endedBy: SessionEnd, hr: SensorReading[], now = Date.now()): Session {
+function makeSession(start: number, end: number | null, endedBy: SessionEnd, hr: SensorReading[], background: Interval[], now = Date.now()): Session {
   const stop = end ?? now;
   const within = hr.filter((r) => r.timestamp.getTime() >= start && r.timestamp.getTime() <= stop);
   return {
     start,
     end,
     endedBy,
-    durationMs: Math.max(0, stop - start),
+    durationMs: Math.max(0, stop - start - overlap({ start, end: stop }, background)),
     readings: within.length,
     avgBpm: avg(within.map((r) => r.value)),
   };
