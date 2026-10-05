@@ -23,33 +23,42 @@ The Android app is already wired up. **My UI keeps its own visual design and cop
 
 **Who the app is for (2026-10-04):** researchers use it to test and demonstrate BLE wearables, and test subjects use it to record data at home. **Avoid fitness wording everywhere** ("Fitness", step goals, "achieved", calorie targets).
 
-**Team decision (2026-10-05): this 3-tab structure (Devices | Dashboard | Settings) is the agreed UI for BOTH iOS and Android.** No `*.ios.tsx` split. In Phase 3 it **replaces the Android UI** in Kevin's repo, keeping Kevin's logic (auth, Firestore, BLE, sensors). It's the app's structure, not an iOS difference.
+## App structure (final, both platforms; 2026-10-05)
 
-**Bottom tabs (3, in this order):**
+**Team decision (2026-10-05): 4 tabs, Dashboard | Devices | Activity | Settings, is the app's final structure on BOTH iOS and Android.** No `*.ios.tsx` split. In Phase 3 it **replaces the Android UI** in Kevin's repo, keeping Kevin's logic (auth, Firestore, BLE, sensors). (Earlier versions had 3 tabs with a raised Dashboard button and pushed Heart Rate / Steps / Sleep pages; those are gone.)
+
+**Bottom tabs (4, in this order; standard tab bar, no raised button; icon + label, active tab in accent):**
 
 | Tab key | Label | Feather icon | Content |
 |---|---|---|---|
-| `devices` | Devices | `bluetooth` | Part 1: the existing Devices screen (scan/connect, six connection states, banners, auto-connect, paired list). **Part 2:** summary strip, Add device, one card per paired device with health/data stats, Device Detail. |
-| `dashboard` | Dashboard | `activity` | **Raised centre button, the default tab on sign-in.** The old Home layout; Heart Rate, Steps and Sleep are detail pages opened from its cards (below). |
-| `settings` | Settings | `settings` | Profile row, Alert Thresholds, Notifications, Preferences, Development (`__DEV__`), Log Out. Part 1 still has the Devices section; **Part 2 removes it** (it's a tab now). |
+| `dashboard` | Dashboard | `grid` | **Default tab after sign-in.** The old Home layout with expandable cards (below). |
+| `devices` | Devices | `bluetooth` | Summary strip, Add device (scan/connect flow), Connected now and Previously connected cards with stats, Device Detail. **All device and connection information lives here.** |
+| `activity` | Activity | `activity` | **Bio stats only**, for one source at a time (below). No device or connection information. |
+| `settings` | Settings | `settings` | Profile row, Alert Thresholds, Notifications, Preferences, Development (`__DEV__`: Previews), Log Out. |
 
-*Historical:* Kevin's current Android build still has the old 5 tabs (Home, Heart Rate, Fitness, Sleep, Settings + hidden `devices` route) until Phase 3 replaces them. Mapping: Home + Heart Rate + Fitness + Sleep → **Dashboard** (with detail pages); `devices` → **Devices tab**.
+*Historical:* Kevin's current Android build still has the old 5 tabs (Home, Heart Rate, Fitness, Sleep, Settings + hidden `devices` route) until Phase 3 replaces them. Mapping: Home → **Dashboard**; Heart Rate + Fitness + Sleep → **Activity**; `devices` → **Devices tab**.
 
-**Dashboard** (`features/dashboard/`): **the old Home layout, restored 2026-10-05 at Tarun's request**. The cards open the detail pages instead of tabs.
+**Dashboard** (`features/dashboard/`): the old Home layout. Collapsed cards are unchanged; tapping a card expands it in place.
 
-| Element | Shows | Empty / no-device state | Tap action |
+| Element | Shows | Empty / no-device state | Links (expanded) |
 |---|---|---|---|
 | Top bar | Time-of-day greeting + date; "?" help; avatar (photo/initials, green dot when a device is connected) | "?" avatar with no name | ? → Help sheet; avatar → **Profile** |
 | Banner | "Welcome, {first name}!" + "Here is your daily summary" on the textured blue hero | "Welcome!" | — |
-| Card 1: Heart Rate | Live BPM, square Live / Last seen badge, resting range, waveform | "--" BPM + "No readings yet…" | → **Heart Rate** detail page (pushed, ‹) |
-| Card 2 left: Device | Ring + name + CONNECTED/SYNCING/CONNECTING/RECONNECTING/DISCONNECTING/FAILED (+ battery), sync button (connected) / "Tap to retry" (failed) | Grey ring, "No Device", "Tap to connect" | ring → **Devices tab**; sync → refresh / retry |
-| Card 2 right: Today's Activity | Steps, Distance (km/mi), Floors | Steps 0; Distance and Floors "--" | → **Steps** detail page |
-| Card 3: Sleep & Recovery | The existing card | "No sleep data yet" | → **Sleep** detail page |
-| Card 4: Active Calories | kcal only (**no target, no "% achieved", no goal bar**) | "--" + "Not reported by connected devices yet." | → **Steps** detail page |
+| Card 1: Heart Rate | Live BPM, Live / Last seen badge, resting range, waveform; expanded: Min/Avg/Max + 24 h chart + source | "--" BPM + "No readings yet…" | **Open in Activity ›** → Activity, Heart Rate section |
+| Card 2 left: Device | Ring + name + status (+ battery), sync / retry; several devices: "<n> devices connected" | Grey ring, "No Device", "Tap to connect" | ring → **Devices tab** |
+| Card 2 right: Today's Activity | Steps, Distance (km/mi), Floors; expanded: device rows, steps-per-hour mini chart | Steps 0; Distance and Floors "--" | **Devices ›** → Devices tab; **Open in Activity ›** → Steps section |
+| Card 3: Sleep & Recovery | Last night; expanded: stages, bedtime → wake, 7-night trend | "No sleep data yet" | **Open in Activity ›** → Sleep section |
+| Card 4: Active Calories | kcal only (no target, no "% achieved", no goal bar) | "--" + "Not reported by connected devices yet." | **Open in Activity ›** → Steps section |
 
+- "Open in Activity ›" switches to the Activity tab, scrolls to that section and selects **that card's source** (the device of its latest reading; Test data for test readings and the dev sample night). `ActivityFocusProvider` holds the selection and the scroll request.
 - Distance, Floors and Calories stay **"--"** in the real flow (no real source); previews show values.
-- Dev test-data buttons stay on the Heart Rate and Steps detail pages (`__DEV__` only).
-- The Part 1 connected-devices strip, device filter, chart-in-card and Steps card were removed. Multi-device information moves to the **Devices tab** (Part 2). `DeviceFilterProvider` stays so the detail pages can follow a filter later; it's always "All devices" for now.
+
+**Activity** (`features/activity/`): bio stats only.
+- Blue header "Activity". **Source chips** under it (horizontal scroll, name only): one per device with data in the last 7 days, most recent data first; readings without a `deviceId` show as "Unknown device"; `__DEV__` only, a **Test data** chip (test buttons and sample data). Default: the device with the newest reading, else (dev) Test data. The choice is kept while the app is open.
+- **No** connection status, signal, battery, "Live · device" line, reconnect states or device actions (those are the Devices tab's).
+- Sections for the selected source: **Heart Rate** (latest BPM + "Updated x ago", greyed after 10 min; resting range; 24 h line chart of 30-minute averages with gaps as breaks + Min/Avg/Max; resting heart rate Week/Month trend), **Steps** (today's total, 24 h steps per hour with Total, 7-day daily steps; no goal), **Sleep** (last night: duration, score, stages; Week/Month trends).
+- A section this source doesn't report shows **"Not reported by this device."** Nothing is estimated; no distance, floors or calories. Resting heart-rate trends and sleep have no real source yet (sleep is dev sample data on the Test data chip only).
+- Empty state: "No data yet. Connect a device in the Devices tab." `__DEV__` Development card at the bottom: Add Test Reading, Add 24h of Sample Data, Add Test Steps (all write to Test data).
 
 **Profile and Settings are split (2026-10-04; part of the agreed structure for both platforms).** Kevin's current Android build still keeps everything on one Settings page until Phase 3.
 
@@ -60,12 +69,13 @@ The Android app is already wired up. **My UI keeps its own visual design and cop
 
 **Settings tab:**
 1. Profile row: small avatar, name, email and chevron → Profile
-2. Devices section (Part 1 only; removed in Part 2)
-3. Alert Thresholds, Notifications, Preferences
-4. `__DEV__` only: Previews
-5. Log Out (with confirm)
+2. Alert Thresholds, Notifications, Preferences
+3. `__DEV__` only: Previews
+4. Log Out (with confirm)
 
-**Sub-screens (pushed on the hand-rolled stack, with a back button):** `profile`, `heart-rate`, `steps`, `sleep`, `alert-thresholds`, `notifications`, `preferences`, `previews` (+ `device-detail` in Part 2).
+**Sub-screens (pushed on the hand-rolled stack, with a back button):** `profile`, `alert-thresholds`, `notifications`, `preferences`, `add-device`, `device-detail`, `previews`. Alert Thresholds is reached from Settings only.
+
+**Navigation:** hand-rolled tabs + route stack in `RootNavigator.tsx` with the unsaved-changes guard. Android hardware back: pops the stack, then returns to Dashboard, then exits.
 
 ## Current state (audited)
 
@@ -74,21 +84,19 @@ The Android app is already wired up. **My UI keeps its own visual design and cop
 - Primitives in `src/components/ui/`: Button, Card, Pill, Screen, SegmentedControl, StageTrack, StatReadout, TabBar, TextField, BarChart
 - Conventions: feature folders in `src/features/<name>/`, import each component from its own file (no barrels), no literal hex/px in screens
 
-**Screens (as of 2026-10-04):**
+**Screens (as of 2026-10-05):**
 
 | Screen | Where | Status |
 |---|---|---|
 | Auth | `features/auth/` | Built (Task 2) |
-| Dashboard (tab, default) | `features/dashboard/` | **Part 1** (replaces Home) |
-| Heart Rate detail (pushed) | `features/heart-rate/` | Built; now a detail page |
-| Steps detail (pushed) | `features/steps/` | Built as Fitness; renamed, goal removed |
-| Sleep detail (pushed) | `features/sleep/` | Built; now a detail page |
-| Devices (tab) | `features/devices/` | Built (single device); **Part 2** per-device cards + Device Detail |
-| Settings (tab) | `features/settings/` | Built; Devices section removed in Part 2 |
+| Dashboard (tab, default) | `features/dashboard/` | Built; expandable cards link to Activity |
+| Activity (tab) | `features/activity/` | **2026-10-05:** bio stats per source; replaces the Heart Rate, Steps and Sleep pages |
+| Devices (tab) + Add device + Device Detail | `features/devices/` | Built (Part 2) |
+| Settings (tab) | `features/settings/` | Built |
 | Profile (pushed) | `features/profile/` | Built |
 | Alert Thresholds / Notifications / Preferences (pushed) | `features/alerts`, `notifications`, `preferences` | Built (iOS only) |
 
-Navigation: hand-rolled tabs + route stack in `RootNavigator.tsx` with the unsaved-changes guard.
+Navigation: see "App structure" above.
 
 ## Rules
 
@@ -281,7 +289,7 @@ The numbered list below is the general wiring plan. Firebase items in it are cov
    **Record the source file of every ported piece in the Progress Log** (Kevin's path → my path), so the Phase 3 merge is traceable.
 3. **Firebase client:** switch from the `firebase` JS SDK to `@react-native-firebase` (`app`, `auth`, `firestore`, same as Android), so Phase 3 has no client conflict. Once the switch works, remove the JS SDK, `src/lib/firebase.ts`'s `.env` config and `.env.example`.
 4. **Add `expo-dev-client`.** From this point the app needs a development build, because Expo Go can't run BLE or `@react-native-firebase`.
-5. **Replace each container's mocks with the real logic** (`useDashboardData`, `useHeartRateData`, `useStepsData`, `useSleepData`, `useAuthForm`/`authService`, the Devices/Settings containers). **Screens stay presentational and unchanged.**
+5. **Replace each container's mocks with the real logic** (`useDashboardData`, `useActivityData`, `useDevicesData`, `useAuthForm`/`authService`, the Settings/Profile containers). **Screens stay presentational and unchanged.** Activity swap points: `useActivityData` reads `useSensorHistory` (7 days, heart rate + steps) and splits it by source in `buildActivity`; B3 makes that store Firestore-backed, and a real sleep or resting heart-rate source plugs into its `sleepFor` / `restingTrendsFor` (both return null today, except the dev sample night on Test data).
 6. **Alert engine** (Android has none):
    - A pure function `checkHeartRate(reading, thresholds)` → `AlertItem | null`, compared against `hrMin`/`hrMax`
    - A 60 s cooldown per alert type
@@ -459,7 +467,7 @@ Always: never touch or commit `google-services.json` / `GoogleService-Info.plist
 - [ ] Bluetooth off in Control Centre → "Bluetooth is turned off" banner. Back on → banner clears.
 - [ ] **Scan:** devices appear sorted by signal, with the heart-rate marker. Auto-stops after 15 s. Stop Scanning works.
 - [ ] **Connect:** connecting → setting up → connected, with battery shown. Cancel during connecting returns to no device.
-- [ ] **Live heart rate:** the Dashboard Heart Rate card shows "Live" and the source device, the BPM updates, the waveform pulses and the 24 h chart fills over time. The Heart Rate detail page matches.
+- [ ] **Live heart rate:** the Dashboard Heart Rate card shows "Live" and the source device, the BPM updates, the waveform pulses and the 24 h chart fills over time. The Activity tab (that device's chip) matches.
 - [ ] **Disconnect** from the Devices tab → the Dashboard strip shows "No device connected".
 - [ ] **Out of range:** walk away until it drops → RECONNECTING (attempt n) → reconnects when back in range, or FAILED after 3 attempts.
 - [ ] **Forget device** (confirm) → removed from Paired devices. If it was connected, it disconnects.
@@ -1460,3 +1468,54 @@ B1: real single-device BLE and paired devices, with Preview mock retained. B2: p
 - The physical iPhone is listed **offline** by Xcode; the Simulator has no BLE radio. No physical scan, pairing, BPM, reconnect, permission-prompt or paired-device Firestore operation was verified. Android Studio/SDK is absent here, so Android native compilation and phone testing remain Tarun-to-test. A11 live Firebase checks also remain pending. These gaps are recorded in `BUGS.md`; no security rules or Firebase console settings were changed.
 - Physical iPhone click list with a Heart Rate strap or nRF Connect: open Devices/Add device → switch Bluetooth off/on and check distinct banners; deny Bluetooth and tap Settings; scan and check RSSI order, heart marker and 15 s stop; connect and cancel during setup; connect again and confirm measured BPM on Dashboard and Heart Rate; disconnect; walk out of range and back to check RECONNECTING; Forget; relaunch with auto-connect off then on. Repeat on an Android phone if available, and check `users/{uid}/devices/{deviceId}` in Firebase Console after a successful connect.
 - ⛔ STOP after B1. Await PL's physical-device results and approval. Do not begin B2 or push.
+
+### 2026-10-05 — App structure (final): 4 tabs with a bio-stats Activity tab
+**This is the app's structure on both iOS and Android** (team decision; Phase 3 replaces Kevin's UI with it). Branch `phase-2`, on top of PL's B1 (`6ad37aa`). No Firebase, auth or BLE service code changed.
+
+- **Tabs:** Dashboard (default after sign-in) | Devices | Activity | Settings. A standard tab bar (Feather `grid`, `bluetooth`, `activity`, `settings`; icon + label, active in accent). The raised centre button is gone, so `tabBarBaseHeight` is the plain bar height, and the `tabFab` / `tabFabLift` / `elevation.fab` tokens were removed. `TabKey` gained `activity`.
+- **Activity tab** (`src/features/activity/`):
+  - `activityModel.ts`: a pure `buildActivity()` turns readings into source chips and per-source sections.
+    - Source key: a `deviceId`, `test-data` for `source: 'manual'`, or `unknown-device` for readings without a `deviceId` (shared data rule).
+    - Chips are ordered by newest data. The default is the newest device, else (dev) Test data.
+    - `dailySteps()`: a day's total is its highest running total.
+  - `ActivityFocusProvider` (replaces `DeviceFilterProvider`): the chosen chip, kept while the app is open, plus a one-shot scroll request.
+  - `useActivityData` / `ActivityContainer`:
+    - `useSensorHistory` over 7 days (heart rate + steps).
+    - The paired/connected list is used only for chip names.
+    - `testExtras` sample sleep counts only as Test data in `__DEV__`.
+    - The test buttons write `source: 'manual'` and select the Test data chip.
+  - `ActivityScreen` (presentational) with `SourceChips`, `HeartRateSection`, `StepsSection` and `SleepSection`. These were moved out of the old pages; `sleepStages.ts` moved here.
+  - `NotReported` shows "Not reported by this device." ("No test data for this yet." on the Test data chip).
+  - Empty state: "No data yet / Connect a device in the Devices tab." The dev card holds Add Test Reading, Add 24h of Sample Data and Add Test Steps.
+  - No device or connection information on this tab.
+- **Not estimated:**
+  - Resting heart-rate Week/Month trends and sleep have no real source, so `restingTrendsFor` returns null and `sleepFor` returns only the dev sample night (Test data).
+  - The resting range is the same percentile range of measured readings the Dashboard already uses.
+  - No distance, floors or calories on Activity.
+- **Dashboard:**
+  - Collapsed cards and the layout are unchanged, and so is `DashboardScreen`'s props type.
+  - The expanded links now read **"Open in Activity ›"**: Heart Rate → Heart Rate section; Today's Activity and Calories → Steps; Sleep → Sleep. Each has its own screen-reader hint (`CardLink` gained `hint`).
+  - `DashboardContainer` calls `focus(section, source)` with the card's source (the device of its latest reading; Test data for test readings and the dev sample night), then opens the tab.
+  - The ring and "Devices ›" still open the Devices tab.
+- **Removed:**
+  - The pushed Heart Rate, Steps and Sleep pages, with their containers, hooks and previews (`features/heart-rate/`, `features/steps/`, `features/sleep/`).
+  - `DeviceFilterProvider`, `useShowingLabel` and `lib/sensors/filterReadings.ts`.
+  - The `heart-rate` / `steps` / `sleep` stack routes.
+  - Alert Thresholds is now reached from Settings only.
+- **Primitive:** `Screen` gained an optional `scrollRef` so Activity can scroll to a section (`measureLayout` against the scroll content).
+- **Unchanged:** the Devices tab (exactly), Settings, Profile, Alert Thresholds, Notifications, Preferences, the unsaved-changes guard, Firebase/auth and BLE logic, and the Dashboard's "--" rule for Distance/Floors/Calories.
+- **Previews:**
+  - Activity: no data, one device with full data, two devices (chips switch), device missing sleep, stale, Test data chip (dev), loading, error.
+  - Dashboard: + "With tab bar".
+  - UI primitives: + "Tab bar: Dashboard" / "Tab bar: Activity" (tappable).
+  - The Heart Rate, Steps and Sleep previews were removed.
+- **Phase 2 swap points (current):**
+
+| Swap point | Real source |
+|---|---|
+| `lib/sensors/readings.ts` (in-memory; used by `useDashboardData`, `useActivityData`, `useDevicesData`) | B3: Firestore-backed store, readings tagged with `deviceId` + `source` |
+| `useActivityData` → `sleepFor` / `restingTrendsFor` | A real sleep / resting heart-rate source when one exists (null until then; dev sample night on Test data only) |
+| `features/devices/BleProvider.tsx` (mock, web/Previews) / `BleProvider.native.tsx` (real, B1) | B2 multi-device, B4 connection log |
+| `lib/sensors/testExtras.ts` | Dev only; delete once a real sleep source exists |
+
+- **Checks:** `npm run typecheck` clean; 40/40 automated tests pass (none referenced the removed pages); web screenshots of the Activity states and tab bar at 375 wide (entry restored). iOS and Android JS bundles export, and a clean `expo prebuild --platform android` succeeds (Bluetooth permissions in the manifest; generated `android/` deleted, prebuild's package.json script change reverted). **Not run: `npx expo run:android`.** This Windows PC has no Android SDK, emulator or `adb` (no Android Studio), so the 4-tab emulator launch is still to verify once Android Studio is installed.

@@ -81,7 +81,7 @@ Stop and ask PL before anything involving:
   - device reliability
   - data quality
   - live and recorded data
-- **Platforms:** iOS **and** Android from one codebase. The team agreed this app's UI (the 3-tab structure) becomes the UI on **both** platforms.
+- **Platforms:** iOS **and** Android from one codebase. The team agreed this app's UI (the 4-tab structure: Dashboard | Devices | Activity | Settings) becomes the UI on **both** platforms.
 
 ## 2. People
 
@@ -168,8 +168,8 @@ Phase 1 (the full UI on mock data) was signed off on 2026-10-04. After that, Tar
 
 ### 7.1 Navigation
 
-- **Bottom tab bar, 3 tabs:** **Devices** | **Dashboard** (raised circular centre button, the default tab after sign-in) | **Settings**.
-- The old tabs (Home, Heart Rate, Fitness, Sleep) were removed. Heart Rate, Steps and Sleep are now **pushed detail pages** with a ‹ back button.
+- **Bottom tab bar, 4 tabs, in this order:** **Dashboard** (the default tab after sign-in) | **Devices** | **Activity** | **Settings**. A standard tab bar (icon + label, active tab in accent), no raised button. **This is the app's final structure on both platforms (2026-10-05).**
+- The old tabs (Home, Heart Rate, Fitness, Sleep) and the later pushed Heart Rate / Steps / Sleep pages were removed. Their content is now the **Activity** tab.
 - A hand-rolled **stack** on top of the tabs handles pushed pages and back navigation (‹, Android hardware back).
 - An **unsaved-changes guard** in the navigator shows "Discard changes?" (Keep editing / Discard) when leaving an edited form via ‹, Android back, or a tab switch.
 
@@ -186,7 +186,7 @@ Phase 1 (the full UI on mock data) was signed off on 2026-10-04. After that, Tar
 - **"Preview the dashboard"** bypass for development without Firebase. **Phase 2 must make it `__DEV__`-only.**
 - **Logic:** `useAuthForm` → `authService` (Firebase JS SDK / preview) and `useAuthSession`.
 
-### 7.3 Dashboard (centre tab)
+### 7.3 Dashboard tab (default)
 
 - **Header on the textured blue banner:**
   - greeting and date ("Good morning · Sun, Oct 4")
@@ -208,26 +208,30 @@ Phase 1 (the full UI on mock data) was signed off on 2026-10-04. After that, Tar
   3. **Sleep & Recovery:** duration, score /100, a status pill and a stage bar, or "No sleep data yet".
   4. **Active Calories:** kcal, or "--" with "Not reported by connected devices yet." No target, no "% achieved", no goal bar.
 - **Expandable cards:** tapping a card (or its chevron) expands it in place. Several can be open at once. Expanded content:
-  - **Heart Rate:** the 24h chart with Min/Avg/Max, last reading time and source device (or "from Test data"), and "Open Heart Rate ›"
-  - **Device and Activity:** a row for every connected device (name, signal bars + dBm, battery or "Not reported", status, last sync), an hourly steps mini chart, "Devices ›" and "Steps ›", or "No device connected" + "Add device ›"
-  - **Sleep:** the stage breakdown, bedtime → wake, a 7-night mini trend and "Open Sleep ›"
-  - **Calories:** a source line and "Open Steps ›"
+  - **Heart Rate:** the 24h chart with Min/Avg/Max, last reading time and source device (or "from Test data"), and "Open in Activity ›"
+  - **Device and Activity:** a row for every connected device (name, signal bars + dBm, battery or "Not reported", status, last sync), an hourly steps mini chart, "Devices ›" and "Open in Activity ›", or "No device connected" + "Add device ›"
+  - **Sleep:** the stage breakdown, bedtime → wake, a 7-night mini trend and "Open in Activity ›"
+  - **Calories:** a source line and "Open in Activity ›"
+- **"Open in Activity ›"** opens the Activity tab scrolled to that section (Heart Rate, Steps, Sleep; Calories → Steps) with that card's source device selected. The device ring and "Devices ›" go to the Devices tab.
 - **Data honesty rules:**
   - **Distance, Floors and Active Calories always show "--"** in the real flow, because nothing provides them.
   - Test data is labelled "from Test data" and is never attributed to a real device.
   - No values are estimated or derived.
-- **Logic:** `useHomeData` / Dashboard container → `useBle`, `useProfile`, the readings store, `usePreferences` (units), and `testExtras` (sample sleep only).
+- **Logic:** `useDashboardData` / `DashboardContainer` → `useBle`, `useProfile`, the readings store, `usePreferences` (units), and `testExtras` (sample sleep only). The container maps the links to `ActivityFocusProvider.focus(section, source)` + the Activity tab.
 
-### 7.4 Detail pages (pushed from Dashboard cards)
+### 7.4 Activity tab (bio stats only)
 
-- **Heart Rate:**
-  - live BPM, the Live badge, "Updated x ago", "from <device>" or "from Test data", a waveform while live, and stale greying after 10 minutes
-  - a 24h line chart of 30-minute averages, with gaps shown as breaks, and Min/Avg/Max
-  - a resting heart-rate Week/Month card (previews only, since there's no data source)
-  - an **Alert Thresholds** link
-  - **dev-only** buttons: "Add Test Reading" and "Add 24h of Sample Data" (Android's random sample generator; adds heart rate and steps)
-- **Steps** (formerly "Fitness"): today's total, a 24h steps-per-hour chart with a Total, "Updated…", and a dev-only "Add Test Steps" button. **No 10,000-step goal.**
-- **Sleep:** last night (duration, score, stages) and Week/Month trends. "No sleep data yet" by default. Sample data only via the dev buttons.
+- A blue "Activity" header, then **source chips** (horizontal scroll, name only): one per device with data, most recent data first; readings without a `deviceId` show as "Unknown device"; a **Test data** chip in dev builds only. Default: the device with the newest reading, else (dev) Test data. The choice is kept while the app is open.
+- **No device or connection information** here: no status, signal, battery, "Live · device" line, reconnect states or device actions. Those are the Devices tab's.
+- Sections for the selected source:
+  - **Heart Rate:** latest BPM with "Updated x ago" (greyed after 10 minutes), resting range, a 24h line chart of 30-minute averages (gaps as breaks) with Min/Avg/Max, and a resting heart-rate Week/Month trend
+  - **Steps:** today's total, a 24h steps-per-hour chart with Total, and a 7-day daily steps chart. **No step goal.**
+  - **Sleep:** last night (duration, score, stages) and Week/Month trends
+- A section the source doesn't report shows **"Not reported by this device."** Nothing is estimated; no distance, floors or calories. Resting heart-rate trends and sleep have no real source yet.
+- Empty state: "No data yet. Connect a device in the Devices tab."
+- **Dev-only** Development card at the bottom: "Add Test Reading", "Add 24h of Sample Data" (Android's random sample generator, plus a sample night), "Add Test Steps". All write to the Test data source.
+- **Logic:** `useActivityData` / `ActivityContainer` → the readings store (`useSensorHistory`, 7 days) split by source in `buildActivity` (`activityModel.ts`), the paired/connected device list only to name chips, and `testExtras` (sample sleep, dev only).
+- **Alert Thresholds** is reached from Settings only.
 
 ### 7.5 Devices tab
 
@@ -415,7 +419,7 @@ Do these in order and report each result to PL. **Never skip a step. Stop at the
    - `npm install` (in `DSS-iOS-UI` only), then `npm run typecheck` (must be clean)
    - `npx expo config --type public` must resolve without errors
    - report `ios.bundleIdentifier` and `android.package` from `app.json`. Phase 2 Step A sets them; before it, they may still hold old values, which is expected.
-10. **Baseline run (optional but recommended):** `npx expo start`, then open in Expo Go on an iPhone or press `i` for the simulator. Confirm the app opens and the 3-tab structure from section 7 is present. This is the last time Expo Go works.
+10. **Baseline run (optional but recommended):** `npx expo start`, then open in Expo Go on an iPhone or press `i` for the simulator. Confirm the app opens and the 4-tab structure from section 7 is present. This is the last time Expo Go works.
 11. **Read the plan:**
     - read `claudephase2charter.md` in full, especially the Progress Log entries from Task 0, "Phase 2 swap points", "Phase 2: BLE on iOS" and the layout-change entries
     - list any differences between section 7 of this file and what the code and log actually contain
@@ -449,7 +453,7 @@ Copy this list into your report with ✅ or ❌ and a one-line note for each.
 **App**
 - [ ] `npm install` succeeded; `npm run typecheck` clean
 - [ ] `npx expo config` resolves
-- [ ] (Optional) the app opens in Expo Go / the simulator with tabs Devices | Dashboard | Settings
+- [ ] (Optional) the app opens in Expo Go / the simulator with tabs Dashboard | Devices | Activity | Settings
 - [ ] Differences between section 7 and the actual code/log listed (or "none")
 
 **Understanding** (answer each in one line in the report)

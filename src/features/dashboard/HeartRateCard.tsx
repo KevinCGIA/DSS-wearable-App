@@ -99,12 +99,12 @@ export function HeartRateCard({ heartRate, history, restingRange, now, initially
           {sourceLabel(reading) ? ` · from ${sourceLabel(reading)}` : ''}
         </Text>
       ) : null}
-      <CardLink label="Open Heart Rate ›" onPress={onOpen} />
+      <CardLink label="Open in Activity ›" hint="Opens Heart Rate in the Activity tab" onPress={onOpen} />
     </ExpandableCard>
   );
 }
 
-// Same as the Heart Rate page: 30-min averages, Min / Avg / Max (Android SensorTrendChart).
+// Same as Activity's Heart Rate section: 30-min averages, Min / Avg / Max (Android SensorTrendChart).
 function Trend({ history }: { history: HistoryState }) {
   const buckets = averageByBucket(history.readings, history.start, history.end, HOUR_MS / 2);
   const values = buckets.map((b) => b.value).filter((v): v is number => v !== null);

@@ -1,59 +1,34 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { BarChart } from '@/components/ui/BarChart';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Pill } from '@/components/ui/Pill';
-import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { StageTrack } from '@/components/ui/StageTrack';
 import { StatReadout } from '@/components/ui/StatReadout';
 import type { SleepSummary, SleepTrends } from '@/data/types';
 import { formatDuration } from '@/lib/time';
 import { colors, layout, radius, spacing, type } from '@/theme';
+import type { SleepView } from './activityModel';
+import { NotReported } from './NotReported';
 import { stageMeta, stageOrder } from './sleepStages';
 
 type Range = 'week' | 'month';
 
-export type SleepScreenProps = {
-  sleep: SleepSummary | null;
-  trends: SleepTrends | null;
-  loading: boolean;
-  error: string | null;
-  onBack?: () => void;
-  onRetry?: () => void;
+type Props = {
+  view: SleepView | null;
+  notReported: string;
 };
 
-export function SleepScreen({ sleep, trends, loading, error, onBack, onRetry }: SleepScreenProps) {
+// Was the Sleep page: last night (duration, score, stages) and Week/Month trends, for one source.
+export function SleepSection({ view, notReported }: Props) {
+  if (!view) return <NotReported icon="moon" title="Sleep" message={notReported} first />;
   return (
-    <Screen
-      scroll
-      hero={<HeroHeader title="Sleep" subtitle="Last night and your recent trends, from your watch." onBack={onBack} />}
-    >
-      {loading ? (
-        <Card style={styles.first}>
-          <ActivityIndicator color={colors.accent} style={styles.spinner} />
-        </Card>
-      ) : error ? (
-        <ErrorBanner message={error} actionLabel={onRetry ? 'Retry' : undefined} onAction={onRetry} style={styles.first} />
-      ) : !sleep ? (
-        <Card style={styles.first}>
-          <EmptyState
-            icon="moon"
-            title="No sleep data yet"
-            message="Wear your watch to bed. Your sleep, stages and trends will appear here once it syncs."
-          />
-        </Card>
-      ) : (
-        <>
-          <LastNightCard sleep={sleep} />
-          {trends ? <TrendsSection trends={trends} /> : null}
-        </>
-      )}
-    </Screen>
+    <>
+      <LastNightCard sleep={view.sleep} />
+      {view.trends ? <TrendsSection trends={view.trends} /> : null}
+    </>
   );
 }
 
@@ -160,9 +135,8 @@ function TrendsSection({ trends }: { trends: SleepTrends }) {
 }
 
 const styles = StyleSheet.create({
-  first: { marginTop: spacing.xl },
+  first: { marginTop: spacing.sm },
   card: { marginTop: spacing.lg },
-  spinner: { marginVertical: spacing.huge },
   columns: { flexDirection: 'row', marginTop: spacing.lg },
   column: { flex: 1 },
   value: { color: colors.text },

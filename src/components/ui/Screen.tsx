@@ -13,6 +13,8 @@ type Props = {
   bottomInset?: number;
   hero?: React.ReactNode;
   heroOverlap?: boolean;
+  // Lets a screen scroll to one of its sections.
+  scrollRef?: React.Ref<ScrollView>;
 };
 
 export function Screen({
@@ -24,6 +26,7 @@ export function Screen({
   bottomInset = 0,
   hero,
   heroOverlap = false,
+  scrollRef,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -41,7 +44,7 @@ export function Screen({
         <View style={styles.backdrop}>
           <HeroBackdrop />
         </View>
-        <ScrollView style={styles.flex} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} style={styles.flex} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={[styles.hero, heroOverlap && styles.heroTall, { paddingTop: insets.top }]}>{hero}</View>
           <View style={[inner, heroOverlap && styles.overlap, contentStyle]}>
             <View
@@ -62,6 +65,7 @@ export function Screen({
       <StatusBar barStyle="dark-content" />
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={[inner, contentStyle]}
           showsVerticalScrollIndicator={false}

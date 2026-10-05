@@ -40,7 +40,7 @@ export function ActiveCaloriesCard({ activity, initiallyExpanded, onOpen }: Prop
       <Text style={[type.body, styles.source]}>
         {reported ? 'Reported by connected device' : 'Not reported by connected devices yet'}
       </Text>
-      <CardLink label="Open Steps ›" onPress={onOpen} />
+      <CardLink label="Open in Activity ›" hint="Opens Steps in the Activity tab" onPress={onOpen} />
     </ExpandableCard>
   );
 }

@@ -210,7 +210,7 @@ When PL approves Step A, remind PL to `git push -u origin phase-2` and tell Taru
   - permission denied → Settings button
   - scan (sorted, ❤ marker, auto-stop at 15 s)
   - connect (states) and Cancel
-  - live BPM on the Dashboard card and Heart Rate page
+  - live BPM on the Dashboard Heart Rate card, and in the **Activity** tab under that device's chip ("Open in Activity ›" on the card goes there)
   - disconnect
   - walk out of range → RECONNECTING → back
   - Forget
@@ -219,9 +219,9 @@ When PL approves Step A, remind PL to `git push -u origin phase-2` and tell Taru
   Same on Android if possible.
 
 ### B2. Multiple simultaneous devices
-- Implement the multi-device design from B0(a). Per-device state flows into the existing Devices tab ("Connected now" / "Previously connected"), Device Detail, the Dashboard device ring ("<n> devices connected") and its expanded rows. **No layout changes.**
+- Implement the multi-device design from B0(a). Per-device state flows into the existing Devices tab ("Connected now" / "Previously connected"), Device Detail, the Dashboard device ring ("<n> devices connected") and its expanded rows, and the Activity tab gets one chip per device. **No layout changes.**
 - Commit: "Phase 2 B2: multi-device BLE".
-- ⛔ **STOP.** Click list with 2+ devices: connect both, readings from each, disconnect one, the other keeps streaming, auto-connect both after relaunch, behaviour at the limit.
+- ⛔ **STOP.** Click list with 2+ devices: connect both, readings from each, Activity shows a chip per device and switching chips switches the data, disconnect one, the other keeps streaming, auto-connect both after relaunch, behaviour at the limit.
 
 ### B3. Readings pipeline (Firestore)
 - Implement the B0(c) model:
@@ -234,7 +234,7 @@ When PL approves Step A, remind PL to `git push -u origin phase-2` and tell Taru
 - ⛔ **STOP.** Click list:
   - live readings → batches appear in the Firestore Console about every minute
   - Kevin-format docs still written
-  - charts fill
+  - the Activity charts fill for that device's chip (24h heart rate, steps per hour, 7-day daily steps)
   - airplane mode → readings continue locally → sync when back online
   - Kevin's Android app (if available) still shows heart rate
 
@@ -274,7 +274,7 @@ When PL approves Step A, remind PL to `git push -u origin phase-2` and tell Taru
 ### B7. Clean-up
 - Remove leftover mock data paths from real flows.
   - **Keep** Previews, dev-only test buttons and `testExtras` sample sleep (`__DEV__` only).
-  - Sleep stays "No sleep data yet" in real use.
+  - Sleep stays "No sleep data yet" on the Dashboard and "Not reported by this device" in Activity in real use.
   - Distance/Floors/Calories stay "--".
 - Search for any remaining `firebase` JS SDK import, any `.env` Firebase usage, or mock providers used outside Previews.
 - `npm run typecheck` clean. No yellow-box warnings on device.

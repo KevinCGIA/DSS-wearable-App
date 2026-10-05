@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
+import { ActivityContainer } from '@/features/activity/ActivityContainer';
+import { ActivityFocusProvider } from '@/features/activity/ActivityFocusProvider';
 import { AlertThresholdsContainer } from '@/features/alerts/AlertThresholdsContainer';
 import { DashboardContainer } from '@/features/dashboard/DashboardContainer';
-import { DeviceFilterProvider } from '@/features/dashboard/DeviceFilterProvider';
 import { BleProvider } from '@/features/devices/BleProvider';
 import { AddDeviceContainer } from '@/features/devices/AddDeviceContainer';
 import { DeviceDetailContainer } from '@/features/devices/DeviceDetailContainer';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
-import { HeartRateContainer } from '@/features/heart-rate/HeartRateContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
 import { PreferencesContainer } from '@/features/preferences/PreferencesContainer';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
@@ -17,8 +17,6 @@ import { previewEntries } from '@/features/previews/registry';
 import { ProfileContainer } from '@/features/profile/ProfileContainer';
 import { ProfileProvider } from '@/features/profile/ProfileProvider';
 import { SettingsContainer } from '@/features/settings/SettingsContainer';
-import { SleepContainer } from '@/features/sleep/SleepContainer';
-import { StepsContainer } from '@/features/steps/StepsContainer';
 import { colors } from '@/theme';
 import { DEFAULT_TAB } from './routes';
 import type { Navigation, StackRoute, TabKey } from './routes';
@@ -91,7 +89,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
   return (
     <BleProvider>
       <ProfileProvider displayName={displayName}>
-        <DeviceFilterProvider>
+        <ActivityFocusProvider>
           <View style={styles.shell}>
             <View style={styles.fill} importantForAccessibility={top ? 'no-hide-descendants' : 'auto'}>
               <GuardScope scope={tabScope(tab)} registry={registry}>
@@ -111,11 +109,10 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
                     bottomInset={tabBarBaseHeight}
                     onOpenProfile={() => navigation.push('profile')}
                     onOpenDevices={() => navigation.openTab('devices')}
-                    onOpenHeartRate={() => navigation.push('heart-rate')}
-                    onOpenSteps={() => navigation.push('steps')}
-                    onOpenSleep={() => navigation.push('sleep')}
+                    onOpenActivity={() => navigation.openTab('activity')}
                   />
                 ) : null}
+                {tab === 'activity' ? <ActivityContainer bottomInset={tabBarBaseHeight} /> : null}
                 {tab === 'settings' ? (
                   <SettingsContainer
                     bottomInset={tabBarBaseHeight}
@@ -139,7 +136,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
               </View>
             ) : null}
           </View>
-        </DeviceFilterProvider>
+        </ActivityFocusProvider>
       </ProfileProvider>
     </BleProvider>
   );
@@ -149,17 +146,6 @@ function renderStackRoute(route: StackRoute, navigation: Navigation, selectedDev
   switch (route) {
     case 'profile':
       return <ProfileContainer onBack={navigation.back} />;
-    case 'heart-rate':
-      return (
-        <HeartRateContainer
-          onBack={navigation.back}
-          onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
-        />
-      );
-    case 'steps':
-      return <StepsContainer onBack={navigation.back} />;
-    case 'sleep':
-      return <SleepContainer onBack={navigation.back} />;
     case 'alert-thresholds':
       return <AlertThresholdsContainer onBack={navigation.back} />;
     case 'notifications':
