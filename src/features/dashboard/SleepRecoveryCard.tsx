@@ -111,10 +111,10 @@ function SleepBody({ sleep }: { sleep: SleepSummary }) {
           <Text style={[type.caption, styles.caption]}>Sleep Duration</Text>
         </View>
         <View style={styles.column}>
-          <Text style={[type.statLarge, styles.value]}>
-            {sleep.score}
-            <Text style={[type.unit, styles.caption]}> /100</Text>
-          </Text>
+          <View style={styles.valueRow}>
+            <Text style={[type.statLarge, styles.value]}>{sleep.score}</Text>
+            <Text style={[type.unit, styles.caption, styles.unitGap]}>/100</Text>
+          </View>
           <Text style={[type.caption, styles.caption]}>Sleep Score</Text>
         </View>
       </View>
@@ -145,7 +145,9 @@ const styles = StyleSheet.create({
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   stageLabel: { minWidth: spacing.huge + spacing.xl, color: colors.textSecondary },
   card: { marginTop: spacing.lg },
-  columns: { flexDirection: 'row', marginTop: spacing.lg },
+  columns: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  unitGap: { marginLeft: spacing.xs },
   column: { flex: 1 },
   value: { color: colors.text },
   caption: { color: colors.textMuted },
@@ -160,5 +162,5 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', marginTop: spacing.md },
   legendItem: { flex: 1 },
   legendHead: { flexDirection: 'row', alignItems: 'center' },
-  swatch: { width: spacing.sm, height: spacing.sm, borderRadius: radius.pill, marginRight: spacing.xs + 2 },
+  swatch: { width: spacing.sm, height: spacing.sm, borderRadius: radius.pill, marginRight: spacing.sm },
 });

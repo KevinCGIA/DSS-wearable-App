@@ -68,7 +68,7 @@ export function HeartRateCard({ heartRate, history, restingRange, now, initially
                 <Text style={[type.hero, styles.value, (!reading || stale) && styles.muted]} maxFontSizeMultiplier={1.3}>
                   {bpm}
                 </Text>
-                <Text style={[type.subheading, styles.unit]}>BPM</Text>
+                <Text style={[type.unit, styles.unit]}>BPM</Text>
               </View>
 
               {error ? (
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   valueRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { color: colors.text },
   muted: { color: colors.textMuted },
-  unit: { color: colors.accent, marginLeft: spacing.sm },
+  unit: { color: colors.accent, marginLeft: spacing.xs },
   message: { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   error: { color: colors.danger },
   normal: { color: colors.vital.calm },
