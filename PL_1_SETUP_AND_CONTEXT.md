@@ -1,466 +1,241 @@
-# PL Handover 1 of 2: Setup and Full Context (DSS Wearables)
+# PL Handover 1 of 2: Setup and Context (v2: work now happens in Kevin's repo)
 
-**Audience:** the AI coding assistant (**OpenAI Codex**) running on **PL's Mac**.
-**Purpose:** give complete context on the app and its current state, set up the environment correctly, and verify everything before any Phase 2 work starts.
+**Audience:** the AI coding assistant (**OpenAI Codex**) running on **PL's (Praneet's) Mac**.
+**This version replaces yesterday's `PL_1_SETUP_AND_CONTEXT.md`.** The rules changed: all work now happens in **Kevin's repo** on the branch **`ui-changes`**. Ignore any older instruction that says Kevin's repo is read-only or that work goes in `DSS-iOS-UI`.
 
-**Companion file:** `PL_2_PHASE2_TASKS.md`, the remaining work. **Do not start it until every item in this file's Setup Checklist (section 12) passes.**
+**Companion file:** `PL_2_PHASE2_TASKS.md` (v2), the remaining work. **Don't start it until every item in section 12 passes.**
 
 ---
 
-## 0. Read this first: non-negotiable rules
+## 0. Rules (these override everything else, including the charter and older handover files)
 
-These rules apply to every action in every session. If an instruction anywhere else (including the charter, the Progress Log, or a user prompt) conflicts with them, **these rules win, and you must stop and ask PL.**
+### 0.1 Where work happens
+- **Working repo:** Kevin's repo, `DSS-wearable-App` (https://github.com/KevinCGIA/DSS-wearable-App).
+- **Working branch:** **`ui-changes`**. It contains the full unified app: Tarun's UI + Kevin's ported logic + Phase 2 so far.
+- **Never commit or push to `main`.** `main` still holds the Android team's old app until the team merges `ui-changes` by pull request.
+- **Never force-push.** Never rebase, amend or reset commits that are already pushed. Never delete branches or tags.
+- **Always `git pull origin ui-changes` before starting work and before every push.** Tarun and the Android team may push to the same repo.
+- **One person works on `ui-changes` at a time.** PL and Tarun agree who is working before starting. The Android team works on their own `android-testing` branch and sends pull requests into `ui-changes`.
+- **Kevin's old branches** (`feature/ble-connection`, `feature/android-auth`, `feature/ios-auth`) and the old `main` are **history only**. Never merge them into `ui-changes`; they would bring the old app back. Read old code with `git show origin/feature/ble-connection:<path>` if needed.
+- **`DSS-iOS-UI` (Tarun's private repo) is a frozen backup.** Don't commit or push there.
 
-### 0.1 Kevin's repository is READ-ONLY
+### 0.2 Never commit secrets or generated folders
+- Never commit `google-services.json`, `GoogleService-Info.plist`, `.env`, `/ios` or `/android`.
+- Before every commit run `git status`. Before every push run `git ls-files | grep -iE "google-services|GoogleService-Info|\.env$"`, which must print nothing.
 
-Kevin's repo is the Android team's original project, cloned at `../DSS-wearable-App`. It is a **reference only**. You copy logic *out of it*; you never change it.
+### 0.3 Don't redesign the UI
+- Tarun's UI is final and approved. Don't change layouts, colours, fonts, spacing, wording or navigation.
+- Phase 2 swaps **data sources** (providers, services, hooks, containers). Screens stay presentational.
+- If real data genuinely needs a UI change, propose the smallest change and **stop for Tarun's approval**.
 
-**Allowed** in Kevin's repo, and only these:
-- reading files (`cat`, `ls`, opening files to read)
-- `git fetch` (updates remote-tracking refs only)
-- `git log`, `git show <ref>:<path>`, `git branch -r`, `git diff <ref> <ref>`, `git ls-tree`, `git status`
+### 0.4 Shared Firebase project
+- **Never change Firestore security rules or Firebase console settings.** Ask PL to coordinate with Kevin/Jared.
+- **Firestore: only additions.** Never rename, remove or retype existing fields (section 8).
 
-**FORBIDDEN** in Kevin's repo:
-- editing, creating, moving or deleting any file
-- `git checkout`, `git switch`, `git pull`, `git merge`, `git rebase`, `git reset`, `git stash`, `git commit`, `git push`, `git tag`, `git clean`, `git restore`
-- `npm install`, `npx expo install`, `npx expo prebuild`, `npx expo run:*`, or any build or script (these modify files)
-- opening it in an editor and saving
-
-To read a file from a branch without checking it out, use:
-`git -C ../DSS-wearable-App show origin/feature/ble-connection:path/to/file.ts`
-
-After any session that touched Kevin's repo, `git -C ../DSS-wearable-App status` must show a clean working tree. If it doesn't, **stop and tell PL immediately.**
-
-### 0.2 All changes go into Tarun's repository ONLY
-
-- Tarun's repo is `DSS-iOS-UI` (https://github.com/TarunKrishnan6/DSS-iOS-UI.git). This is the only repo you modify.
-- Work **only on the branch `phase-2`**. Never commit to `main`.
-- Push **only** the `phase-2` branch, **only** to `origin` (Tarun's repo), and **only** when PL asks.
-- **Never** force-push, rebase pushed commits, amend pushed commits, or delete branches or tags.
-- **Never** commit `google-services.json`, `GoogleService-Info.plist`, `.env`, or the generated `ios/` and `android/` native folders. Check with `git status` and `git ls-files` before every commit.
-
-### 0.3 The UI is approved: don't redesign it
-
-- Tarun designed and approved every screen. **Do not change layouts, colours, spacing, wording or navigation** unless a task explicitly says so or Tarun approves it.
-- Phase 2 replaces **data sources** (mock stores, containers, hooks) with real logic. Screens stay presentational.
-- If real data forces a UI change, describe it, propose the smallest change, and **stop for approval**.
-- Tarun may restructure the navigation **after** Phase 2 (e.g. a per-device "Activity" tab). Keep logic out of screens and keep every reading tagged with `deviceId`/`source`, so that change stays UI-only. Don't build it now.
-
-### 0.4 When unsure, stop and ask
-
-Stop and ask PL before anything involving:
-- pushing
-- deleting
-- secrets
-- Firebase console or security rules changes
-- UI changes
-- anything in Kevin's repo beyond reading
-
-## 0.5 Codex-specific operating rules
-
-- **Run Codex from inside `~/DSSWEARABLE/DSS-iOS-UI`**, so that folder is the workspace. Kevin's repo sits outside the workspace at `../DSS-wearable-App`. Reading it is fine; writing to it is forbidden (rule 0.1).
-- **Use an approval mode that asks before running commands** (not full-auto / "yolo"), so PL sees every command before it runs. Never request or use permission to write outside `DSS-iOS-UI`.
-- Some steps need **network access** (`npm install`, `npx expo install`, `git fetch`/`pull`/`push`, `pod install`, builds). If the sandbox blocks them, ask PL to approve that specific command. Don't work around the sandbox.
-- Codex reads `AGENTS.md` automatically. These handover files are linked from it (setup step 6). **Re-read them at the start of every new session** before continuing, then read the latest Progress Log entry to see where work stopped.
-- **One step per turn.** Respect every ⛔ STOP in `PL_2_PHASE2_TASKS.md`, even when running autonomously. Never chain several steps without PL's approval.
-- **Never** run destructive commands (`rm -rf`, `git reset --hard`, `git clean`, `git push --force`, `git checkout -- .`) without PL's explicit approval for that exact command.
+### 0.5 Codex operating rules
+- **Run Codex from inside `~/DSSWEARABLE/DSS-wearable-App`.**
+- **Use an approval mode that asks before running commands** (not full-auto).
+- Network commands (`npm`, `npx expo install`, `git fetch/pull/push`, `pod install`, builds) need PL's approval. Don't work around the sandbox.
+- **Re-read `AGENTS.md`, this file, `PL_2_PHASE2_TASKS.md` and the latest Progress Log entry in `claudephase2charter.md` at the start of every session.**
+- **One step at a time.** Respect every ⛔ STOP.
+- **Never** run `rm -rf`, `git reset --hard`, `git clean`, `git push --force` or `git checkout -- .` without PL's explicit approval for that exact command.
+- If anything is ambiguous or risky, **stop and ask**.
 
 ---
 
 ## 1. What the app is
-
-- **Name:** DSS Wearables (Expo `name`: "DSS Wearables").
-- **Project:** CSE3CAP Capstone, Team BRIc, La Trobe University. Project owner: Shanmuga Sundar Dhanabalan (Deputy Director, CTI).
-- **Purpose:** a companion app for **testing and demonstrating new BLE (Bluetooth Low Energy) wearable hardware.**
+- **DSS Wearables**, CSE3CAP Capstone, Team BRIc, La Trobe University.
+- **Purpose:** a companion app for **testing and demonstrating new BLE wearable hardware.**
 - **Users:**
-  - **Researchers**: pair devices, check the connection and data work, compare devices, and give demos.
-  - **Test subjects**: wear devices at home while the app records their data.
-- **It is NOT a fitness app.** Never add fitness or coaching language or features (heart-rate zones, "fat burn", step goals, "% achieved", workouts, tips). Prioritise:
-  - connection status
-  - signal quality
-  - device reliability
-  - data quality
-  - live and recorded data
-- **Platforms:** iOS **and** Android from one codebase. The team agreed this app's UI (the 4-tab structure: Dashboard | Devices | Activity | Settings) becomes the UI on **both** platforms.
+  - **researchers**, who pair devices, check connection and data, compare devices, and demo them
+  - **test subjects**, who wear devices at home while the app records data
+- **NOT a fitness app.** No zones, goals, "% achieved", workouts or coaching.
+- **Core requirement: several devices connected at once,** each with its own data and stats.
+- **One codebase for iOS and Android.** The team agreed this UI becomes the app on both platforms.
 
 ## 2. People
-
 | Person | Role |
 |---|---|
-| **Tarun (TK)** | Built the UI (Phase 1 and the layout change). Owns `DSS-iOS-UI`. Reviews and merges PL's pull requests. Final say on UI. |
-| **PL** | Doing Phase 2 on a Mac. You work for PL. |
-| **Kevin** | Android team. Owns `DSS-wearable-App`. Real BLE, auth and Firestore logic lives on his branch `feature/ble-connection`. |
-| **Jared / Kevin** | Firebase project owners. |
-| **JJ** | Owns Jira DWBS22-372, "Daily Insight Summary". Not built anywhere; waiting on JJ. |
+| **Tarun (TK)** | Built the UI. Approves any UI change. Reviews the final pull request. |
+| **Praneet (PL)** | Continues Phase 2 on a Mac. You work for PL. |
+| **Kevin / Jared** | Android team; own the repo and the Firebase project. |
+| **Android team** | Tests `ui-changes` on Android; reports in `BUGS.md` via pull requests into `ui-changes`. |
+| **JJ** | Daily Insight Summary (DWBS22-372). Not built; waiting on JJ. Don't build it. |
 
-## 3. Repositories and folder layout on PL's Mac
-
+## 3. Folder layout on PL's Mac
 ```
 ~/DSSWEARABLE/
-├── DSS-iOS-UI/          ← Tarun's repo. THE ONLY REPO YOU CHANGE. Work here, on branch phase-2.
-└── DSS-wearable-App/    ← Kevin's repo. READ-ONLY reference (rule 0.1).
+├── DSS-wearable-App/    ← Kevin's repo. WORK HERE, on branch ui-changes.
+└── DSS-iOS-UI/          ← optional, frozen backup. Don't commit here.
 ```
 
-- `ANDROID_REPO_PATH` = **`../DSS-wearable-App`** (relative to `DSS-iOS-UI`). This overrides any Windows path written in `claudephase2charter.md`.
-- Tarun's local folder on Windows is called `ios`. On PL's Mac the clone is `DSS-iOS-UI`. Same repo, different folder name.
-- Kevin's relevant branches:
-  - `main`
-  - `feature/android-auth`
-  - `feature/ble-connection` (**the target**: newest auth, BLE, sensors, devices and charts code, not yet merged into main as of 2026-10-03)
-  - `feature/ios-auth`
-
-## 4. Key documents in Tarun's repo
-
+## 4. Key documents (in the repo root on `ui-changes`)
 | File | What it is |
 |---|---|
-| `AGENTS.md` | **Auto-loaded by Codex.** Contains notes about the Expo SDK version (read the versioned Expo docs before using any Expo API). Setup step 6 adds a section telling Codex to read these handover files and the charter before any work. |
-| `CLAUDE.md` | Tarun's Claude Code entry file (imports `AGENTS.md` and the charter). **Codex doesn't use it. Don't edit it.** |
-| `claudephase2charter.md` | The full plan plus the **Progress Log**: every decision, the Task 0 Android Wiring Map, the UI Sign-off table, the "Phase 2 swap points" table, and the ported-file records. **Append to its Progress Log after every step.** |
-| `ANDROID_BUGS.md` | 10 bugs found in Kevin's code. Several must be fixed (not copied) when porting. |
+| `AGENTS.md` | Auto-loaded by Codex. Expo SDK notes plus a short "Working on ui-changes" section pointing here. |
+| `CLAUDE.md` | Tarun's Claude Code entry file. **Don't edit it.** |
+| `claudephase2charter.md` | Full plan and **Progress Log**. **Append to the Progress Log after every step.** |
 | `PL_1_SETUP_AND_CONTEXT.md` | This file. |
 | `PL_2_PHASE2_TASKS.md` | The remaining work. |
+| `ANDROID_TESTING.md` | The Android team's test guide. |
+| `BUGS.md` | Screen \| Bug \| Steps \| Platform/device \| Tester \| Status |
+| `ANDROID_BUGS.md` | Bugs found in Kevin's old app (most are fixed in this app). |
 
-**Order of authority** when documents disagree:
-1. Rule 0 of this file
-2. `PL_2_PHASE2_TASKS.md` (for work)
-3. this file (for context and setup)
-4. `claudephase2charter.md`
-
-If the **code** or the latest Progress Log contradicts the "current state" described below, the code is the truth about what exists. Report the difference to PL.
+**Order of authority:** section 0 of this file → `PL_2_PHASE2_TASKS.md` → this file → the charter. If the code contradicts this file, the code is the truth about what exists; report the difference.
 
 ## 5. Tech stack
-
-| | Tarun's repo (`DSS-iOS-UI`) | Kevin's repo (`DSS-wearable-App`) |
-|---|---|---|
-| Expo / React Native | SDK 57 / RN 0.86.x | SDK 57 / RN 0.86.3 |
-| Language | TypeScript | TypeScript |
-| Navigation | Hand-rolled tab bar + stack in `src/navigation/RootNavigator.tsx` (no react-navigation, no expo-router) | expo-router (`app/` folder) |
-| Imports | `@/` alias → `src/` | Relative imports, no alias |
-| Firebase | `firebase` JS SDK in **preview mode** (no real backend yet). **Phase 2 switches to `@react-native-firebase`.** | `@react-native-firebase` (app, auth, firestore) + `@react-native-google-signin/google-signin` |
-| BLE | **Mock** `BleProvider` (simulated devices) | `react-native-ble-plx ^3.5.1` (`services/ble/BleService.ts`, `services/ble/BleContext.tsx`) |
-| Charts | Custom components, no chart package | `react-native-svg` |
-| Local storage | `@react-native-async-storage/async-storage` (preferences) | — |
-| Image picker | `expo-image-picker` | `expo-image-picker` |
-| Fonts | Barlow (numerals), Manrope (UI) | — |
-| Runs in Expo Go today? | **Yes** (until Phase 2 adds native modules) | No |
-
-**Package rule:** always add packages with `npx expo install <pkg>` (it picks SDK-compatible versions). Never use plain `npm install <pkg>` for Expo or React Native packages.
-
-## 6. Architecture rules of Tarun's app (keep them)
-
-1. **Screens are presentational.** `features/<feature>/<Name>Screen.tsx` takes data and callbacks as props, with no Firebase, BLE, timers or business logic.
-2. **Logic lives in hooks and containers** in the same feature folder (`use<Name>Data.ts`, `<Name>Container.tsx`), plus services and stores in `src/lib/`.
-3. **Mocks** live in `src/data/` and the mock stores. Their shapes match the real Android data shapes, so Phase 2 replaces stores and services, not screens.
-4. **Design tokens** live in `src/theme/` (colours, spacing, radius, elevation, typography). Never use literal hex or px in screens.
-5. **Primitives** live in `src/components/ui/` (Button, Card, Pill, Screen, Header, ListRow, Toggle, Stepper, EmptyState, ErrorBanner, Avatar, SegmentedControl, StatReadout, BarChart, TabBar, ExpandableCard, etc.). Import each from its own file (no barrel files).
-6. **Previews:** every screen has a `*.preview.tsx` covering all its states, listed in a dev-only Previews menu (Settings → Development → Previews, behind `__DEV__`). Keep these working; update them when props change.
-7. **Accessibility:**
-   - `Screen` handles safe areas
-   - touch targets are at least 44pt
-   - icon buttons have `accessibilityLabel`
-   - layouts work at the app's X-Large text size and with the system's largest text
-8. **Minimal code comments.**
-9. **`npm run typecheck` must be clean** after every step.
-
-## 7. Current state of the app (after Tarun's layout change)
-
-Phase 1 (the full UI on mock data) was signed off on 2026-10-04. After that, Tarun restructured the navigation around researchers and test subjects. **Everything below runs on mock data. Nothing is connected to real Firebase or real Bluetooth yet.**
-
-### 7.1 Navigation
-
-- **Bottom tab bar, 4 tabs, in this order:** **Dashboard** (the default tab after sign-in) | **Devices** | **Activity** | **Settings**. A standard tab bar (icon + label, active tab in accent), no raised button. **This is the app's final structure on both platforms (2026-10-05).**
-- The old tabs (Home, Heart Rate, Fitness, Sleep) and the later pushed Heart Rate / Steps / Sleep pages were removed. Their content is now the **Activity** tab.
-- A hand-rolled **stack** on top of the tabs handles pushed pages and back navigation (‹, Android hardware back).
-- An **unsaved-changes guard** in the navigator shows "Discard changes?" (Keep editing / Discard) when leaving an edited form via ‹, Android back, or a tab switch.
-
-### 7.2 Sign-in / Register (Auth)
-
-- One screen with a Log in / Register segmented switch, a blue header and the DSS logo.
-- **Register fields:** name, email, password, confirm password, avatar (photo picker), height, weight. Height and weight follow the units preference (cm/kg or in/lb) and are always saved as cm/kg.
-- **Login:** email and password, plus **Forgot password?**, which shows a "reset email sent" confirmation.
-- **States:**
-  - "Verification email sent" after registering
-  - "Please verify your email" on unverified login
-  - inline error banners
-- **Google** sign-in and sign-up buttons.
-- **"Preview the dashboard"** bypass for development without Firebase. **Phase 2 must make it `__DEV__`-only.**
-- **Logic:** `useAuthForm` → `authService` (Firebase JS SDK / preview) and `useAuthSession`.
-
-### 7.3 Dashboard tab (default)
-
-- **Header on the textured blue banner:**
-  - greeting and date ("Good morning · Sun, Oct 4")
-  - a **?** button that opens a Help sheet (how to pair, what the connection states mean)
-  - an **avatar** (photo or initials, green dot when a device is connected) that opens **Profile edit**
-  - a "Welcome, {name}!" title and subtitle
-- **Cards** (layout approved; collapsed cards must not change):
-  1. **Heart Rate:**
-     - BPM (or "--")
-     - a small square **Live** / **Last seen x ago** badge
-     - resting range ("Resting: x–y bpm · Normal")
-     - a waveform that pulses while live
-     - the empty text "No readings yet. Connect your wearable to start tracking."
-  2. **Device and Today's Activity:**
-     - left: a device ring showing the device name and an uppercase status (CONNECTED · 85%, SYNCING, CONNECTING (attempt n), RECONNECTING, DISCONNECTING, FAILED · Tap to retry, or "No Device · Tap to connect"), plus a sync button
-     - right: Steps, Distance (km or mi) and Floors
-     - with several devices connected, the ring shows "<n> devices connected" and the weakest signal or status
-     - tapping the ring opens the **Devices** tab
-  3. **Sleep & Recovery:** duration, score /100, a status pill and a stage bar, or "No sleep data yet".
-  4. **Active Calories:** kcal, or "--" with "Not reported by connected devices yet." No target, no "% achieved", no goal bar.
-- **Expandable cards:** tapping a card (or its chevron) expands it in place. Several can be open at once. Expanded content:
-  - **Heart Rate:** the 24h chart with Min/Avg/Max, last reading time and source device (or "from Test data"), and "Open in Activity ›"
-  - **Device and Activity:** a row for every connected device (name, signal bars + dBm, battery or "Not reported", status, last sync), an hourly steps mini chart, "Devices ›" and "Open in Activity ›", or "No device connected" + "Add device ›"
-  - **Sleep:** the stage breakdown, bedtime → wake, a 7-night mini trend and "Open in Activity ›"
-  - **Calories:** a source line and "Open in Activity ›"
-- **"Open in Activity ›"** opens the Activity tab scrolled to that section (Heart Rate, Steps, Sleep; Calories → Steps) with that card's source device selected. The device ring and "Devices ›" go to the Devices tab.
-- **Data honesty rules:**
-  - **Distance, Floors and Active Calories always show "--"** in the real flow, because nothing provides them.
-  - Test data is labelled "from Test data" and is never attributed to a real device.
-  - No values are estimated or derived.
-- **Logic:** `useDashboardData` / `DashboardContainer` → `useBle`, `useProfile`, the readings store, `usePreferences` (units), and `testExtras` (sample sleep only). The container maps the links to `ActivityFocusProvider.focus(section, source)` + the Activity tab.
-
-### 7.4 Activity tab (bio stats only)
-
-- A blue "Activity" header, then **source chips** (horizontal scroll, name only): one per device with data, most recent data first; readings without a `deviceId` show as "Unknown device"; a **Test data** chip in dev builds only. Default: the device with the newest reading, else (dev) Test data. The choice is kept while the app is open.
-- **No device or connection information** here: no status, signal, battery, "Live · device" line, reconnect states or device actions. Those are the Devices tab's.
-- Sections for the selected source:
-  - **Heart Rate:** latest BPM with "Updated x ago" (greyed after 10 minutes), resting range, a 24h line chart of 30-minute averages (gaps as breaks) with Min/Avg/Max, and a resting heart-rate Week/Month trend
-  - **Steps:** today's total, a 24h steps-per-hour chart with Total, and a 7-day daily steps chart. **No step goal.**
-  - **Sleep:** last night (duration, score, stages) and Week/Month trends
-- A section the source doesn't report shows **"Not reported by this device."** Nothing is estimated; no distance, floors or calories. Resting heart-rate trends and sleep have no real source yet.
-- Empty state: "No data yet. Connect a device in the Devices tab."
-- **Dev-only** Development card at the bottom: "Add Test Reading", "Add 24h of Sample Data" (Android's random sample generator, plus a sample night), "Add Test Steps". All write to the Test data source.
-- **Logic:** `useActivityData` / `ActivityContainer` → the readings store (`useSensorHistory`, 7 days) split by source in `buildActivity` (`activityModel.ts`), the paired/connected device list only to name chips, and `testExtras` (sample sleep, dev only).
-- **Alert Thresholds** is reached from Settings only.
-
-### 7.5 Devices tab
-
-- A blue "Devices" header and a summary strip: connected now, devices tested, readings today, overall connection success rate.
-- An **Add device** button opens the scan/connect flow:
-  - scanning auto-stops after 15 s
-  - results are sorted by signal, with a ❤ marker for heart-rate devices
-  - **six connection states:** connecting (attempt n of 3), setting up, connected, reconnecting, disconnecting, failed
-  - **Cancel** during connecting
-  - Bluetooth banners: off, unauthorized, unsupported, resetting
-  - an auto-connect toggle
-- **"Connected now"** cards, one per connected device (several can be connected at once):
-  - name, status, signal bars + dBm, battery or "Not reported"
-  - current BPM, 24h average BPM, steps today, readings this session, session duration, last reading
-  - a data health badge: **Stable / Unstable / Not responding**
-  - Disconnect and Forget
-- **"Previously connected"** cards, most recent first:
-  - last connected time, last known signal and battery
-  - total sessions, total connected time, total readings, average BPM
-  - the last session (date, duration, readings, how it ended: user or unexpected)
-  - success rate, drop-outs, badge
-  - Connect and Forget
-- **Device Detail** (pushed): all stats, plus reliability (success rate, average time to connect, drop-outs, reconnects), data quality (readings/min, gaps over 30 s while connected) and the full session history.
-- **Mock data sources:**
-  - a mock `BleProvider` (supports several devices)
-  - an in-memory **connection event log** (connect attempt, connected, disconnected with reason user/unexpected, failed, app background/foreground; timestamps + `deviceId`)
-  - readings tagged by `deviceId`
-  - badge thresholds as constants in one file
-- **Stats rules:** test-data readings never count towards device stats. Background or closed time never counts as gaps or drop-outs.
-
-### 7.6 Settings tab and pushed pages
-
-- **Settings:**
-  - a Profile row (small avatar, name, email) that opens Profile edit
-  - Alert Thresholds, Notifications, Preferences
-  - Development → Previews (dev only)
-  - **Log Out** with a confirm dialog
-  - no Devices section (it's a tab now)
-- **Profile edit:**
-  - avatar change via `expo-image-picker` (square crop, saves immediately)
-  - name, height and weight with Save (units-aware, saved as cm/kg)
-  - an Account section with **Change Email** (enter a new address, verification) and **Change Password** (sends a reset email)
-  - the unsaved-changes guard
-- **Alert Thresholds:**
-  - an on/off switch
-  - a 30–220 BPM range bar (amber below, green inside, red above)
-  - Minimum and Maximum steppers in 5 BPM steps
-  - validation: minimum 30–100, maximum 80–220, maximum at least minimum + 10
-  - Save, with the "✓ Saved" state
-  - mock storage shaped like `users/{uid}/settings/alerts`
-- **Notifications:**
-  - alerts grouped by day (Today / Yesterday / date)
-  - a red ↑ for high and an amber ↓ for low, with value and time
-  - Clear all, and the empty state "No alerts yet" + Set alert thresholds
-  - a dev-only "Add Test Alert"
-  - mock in-memory alert history
-- **Preferences:**
-  - text size (Default / Large / X-Large, applied app-wide)
-  - units (Metric / Imperial)
-  - an alert notifications on/off toggle
-  - saved on-device with AsyncStorage
-
-### 7.7 Mock stores that Phase 2 replaces
-
-The exact list is the "Phase 2 swap points" table in the charter's Progress Log. Expected:
-
-| Mock | Real replacement |
+| | Value |
 |---|---|
-| `features/devices/BleProvider.tsx` (mock BLE) | Port of Kevin's `services/ble/BleService.ts` + `BleContext.tsx`, extended for multiple devices |
-| `lib/sensors/readings.ts` (in-memory readings) | Port of Kevin's `services/sensors/*` (Firestore), with deviceId tagging and batched saving |
-| connection event log (in-memory) | The same store, persisted, fed by real BLE events |
-| `features/auth/authService.ts` (JS SDK / preview) | `@react-native-firebase` auth + Google Sign-In |
-| `features/profile/accountService.ts` / `ProfileProvider` | Firestore `users/{uid}` + `private/avatarData` |
-| `lib/alerts/thresholds.ts` / `alertHistory.ts` | Firestore `users/{uid}/settings/alerts` + the real alert engine |
-| `lib/sensors/testExtras.ts` (sample sleep) | Keep for dev only; delete once a real sleep source exists |
-| `lib/preferences` | **Keep** (device-local) |
+| Expo / React Native | SDK 57 (installed 57.0.26) / RN 0.86.x, TypeScript |
+| Navigation | Hand-rolled tab bar + stack in `src/navigation/RootNavigator.tsx` (no expo-router) |
+| Imports | `@/` alias → `src/` |
+| Firebase | `@react-native-firebase` (app, auth, firestore) + `@react-native-google-signin/google-signin` |
+| BLE | `react-native-ble-plx` |
+| Dev builds | `expo-dev-client`. **Expo Go no longer works.** |
+| Fonts | IBM Plex Sans (400/500/600/700), numbers with tabular figures |
+| iOS build settings | `expo-build-properties` with `useFrameworks: "static"`, plus scene support and Firebase `disableSPM` (needed for Xcode 27) |
 
-## 8. Firebase (settled facts; don't reopen)
+Add packages with `npx expo install <pkg>` only.
 
+## 6. Architecture rules
+1. **Screens are presentational:** props in, no Firebase/BLE/timers inside.
+2. **Logic** lives in hooks, containers, providers and services (`src/lib/`, `src/features/<feature>/`).
+3. **Tokens** live in `src/theme/` (spacing, type including `type.overline` and `type.unit`, icon sizes, layout). No literal values in screens.
+4. **Primitives** live in `src/components/ui/`, imported from their own files.
+5. **Previews:** every screen has `*.preview.tsx` (dev-only menu: Settings → Development → Previews). Keep them building.
+6. **Typecheck and tests:** `npm run typecheck` clean and all automated tests passing after every step.
+7. **Minimal comments.**
+
+## 7. Current state of the app
+
+### 7.1 UI (final)
+- **Tabs:** **Dashboard** (default) | **Devices** | **Activity** | **Settings**. Standard tab bar, no raised button.
+- **Dashboard:**
+  - blue header with greeting/date, a **?** Help sheet and the avatar (→ Profile)
+  - **expandable** cards: Heart Rate · Device & Today's Activity (device ring, "<n> devices connected" when several) · Sleep & Recovery · Active Calories
+  - expanded cards link with **"Open in Activity ›"**
+  - Distance/Floors/Calories show **"--"** (no data source)
+- **Devices tab:**
+  - summary strip
+  - **Add device** scan/connect flow (six states, Cancel, Bluetooth banners, auto-connect)
+  - **Connected now** and **Previously connected** cards with per-device stats and Stable/Unstable/Not responding badges
+  - **Device Detail** with reliability, data quality and session history
+  - stats come from a connection event log, which is **not yet fed by the real provider** (B4)
+- **Activity tab:** **bio stats only.**
+  - device chips choose whose data is shown
+  - sections: Heart Rate (latest BPM, 24h chart Min/Avg/Max, resting range, resting trend) · Steps (today, 24h chart, 7-day) · Sleep
+  - "Not reported by this device" where there's no data
+  - a dev-only "Test data" chip and test buttons
+  - no connection or device info here
+- **Settings:** Profile row, Alert Thresholds, Notifications, Preferences (text size, units, alert toggle), Development → Previews (dev), Log Out with confirm.
+- **Profile:** avatar picker, name/height/weight (units-aware, saved as cm/kg), change email, change password, unsaved-changes guard.
+- **Polish done:** IBM Plex Sans, 20pt card/row padding, 16pt card gaps, shared `SectionLabel`, 52/64 row heights, icon size tokens, baseline-aligned number + unit, X-Large text wraps.
+
+### 7.2 Phase 2 progress
+| Step | Status |
+|---|---|
+| A1–A3, A5–A10 Firebase auth, profile, avatar, alert thresholds, JS SDK removed, iOS build fixes | **Code done.** Google sign-in bugs fixed. |
+| A4 SHA-1 | **Each developer adds their own** (PL, Tarun, the Android team) |
+| A11 live checks (10) | **Not run yet** on any device |
+| B0 plan | **Approved by Tarun** (see 7.3) |
+| B1 one device, real BLE | **Code done, not tested on a device.** Kevin's original BLE code was confirmed working with LightBlue on Android. |
+| B2 several devices at once | **Not started. TOP PRIORITY.** |
+| B3 readings saved to Firestore | Not started. Readings are in memory only, so history is lost on restart. |
+| B4 real connection log → Devices tab stats | Not started |
+| B5 alert engine | Not started (thresholds UI + Firestore exist) |
+| B6 background recording | **Deferred** |
+| B7 clean-up, C docs | Mostly deferred |
+
+### 7.3 Decisions already made (don't reopen)
+- **B0 approved:**
+  - keep Kevin's existing Firestore fields, plus the new `reading_batches` collection
+  - device ID = platform + the device's own ID
+  - **max 4 devices** connected at once
+  - the connection log stays on the phone (AsyncStorage) for now
+- **Weight range** 20–300 kg (pending team agreement; Kevin's app uses 2–500).
+- **Bundle IDs:** iOS `com.galaxies.firebase`, Android `com.dsswearablecool.firebase`.
+- **Navigation:** this app's own navigator replaces Kevin's expo-router app. Kevin's committed `android/` folder is not used (Expo regenerates it).
+
+## 8. Firebase (settled)
 | | iOS | Android |
 |---|---|---|
-| Firebase project ID | `wearable-app-f9d83` | `wearable-app-f9d83` |
+| Project ID | `wearable-app-f9d83` | `wearable-app-f9d83` |
 | Project number | `944450266341` | `944450266341` |
-| App identifier | `com.galaxies.firebase` (`ios.bundleIdentifier`; also matches Kevin's app.json) | `com.dsswearablecool.firebase` (`android.package`) |
-| Config file (project root) | `GoogleService-Info.plist` (has `CLIENT_ID` + `REVERSED_CLIENT_ID`) | `google-services.json` |
+| App ID | `com.galaxies.firebase` | `com.dsswearablecool.firebase` |
+| Config file (repo root, never committed) | `GoogleService-Info.plist` | `google-services.json` |
 
-- Different app IDs in the **same** project is intentional. Accounts and data are shared across both platforms.
-- **Not used:** the Firebase project `dss-wearable-bric` and the ID `au.edu.latrobe.bric.dsswearables`. Don't reference them.
-- Both config files come from Tarun **privately**. They're gitignored. **Never commit them.** In the past they were accidentally committed once and had to be scrubbed, so check `git ls-files` before every commit.
-- **Google sign-in on Android** requires the SHA-1 of the debug keystore on the machine doing the build. PL's Mac has its own keystore (`~/.android/debug.keystore`), so PL's SHA-1 must be added in Firebase (Phase 2 Step A covers this).
-- **Google sign-in on iOS** requires the `@react-native-google-signin/google-signin` config plugin with `iosUrlScheme` = `REVERSED_CLIENT_ID` from the plist.
-- **Firestore layout used by Kevin's Android app** (verify against his code before relying on it):
-  - `users/{uid}`: profile (name, height, weight, …)
-  - `users/{uid}/private/…`: avatar data (Base64)
-  - `users/{uid}/sensor_readings/…`: sensor readings
-  - `users/{uid}/devices/{deviceId}`: paired devices `{ deviceId, name, addedAt, lastConnectedAt }`. `deviceId` is a **MAC address** on Android.
-  - **New in Phase 2:** `users/{uid}/settings/alerts`
-- **Shared data compatibility rule:** until Phase 3, Kevin's Android app still writes to this same Firestore. Tarun's app may only **ADD optional fields or new collections**. Never rename, remove or change the type of any field Kevin's app writes or reads. Documents without the new fields must still work (a missing `deviceId` on a reading means "unknown device").
-- **Do not change Firestore security rules or any Firebase console settings** without PL confirming the team (Kevin/Jared) agreed. It's a shared project.
+**Firestore documents (shared with Kevin's old app):**
+| Document | Fields |
+|---|---|
+| `users/{uid}` | `name`, `height`, `weight` (strings), `profilePictureUrl`, `autoConnectDevice` (bool) |
+| `users/{uid}/private/avatarData` | `imageData` (300×300 JPEG data URI) |
+| `users/{uid}/sensor_readings/{type}/readings` | `value`, `unit`, `timestamp`, `deviceId`, `deviceName`, `source` |
+| `users/{uid}/devices/{deviceId}` | `deviceId`, `name`, `addedAt`, `lastConnectedAt` (+ optional `platform`, `localName`, `serviceUUIDs`) |
+| **New:** `users/{uid}/settings/alerts` | `enabled`, `hrMin`, `hrMax`, `updatedAt` |
+| **New:** `users/{uid}/reading_batches/{autoId}` | `deviceId`, `platform`, `type`, `source`, `startAt`, `endAt`, `samples: [{t, v}]` |
 
-## 9. Known issues and decisions you must respect
+**Ask Kevin/Jared** to confirm the Firestore rules allow the two new paths.
 
-- **`ANDROID_BUGS.md`:** when porting Kevin's auth, **fix these, don't copy them**:
-  - Google sign-in never creates the `users/{uid}` profile (Save Profile later fails)
-  - Google sign-up wipes an existing user's profile
-  - Google users always see "?" as their avatar
+## 9. Known issues and facts
+- **The handshake must not need a battery service.** Kevin's code reads battery (`0x180F`) before subscribing to heart rate. LightBlue's fake Heart Rate device has no battery, and many real research devices won't either. A missing battery or device-info service must show "Not reported", never disconnect. (Fixed first in `PL_2`.)
+- **No screen may spin forever.** Loading must end in data, an empty state or an error within a few seconds.
+- **Steps and sleep don't come over BLE.** Only heart rate (`0x2A37`) and battery (`0x2A19`) are read. Steps/sleep come from dev test data until a device's step format is known.
+- **iOS BLE rules:**
+  - no MAC addresses (use platform + iOS UUID)
+  - Android-only workarounds (GATT 133, `requestMTU`, bonding) guarded by `Platform.OS`
+  - `Unauthorized` vs `PoweredOff` handled separately
+  - pairing is started by the device
+- **Fitbit:** only the Charge 6, Fitbit Air and Pixel Watch 2+ share heart rate over BLE, and only when sharing is switched on. The Inspire 3 and older can't.
 
-  Log each fix so the Android team can copy it.
-- **Kevin's BLE handles ONE connection at a time.** This app's UI shows several, so Phase 2 extends it (see `PL_2_PHASE2_TASKS.md`).
-- **Kevin saves heart rate at most once per minute.** That's too sparse for research, so Phase 2 adds batched saving of every reading.
-- **iOS BLE differences** (detailed in the charter's "Phase 2: BLE on iOS"):
-  - no MAC addresses on iOS (random peripheral UUIDs)
-  - Android-only workarounds (GATT 133 handling, `requestMTU`, bonding calls) must be guarded by `Platform.OS === 'android'`
-  - `Unauthorized` vs `PoweredOff` states
-  - pairing is started by the device, not the app
-  - 0x180D-filtered plus unfiltered scan passes
-- **Background recording** for at-home use replaces the earlier "foreground-only" decision.
-- **Daily Insight Summary** (DWBS22-372, JJ): no code exists anywhere. **Don't build it.**
-- **Phase 3** (merging into Kevin's repo) is **not part of this work.**
-
-## 10. Testing environment (PL's Mac)
-
+## 10. Testing
 | What | How |
 |---|---|
-| iOS, Firebase-only work | **iOS Simulator**: `npx expo run:ios` (the simulator supports Firebase, not Bluetooth) |
-| iOS, Bluetooth | **Physical iPhone**: `npx expo run:ios --device`. The first time, open `ios/*.xcworkspace` in Xcode → Signing & Capabilities → choose PL's Apple ID team. On the iPhone, trust the developer under Settings → General → VPN & Device Management. |
-| Android, Firebase-only | Android emulator, if Android Studio is installed: `npx expo run:android` |
-| Android, Bluetooth | Physical Android phone over USB, if available. Otherwise Tarun tests Android on his Windows PC after PL pushes. |
-| Expo Go | **Stops working** once Phase 2 adds native modules. Use development builds (`expo-dev-client`). |
+| Firebase (iOS) | iOS Simulator: `npx expo run:ios` |
+| BLE (iOS) | **Physical iPhone:** `npx expo run:ios --device`. Set Xcode Signing to PL's Apple ID once. Trust the developer on the iPhone. |
+| Android | Tarun or the Android team: `npx expo run:android` (emulator for Firebase, physical phone for BLE) |
 
-- **Free Apple ID builds expire after 7 days.** Rebuild within 7 days of any demo.
-- Test BLE hardware: a standard Bluetooth heart-rate chest strap (most reliable), or the **nRF Connect** app advertising a Heart Rate service. A Galaxy Watch doesn't expose heart rate over plain BLE. If nRF Connect can't read a device, the app can't either.
-- **Common fixes:**
-  - `cd ios && pod install --repo-update`
-  - `npx expo prebuild --platform ios --clean`
-  - "No Firebase App": the plist is missing from the root, or its bundle ID doesn't match
+**Fake heart-rate devices:**
+- **LightBlue** on an iPhone: Virtual Devices → Heart Rate. Keep LightBlue open and the iPhone unlocked.
+- Send values in **Hex**, with byte limit ≥ 2: `0046` = 70, `0048` = 72, `005A` = 90, `0064` = 100 (`00` = flags byte, then BPM).
+- **Battery** (if a service can be added): `180F`/`2A19`, one byte (`55` = 85%).
 
-## 11. Setup procedure
+**Several devices need several fake devices:** one iPhone can only be **one** fake device, so B2 testing needs **2+ separate phones** running LightBlue (or nRF Connect on Android phones that support its GATT server).
 
-Do these in order and report each result to PL. **Never skip a step. Stop at the first failure.**
+Free Apple ID builds expire after 7 days; rebuild before demos.
 
-1. **Tools:** report the versions of `xcodebuild -version`, `pod --version`, `node -v`, `npm -v` and `git --version`. Xcode and CocoaPods are required. Android Studio / Java are optional: check `java -version` and whether `~/Library/Android/sdk` exists, and report.
-2. **Folder layout:** confirm `~/DSSWEARABLE/DSS-iOS-UI` and `~/DSSWEARABLE/DSS-wearable-App` both exist and are git repos. Confirm the current working directory is `DSS-iOS-UI`.
-3. **Remotes:**
-   - `git remote -v` in `DSS-iOS-UI` must show `origin` = `https://github.com/TarunKrishnan6/DSS-iOS-UI.git`
-   - `git -C ../DSS-wearable-App remote -v` must show Kevin's repo
-4. **Kevin's repo is clean and up to date (read-only):**
-   - run `git -C ../DSS-wearable-App fetch`
-   - `git -C ../DSS-wearable-App status` must be clean
-   - list the remote branches and the latest commit on `origin/feature/ble-connection` (hash, date, message)
-   - say whether `feature/ble-connection` has been merged into `main`
-5. **Tarun's repo is up to date:**
-   - `git checkout main`, then `git pull origin main`
-   - report the latest 10 commits on `main`
-   - the history must include "Phase 1 sign-off" and the layout-change commits (Dashboard expandable cards, Devices tab)
-   - if the layout change isn't there, **stop**: Tarun hasn't pushed it yet
-6. **Create the working branch and add the handover files:**
-   - `git checkout -b phase-2` (if it already exists on origin, `git checkout phase-2` and `git pull` instead, and tell PL)
-   - copy `PL_1_SETUP_AND_CONTEXT.md` and `PL_2_PHASE2_TASKS.md` into the repo root if they aren't already there
-   - **append** (don't replace the existing Expo notes) this section to the end of `AGENTS.md`:
-     ```
-     ## Phase 2 handover (PL, using Codex)
-     Before doing ANY work in this repo, read these files in full, in this order, and obey them:
-     1. PL_1_SETUP_AND_CONTEXT.md (rules, context, setup checklist)
-     2. PL_2_PHASE2_TASKS.md (the work, step by step)
-     3. claudephase2charter.md (full plan + Progress Log; append to its Progress Log after every step)
-     Rule 0 of PL_1_SETUP_AND_CONTEXT.md overrides everything: Kevin's repo (../DSS-wearable-App) is read-only, all changes go on branch phase-2 of this repo, never commit google-services.json / GoogleService-Info.plist / .env / ios/ / android/, and never redesign the UI.
-     ```
-   - **don't edit `CLAUDE.md`**: it's Tarun's Claude Code file
-   - record the starting commit hash of `main` in the charter's Progress Log under a new entry "Phase 2 handover to PL"
-   - commit as "Phase 2 handover: add PL docs"
-7. **Firebase config files:**
-   - `GoogleService-Info.plist` and `google-services.json` must exist in the repo root **with exactly those names**. Watch for hidden double extensions or "(1)" in the names.
-   - verify from their contents:
-     - `PROJECT_ID` = `wearable-app-f9d83`
-     - `GCM_SENDER_ID` = `944450266341`
-     - `BUNDLE_ID` = `com.galaxies.firebase`
-     - `REVERSED_CLIENT_ID` is present
-     - in the JSON: `project_id` = `wearable-app-f9d83`, `project_number` = `944450266341`, `package_name` = `com.dsswearablecool.firebase`
-   - **Never print API keys in full.**
-8. **Git safety:**
-   - `.gitignore` must contain `google-services.json`, `GoogleService-Info.plist`, `.env`, `/ios` and `/android`
-   - `git ls-files | grep -iE "google-services|GoogleService-Info|\.env$"` must print **nothing**
-9. **Install and check:**
-   - `npm install` (in `DSS-iOS-UI` only), then `npm run typecheck` (must be clean)
-   - `npx expo config --type public` must resolve without errors
-   - report `ios.bundleIdentifier` and `android.package` from `app.json`. Phase 2 Step A sets them; before it, they may still hold old values, which is expected.
-10. **Baseline run (optional but recommended):** `npx expo start`, then open in Expo Go on an iPhone or press `i` for the simulator. Confirm the app opens and the 4-tab structure from section 7 is present. This is the last time Expo Go works.
-11. **Read the plan:**
-    - read `claudephase2charter.md` in full, especially the Progress Log entries from Task 0, "Phase 2 swap points", "Phase 2: BLE on iOS" and the layout-change entries
-    - list any differences between section 7 of this file and what the code and log actually contain
-12. **Report** the checklist below to PL and stop.
+## 11. Setup procedure (report each result; stop at the first failure)
+1. **Tools:** report `xcodebuild -version`, `pod --version`, `node -v`, `git --version`.
+2. **Repo:**
+   - `cd ~/DSSWEARABLE/DSS-wearable-App`
+   - `git fetch origin`
+   - `git checkout ui-changes`
+   - `git pull origin ui-changes`
+   - report the last 10 commits; they must include the 4-tab UI, the font/polish commits and "Docs: ui-changes handover v2"
+   - `git status` must be clean
+   - if `ui-changes` doesn't exist on origin, **stop**: Tarun hasn't pushed yet
+3. **Remote:** `git remote -v` shows `origin` = KevinCGIA/DSS-wearable-App.
+4. **Firebase files** are in the repo root with exact names, from `wearable-app-f9d83`, gitignored and **untracked**.
+5. **`.gitignore`** contains `google-services.json`, `GoogleService-Info.plist`, `.env`, `/ios`, `/android`.
+6. **Install:** `npm install`, then `npm run typecheck` (clean) and the automated tests (all passing).
+7. **Build:** `npx expo prebuild --platform ios --clean`, then `npx expo run:ios` (Simulator). The app opens to sign-in.
+8. **Read** `claudephase2charter.md` (latest Progress Log entries) and `PL_2_PHASE2_TASKS.md`. List any differences from section 7.
+9. **Report** the checklist below and stop.
 
-## 12. Setup Checklist: ALL items must be ✅ before starting `PL_2_PHASE2_TASKS.md`
+## 12. Setup checklist (all must be ✅)
+- [ ] Xcode, CocoaPods, Node, Git versions reported
+- [ ] In `~/DSSWEARABLE/DSS-wearable-App`, on branch **`ui-changes`**, pulled, working tree clean
+- [ ] Last commits include the 4-tab UI, fonts/polish and the v2 handover docs
+- [ ] `origin` = KevinCGIA/DSS-wearable-App
+- [ ] Both Firebase files present, correct project, untracked; `.gitignore` correct
+- [ ] `npm install` OK, typecheck clean, tests passing
+- [ ] iOS Simulator build opens to sign-in
+- [ ] Differences from section 7 listed (or "none")
+- [ ] **Answer in one line each:**
+  - Which branch do commits go on?
+  - What must you run before starting and before pushing?
+  - Which branch must never receive commits?
+  - Which files must never be committed?
+  - What needs Tarun's approval?
+  - Which Firestore fields may change? (Answer: none of the existing ones; only additions.)
 
-Copy this list into your report with ✅ or ❌ and a one-line note for each.
-
-**Environment**
-- [ ] Xcode installed (version reported)
-- [ ] CocoaPods installed (version reported)
-- [ ] Node LTS and npm installed (versions reported)
-- [ ] Android Studio / Java status reported (optional; note whether Android can be tested on this Mac)
-
-**Repos**
-- [ ] `~/DSSWEARABLE/DSS-iOS-UI` exists, `origin` = TarunKrishnan6/DSS-iOS-UI
-- [ ] `~/DSSWEARABLE/DSS-wearable-App` exists and is Kevin's repo
-- [ ] Kevin's repo fetched; `git status` **clean**; nothing modified there
-- [ ] Latest `origin/feature/ble-connection` commit reported, and whether it's merged into `main`
-- [ ] Tarun's `main` pulled; "Phase 1 sign-off" and the layout-change commits present
-- [ ] Working on branch **`phase-2`** (not `main`)
-- [ ] Handover files in the repo root, the "Phase 2 handover" section appended to `AGENTS.md`, `CLAUDE.md` untouched, committed on `phase-2`
-- [ ] Starting commit hash recorded in the Progress Log
-
-**Firebase**
-- [ ] `GoogleService-Info.plist` present, exact name, `PROJECT_ID` `wearable-app-f9d83`, `GCM_SENDER_ID` `944450266341`, `BUNDLE_ID` `com.galaxies.firebase`, `REVERSED_CLIENT_ID` present
-- [ ] `google-services.json` present, exact name, `project_id` `wearable-app-f9d83`, `project_number` `944450266341`, `package_name` `com.dsswearablecool.firebase`
-- [ ] Both files gitignored and **not tracked**; `.env`, `/ios` and `/android` gitignored
-
-**App**
-- [ ] `npm install` succeeded; `npm run typecheck` clean
-- [ ] `npx expo config` resolves
-- [ ] (Optional) the app opens in Expo Go / the simulator with tabs Dashboard | Devices | Activity | Settings
-- [ ] Differences between section 7 and the actual code/log listed (or "none")
-
-**Understanding** (answer each in one line in the report)
-- [ ] Which repo may be changed, and which is read-only?
-- [ ] Which branch do all commits go on, and where may it be pushed?
-- [ ] Which files must never be committed?
-- [ ] What must never be changed without Tarun's approval?
-- [ ] Which Firestore fields may be changed? (Answer: none of the existing ones; only additions.)
-
-**If any item is ❌, stop, explain the fix, and wait for PL.** When all are ✅, tell PL: "Setup complete. Ready for `PL_2_PHASE2_TASKS.md` Step A."
+If any item is ❌, stop and explain. When all are ✅, tell PL: **"Setup complete. Ready for PL_2_PHASE2_TASKS.md step T0."**
