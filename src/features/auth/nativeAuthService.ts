@@ -51,5 +51,5 @@ export const nativeAuthService = createNativeAuthService({
   sendPasswordReset: (email) => sendPasswordResetEmail(getAuth(), email),
   changeEmail: (email) => verifyBeforeUpdateEmail(currentUser(), email),
   ensureProfile: ensureNativeProfile,
-  saveAvatar: saveNativeAvatar,
+  saveAvatar: async (uid, uri) => { await saveNativeAvatar(uid, uri); },
 });
