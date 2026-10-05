@@ -17,8 +17,6 @@ type Props = {
   style?: ViewStyle;
 };
 
-const valueStyle = { hero: type.hero, large: type.statLarge, medium: type.statMedium };
-
 export function StatReadout({
   value,
   unit,
@@ -34,6 +32,7 @@ export function StatReadout({
   const labelColor = onAccent ? colors.live.trackOn : colors.textMuted;
   const unitColor = onAccent ? colors.live.trackOn : colors.textSecondary;
   const alignment = align === 'center' ? 'center' : 'flex-start';
+  const valueStyle = { hero: type.hero, large: type.statLarge, medium: type.statMedium }[size];
 
   return (
     <View style={[{ alignItems: alignment }, style]}>
@@ -44,7 +43,7 @@ export function StatReadout({
         </Text>
       </View>
       <View style={styles.valueRow}>
-        <Text style={[valueStyle[size], { color: valueColor }]} numberOfLines={1}>
+        <Text style={[valueStyle, { color: valueColor }]} numberOfLines={1}>
           {value}
         </Text>
         {unit ? (
