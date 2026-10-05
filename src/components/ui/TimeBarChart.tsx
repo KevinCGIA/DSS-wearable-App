@@ -34,8 +34,8 @@ export function TimeBarChart({
     <View style={style} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
       <View style={[styles.plotRow, { height }]}>
         <View style={styles.axis}>
-          <Text style={[type.caption, styles.axisText]}>{formatAxis(ceiling)}</Text>
-          <Text style={[type.caption, styles.axisText]}>0</Text>
+          <Text style={[type.axis, styles.axisText]}>{formatAxis(ceiling)}</Text>
+          <Text style={[type.axis, styles.axisText]}>0</Text>
         </View>
         <View style={styles.plot}>
           <View style={[styles.grid, styles.gridTop]} />
@@ -60,7 +60,7 @@ export function TimeBarChart({
         {ticks.map((t) => (
           <Text
             key={t}
-            style={[type.caption, styles.tick, { left: `${((t - start) / span) * 100}%` }]}
+            style={[type.axis, styles.tick, { left: `${((t - start) / span) * 100}%` }]}
             numberOfLines={1}
           >
             {formatHour(t)}

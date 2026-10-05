@@ -57,8 +57,8 @@ export function TimeLineChart({ buckets, start, end, color = colors.vital.pulse,
     <View style={style} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
       <View style={styles.plotRow}>
         <View style={styles.axis}>
-          <Text style={[type.caption, styles.axisText]}>{high}</Text>
-          <Text style={[type.caption, styles.axisText]}>{low}</Text>
+          <Text style={[type.axis, styles.axisText]}>{high}</Text>
+          <Text style={[type.axis, styles.axisText]}>{low}</Text>
         </View>
         <View style={[styles.plot, { height }]} onLayout={onLayout}>
           <View style={[styles.grid, styles.gridTop]} />
@@ -95,7 +95,7 @@ export function TimeLineChart({ buckets, start, end, color = colors.vital.pulse,
       </View>
       <View style={styles.ticks}>
         {sixHourTicks(start, end).map((t) => (
-          <Text key={t} style={[type.caption, styles.tick, { left: `${((t - start) / span) * 100}%` }]} numberOfLines={1}>
+          <Text key={t} style={[type.axis, styles.tick, { left: `${((t - start) / span) * 100}%` }]} numberOfLines={1}>
             {formatHour(t)}
           </Text>
         ))}
