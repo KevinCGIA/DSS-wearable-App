@@ -17,6 +17,7 @@ export const CONNECT_TIMEOUT_MS = 10000;
 // Handshake retries: attempt 1 runs immediately, then waits
 // RETRY_BASE_DELAY_MS, 2x, 4x... between attempts.
 export const MAX_CONNECT_ATTEMPTS = 3;
+export const MAX_CONNECTED_DEVICES = 4;
 export const RETRY_BASE_DELAY_MS = 1000;
 
 // After an unexpected disconnect (out of range, watch rebooted),

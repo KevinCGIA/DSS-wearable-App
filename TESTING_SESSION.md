@@ -33,7 +33,13 @@ Same-account Android testing is assigned to the Android team.
 
 ## T4 multi-device test — app iPhone + 2 LightBlue phones
 
-Pending implementation steps; perform these in the final combined session.
+1. Keep both LightBlue phones unlocked with Heart Rate virtual devices active. Give them distinct names if possible.
+2. Connect each from Add device. Devices must show two Connected now cards; Dashboard must show two devices connected.
+3. Set device A to `0046` (70), B to `0064` (100). In Activity, select each chip and check its value. Change A to `005A` (90); B must stay at 100.
+4. Disconnect A. B must continue streaming. Reconnect A, then Forget A; B must remain connected.
+5. Pair A again, enable auto-connect, relaunch: both remembered devices reconnect. Switch auto-connect off and relaunch: neither reconnects automatically.
+6. With additional equipment, connect four devices, then try a fifth. Expect the existing error banner to state the four-device limit; all four streams continue. Two LightBlue phones alone cannot validate this physical limit test.
+7. Cancel one device while it is connecting or reconnecting; the other remains connected and the cancelled device must not return later.
 
 ## T5 saved readings
 

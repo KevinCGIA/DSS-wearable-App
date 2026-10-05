@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { deviceKey, nativeDeviceId } from "./deviceKey";
 import { withDeadline } from '../asyncDeadline';
 
 import {
@@ -18,6 +19,7 @@ import {
   REQUESTED_MTU,
   RETRY_BASE_DELAY_MS,
   SCAN_TIMEOUT_MS,
+  MAX_CONNECTED_DEVICES,
 } from "./constants";
 import { canonicalGattUuid, sharesAdvertisedService } from "./uuid";
 import { parseHeartRateMeasurement } from "./heartRateMeasurement";
@@ -79,31 +81,21 @@ const delay = (ms: number) =>
 
 class StaleConnectionError extends Error {}
 
+type SessionEntry = { connection: DeviceConnection; pending?: Promise<boolean>; cancelled: boolean };
+
 export class BleService {
   private manager: BleManager | null = null;
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
   private scanPassTimer: ReturnType<typeof setTimeout> | null = null;
   private scanCallbacks: ScanCallbacks | null = null;
   private scanGeneration = 0;
-  private disconnectSubscription: Subscription | null = null;
-  private heartRateSubscription: Subscription | null = null;
-  private heartRateListeners = new Set<(bpm: number) => void>();
-  private connection: ConnectionState = INITIAL_CONNECTION;
-  private listeners = new Set<(state: ConnectionState) => void>();
+  private sessions = new Map<string, SessionEntry>();
+  private latestId: string | null = null;
+  private listeners = new Set<(states: Record<string, ConnectionState>) => void>();
+  private heartRateListeners = new Set<(bpm: number, deviceId: string, name: string | null) => void>();
 
-  // Bumped whenever the user connects, disconnects or switches device.
-  // Any in-flight handshake or reconnect loop holding an older token
-  // stops at its next checkpoint, which makes cancelling safe.
-  private connectionToken = 0;
-
-  // Created lazily. Constructing BleManager starts the native client,
-  // and on iOS that is what shows the Bluetooth permission prompt.
   private getManager(): BleManager {
-    if (!this.manager) {
-      this.manager = new BleManager();
-    }
-
-    return this.manager;
+    return this.manager ??= new BleManager();
   }
 
   // ----- Adapter state -----
@@ -228,6 +220,85 @@ export class BleService {
     return matches.size === 1 ? [...matches.values()][0] : null;
   }
 
+
+  getConnections(): Record<string, ConnectionState> {
+    return Object.fromEntries([...this.sessions].map(([id, entry]) => [id, {
+      ...entry.connection.getConnectionState(), deviceId: id,
+    }]));
+  }
+
+  getConnectionState(): ConnectionState {
+    return (this.latestId && this.getConnections()[this.latestId]) || INITIAL_CONNECTION;
+  }
+
+  subscribe(listener: (states: Record<string, ConnectionState>) => void) {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  }
+
+  onHeartRate(listener: (bpm: number, deviceId: string, name: string | null) => void) {
+    this.heartRateListeners.add(listener);
+    return () => { this.heartRateListeners.delete(listener); };
+  }
+
+  connect(id: string, name: string | null): Promise<boolean> {
+    const key = deviceKey(Platform.OS === 'ios' ? 'ios' : 'android', id);
+    const existing = this.sessions.get(key);
+    if (existing?.pending) return existing.pending;
+    if (existing?.connection.getConnectionState().status === 'connected') {
+      this.latestId = key;
+      this.emit();
+      return Promise.resolve(true);
+    }
+    if (existing?.connection.getConnectionState().status === 'disconnecting') return Promise.resolve(false);
+    const active = [...this.sessions.values()].filter((entry) => entry.pending || entry.connection.getConnectionState().status !== 'disconnected');
+    if (active.length >= MAX_CONNECTED_DEVICES) return Promise.reject(new Error('A maximum of 4 devices can be connected. Disconnect one first.'));
+    const entry: SessionEntry = { connection: new DeviceConnection(() => this.getManager()), cancelled: false };
+    this.sessions.set(key, entry);
+    this.latestId = key;
+    entry.connection.subscribe(() => { if (this.sessions.get(key) === entry) this.emit(); });
+    entry.connection.onHeartRate((bpm) => {
+      if (this.sessions.get(key) !== entry || entry.cancelled) return;
+      this.heartRateListeners.forEach((listener) => listener(bpm, key, name));
+    });
+    entry.pending = (async () => {
+      await this.stopScan();
+      if (entry.cancelled) return false;
+      return entry.connection.connect(nativeDeviceId(key), name);
+    })().finally(() => { entry.pending = undefined; });
+    return entry.pending;
+  }
+
+  async disconnect(deviceId?: string): Promise<void> {
+    const key = deviceId ? deviceKey(Platform.OS === 'ios' ? 'ios' : 'android', deviceId) : this.latestId;
+    const entry = key ? this.sessions.get(key) : undefined;
+    if (!entry) return;
+    entry.cancelled = true;
+    await entry.connection.disconnect();
+  }
+
+  async disconnectAll(): Promise<void> {
+    await Promise.all([...this.sessions.keys()].map((key) => this.disconnect(key)));
+    this.sessions.clear();
+    this.latestId = null;
+    this.emit();
+  }
+
+  private emit() { const states = this.getConnections(); this.listeners.forEach((listener) => listener(states)); }
+}
+
+let nextSessionId = 0;
+
+class DeviceConnection {
+  private sessionId = ++nextSessionId;
+  private disconnectSubscription: Subscription | null = null;
+  private heartRateSubscription: Subscription | null = null;
+  private heartRateListeners = new Set<(bpm: number) => void>();
+  private connection: ConnectionState = INITIAL_CONNECTION;
+  private listeners = new Set<(state: ConnectionState) => void>();
+  private connectionToken = 0;
+  constructor(private getManager: () => BleManager) {}
+
   // ----- Connection state -----
 
   getConnectionState(): ConnectionState {
@@ -281,9 +352,6 @@ export class BleService {
     this.clearDisconnectSubscription();
     this.stopHeartRateMonitor();
 
-    // Android connects much less reliably while a scan is running
-    await this.stopScan();
-
     if (previousDeviceId && previousDeviceId !== deviceId) {
       await this.cancelConnection(previousDeviceId);
     }
@@ -309,9 +377,10 @@ export class BleService {
       return;
     }
 
+    const token = this.connectionToken;
     this.setConnection({ status: "disconnecting" });
     await this.cancelConnection(deviceId);
-    this.setConnection(INITIAL_CONNECTION);
+    if (!this.isStale(token)) this.setConnection({ ...INITIAL_CONNECTION, deviceId });
   }
 
   private async connectWithRetry(
@@ -342,6 +411,7 @@ export class BleService {
         return true;
       } catch (e) {
         lastError = e;
+        if (this.isStale(token)) return false;
         this.stopHeartRateMonitor();
         console.log(
           `BLE handshake attempt ${attempt}/${maxAttempts} failed:`,
@@ -379,11 +449,11 @@ export class BleService {
   private async handshake(deviceId: string, token: number) {
     const manager = this.getManager();
 
-    await manager.connectToDevice(deviceId, {
+    await withDeadline(manager.connectToDevice(deviceId, {
       timeout: CONNECT_TIMEOUT_MS,
       requestMTU:
         Platform.OS === "android" ? REQUESTED_MTU : undefined,
-    });
+    }), CONNECT_TIMEOUT_MS + 1000);
     this.throwIfStale(token);
 
     this.setConnection({ status: "discovering" });
@@ -393,7 +463,7 @@ export class BleService {
     this.throwIfStale(token);
 
     // Device Information is optional and is not required by this handshake.
-    const hasHeartRate = await this.startHeartRateMonitor(deviceId);
+    const hasHeartRate = await this.startHeartRateMonitor(deviceId, token);
     this.throwIfStale(token);
 
     this.watchForDisconnect(deviceId, token);
@@ -414,13 +484,9 @@ export class BleService {
 
     this.disconnectSubscription =
       this.getManager().onDeviceDisconnected(deviceId, (error) => {
+        if (this.isStale(token)) return;
         this.clearDisconnectSubscription();
         this.stopHeartRateMonitor();
-
-        // The app disconnected on purpose
-        if (this.isStale(token)) {
-          return;
-        }
 
         console.log("BLE device disconnected unexpectedly:", error);
 
@@ -438,10 +504,11 @@ export class BleService {
 
   // Subscribes to Heart Rate Measurement notifications if the device has
   // the standard Heart Rate service. Devices without it are left alone.
-  private async startHeartRateMonitor(deviceId: string) {
+  private async startHeartRateMonitor(deviceId: string, token: number) {
     this.stopHeartRateMonitor();
 
     const services = await withDeadline(this.getManager().servicesForDevice(deviceId));
+    this.throwIfStale(token);
     const hasHeartRate = services.some(
       (service) => canonicalGattUuid(service.uuid) === GATT.HEART_RATE_SERVICE
     );
@@ -458,7 +525,7 @@ export class BleService {
         (error, characteristic) => {
           // Errors here mean the link dropped or monitoring was stopped,
           // which the disconnect handling already deals with
-          if (error || !characteristic?.value) {
+          if (this.isStale(token) || error || !characteristic?.value) {
             return;
           }
 
@@ -482,7 +549,7 @@ export class BleService {
   private async readBatteryLevel(
     deviceId: string
   ): Promise<number | null> {
-    const transaction = `battery-${deviceId}-${this.connectionToken}`;
+    const transaction = `battery-${deviceId}-${this.sessionId}-${this.connectionToken}`;
     try {
       const characteristic =
         await withDeadline(this.getManager().readCharacteristicForDevice(
@@ -538,7 +605,7 @@ function toScannedDevice(device: Device): ScannedDevice | null {
   }
 
   return {
-    id: device.id,
+    id: deviceKey(Platform.OS === "ios" ? "ios" : "android", device.id),
     name,
     rssi: device.rssi,
     isHeartRateDevice:
