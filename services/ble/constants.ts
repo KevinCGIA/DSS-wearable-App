@@ -19,6 +19,11 @@ export const CONNECT_TIMEOUT_MS = 10000;
 export const MAX_CONNECT_ATTEMPTS = 3;
 export const RETRY_BASE_DELAY_MS = 1000;
 
+// How many wearables can be connected at the same time. Android phones
+// typically support around 7 BLE connections in total (shared with things
+// like earbuds), so leave headroom.
+export const MAX_CONNECTED_DEVICES = 4;
+
 // After an unexpected disconnect (out of range, watch rebooted),
 // try this many times to reconnect before giving up.
 export const MAX_AUTO_RECONNECT_ATTEMPTS = 3;

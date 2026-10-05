@@ -12,6 +12,7 @@ import {
 import { getAuth } from "@react-native-firebase/auth";
 import { State, Subscription } from "react-native-ble-plx";
 
+import { getInstallationId } from "../devices/installationId";
 import {
   forgetPairedDevice,
   PairedDevice,
@@ -28,7 +29,10 @@ import {
   describeBluetoothState,
   ScannedDevice,
 } from "./BleService";
-import { HEART_RATE_SAVE_INTERVAL_MS } from "./constants";
+import {
+  HEART_RATE_SAVE_INTERVAL_MS,
+  MAX_CONNECTED_DEVICES,
+} from "./constants";
 import {
   hasBlePermissions,
   requestBlePermissions,
@@ -42,21 +46,36 @@ type BleContextValue = {
   scanError: string | null;
   startScan: () => Promise<void>;
   stopScan: () => Promise<void>;
-  connection: ConnectionState;
+  // Every device that is connected, connecting, or whose last attempt
+  // failed (status "disconnected" with an error)
+  connections: ConnectionState[];
   connect: (device: { id: string; name: string | null }) => Promise<boolean>;
-  disconnect: () => Promise<void>;
-  // Devices this account has connected to before, most recent first
+  disconnect: (deviceId: string) => Promise<void>;
+  dismissError: (deviceId: string) => void;
+  // This phone's paired devices, most recent first
   pairedDevices: PairedDevice[];
-  forgetDevice: (deviceId: string) => Promise<void>;
-  // Reconnect to the most recent paired device when the app opens
+  forgetDevice: (device: PairedDevice) => Promise<void>;
+  // Reconnect to paired devices when the app opens
   autoConnect: boolean;
   setAutoConnect: (enabled: boolean) => Promise<void>;
 };
 
+export type LiveHeartRate = {
+  bpm: number;
+  deviceId: string;
+  deviceName: string | null;
+  // ms since epoch
+  receivedAt: number;
+};
+
 const BleContext = createContext<BleContextValue | null>(null);
 
+// Separate from BleContext because it updates about once a second; only
+// heart rate displays should re-render that often
+const LiveHeartRateContext = createContext<LiveHeartRate | null>(null);
+
 // Holds BLE state for the logged-in part of the app, so any screen
-// (Home, the Devices screen, Settings) sees the same connection.
+// (Home, the Devices screen, Settings) sees the same connections.
 export function BleProvider({ children }: { children: ReactNode }) {
   const [bluetoothState, setBluetoothState] = useState<State>(
     State.Unknown
@@ -66,23 +85,48 @@ export function BleProvider({ children }: { children: ReactNode }) {
     Record<string, ScannedDevice>
   >({});
   const [scanError, setScanError] = useState<string | null>(null);
-  const [connection, setConnection] = useState<ConnectionState>(
-    bleService.getConnectionState()
+  const [connections, setConnections] = useState<ConnectionState[]>(
+    bleService.getConnections()
   );
+  const [liveHeartRate, setLiveHeartRate] =
+    useState<LiveHeartRate | null>(null);
+  const [installationId, setInstallationId] = useState<string | null>(null);
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
   const [pairedLoaded, setPairedLoaded] = useState(false);
   const [autoConnect, setAutoConnectState] = useState(true);
   const autoConnectAttempted = useRef(false);
 
   useEffect(() => {
+    const unsubscribe = bleService.subscribe(setConnections);
+
+    return () => {
+      unsubscribe();
+
+      // Leaving the logged-in area (logout) drops all devices
+      bleService.stopScan();
+      bleService.disconnectAll();
+    };
+  }, []);
+
+  useEffect(() => {
+    getInstallationId()
+      .then(setInstallationId)
+      .catch((e) => {
+        console.log("Failed to load installation ID:", e);
+        setPairedLoaded(true);
+      });
+  }, []);
+
+  useEffect(() => {
     const user = getAuth().currentUser;
 
-    if (!user) {
+    if (!user || !installationId) {
       return;
     }
 
     const unsubscribeDevices = subscribeToPairedDevices(
       user.uid,
+      installationId,
       (devices) => {
         setPairedDevices(devices);
         setPairedLoaded(true);
@@ -101,48 +145,55 @@ export function BleProvider({ children }: { children: ReactNode }) {
       unsubscribeDevices();
       unsubscribeAutoConnect();
     };
-  }, []);
+  }, [installationId]);
 
   // Remember every device that connects successfully
+  const connectedKey = connections
+    .filter((c) => c.status === "connected")
+    .map((c) => c.deviceId)
+    .join(",");
+
   useEffect(() => {
     const user = getAuth().currentUser;
-    const { status, deviceId, deviceName } = connection;
 
-    if (!user || status !== "connected" || !deviceId) {
+    if (!user || !installationId) {
       return;
     }
 
-    savePairedDevice(user.uid, deviceId, deviceName ?? "Unknown device").catch(
-      (e) => console.log("Failed to save paired device:", e)
-    );
-  }, [connection.status, connection.deviceId]);
+    for (const c of bleService.getConnections()) {
+      if (c.status === "connected") {
+        savePairedDevice(
+          user.uid,
+          installationId,
+          c.deviceId,
+          c.deviceName ?? "Unknown device"
+        ).catch((e) => console.log("Failed to save paired device:", e));
+      }
+    }
+  }, [connectedKey, installationId]);
 
+  // Show heart rate live, and save it to Firestore at most once per
+  // interval per device
   useEffect(() => {
-    const unsubscribe = bleService.subscribe(setConnection);
+    const lastSavedAt = new Map<string, number>();
 
-    return () => {
-      unsubscribe();
-
-      // Leaving the logged-in area (logout) drops the device
-      bleService.stopScan();
-      bleService.disconnect();
-    };
-  }, []);
-
-  // Save heart rate from the connected device to Firestore, throttled
-  useEffect(() => {
-    let lastSavedAt = 0;
-
-    return bleService.onHeartRate((bpm) => {
-      const user = getAuth().currentUser;
+    return bleService.onHeartRate((bpm, deviceId) => {
       const now = Date.now();
+      const deviceName =
+        bleService.getConnection(deviceId)?.deviceName ?? null;
 
-      if (!user || now - lastSavedAt < HEART_RATE_SAVE_INTERVAL_MS) {
+      setLiveHeartRate({ bpm, deviceId, deviceName, receivedAt: now });
+
+      const user = getAuth().currentUser;
+
+      if (
+        !user ||
+        now - (lastSavedAt.get(deviceId) ?? 0) < HEART_RATE_SAVE_INTERVAL_MS
+      ) {
         return;
       }
 
-      lastSavedAt = now;
-      const { deviceId, deviceName } = bleService.getConnectionState();
+      lastSavedAt.set(deviceId, now);
 
       addSensorReading(user.uid, "heart_rate", {
         value: bpm,
@@ -193,12 +244,12 @@ export function BleProvider({ children }: { children: ReactNode }) {
     };
   }, [watchBluetoothState]);
 
-  // Once per login: reconnect to the most recent paired device. Waits for
-  // Bluetooth to report PoweredOn, which only happens once permission has
-  // been granted, so this never triggers a permission prompt by itself.
+  // Once per login: reconnect to this phone's paired devices, most recent
+  // first. Waits for Bluetooth to report PoweredOn, which only happens once
+  // permission has been granted, so this never triggers a permission
+  // prompt by itself. One at a time, since Android connects more reliably
+  // that way.
   useEffect(() => {
-    const lastDevice = pairedDevices[0];
-
     if (
       autoConnectAttempted.current ||
       !pairedLoaded ||
@@ -209,13 +260,17 @@ export function BleProvider({ children }: { children: ReactNode }) {
 
     autoConnectAttempted.current = true;
 
-    if (
-      autoConnect &&
-      lastDevice &&
-      bleService.getConnectionState().status === "disconnected"
-    ) {
-      bleService.connect(lastDevice.deviceId, lastDevice.name);
+    if (!autoConnect) {
+      return;
     }
+
+    (async () => {
+      for (const device of pairedDevices.slice(0, MAX_CONNECTED_DEVICES)) {
+        if (!bleService.getConnection(device.deviceId)) {
+          await bleService.connect(device.deviceId, device.name);
+        }
+      }
+    })();
   }, [pairedLoaded, pairedDevices, bluetoothState, autoConnect]);
 
   const startScan = useCallback(async () => {
@@ -249,14 +304,14 @@ export function BleProvider({ children }: { children: ReactNode }) {
       setIsScanning(false);
       setScanError(e.message);
     }
-  }, []);
+  }, [watchBluetoothState]);
 
   const stopScan = useCallback(() => bleService.stopScan(), []);
 
   const connect = useCallback(
     async (device: { id: string; name: string | null }) => {
-      // Connecting from Settings can happen before any scan, so make
-      // sure permissions are granted first
+      // Connecting from Settings or an NFC tag can happen before any scan,
+      // so make sure permissions are granted first
       const granted = await requestBlePermissions();
 
       if (!granted) {
@@ -270,20 +325,25 @@ export function BleProvider({ children }: { children: ReactNode }) {
     [watchBluetoothState]
   );
 
-  const disconnect = useCallback(() => bleService.disconnect(), []);
+  const disconnect = useCallback(
+    (deviceId: string) => bleService.disconnect(deviceId),
+    []
+  );
 
-  const forgetDevice = useCallback(async (deviceId: string) => {
+  const dismissError = useCallback(
+    (deviceId: string) => bleService.dismissError(deviceId),
+    []
+  );
+
+  const forgetDevice = useCallback(async (device: PairedDevice) => {
     const user = getAuth().currentUser;
 
     if (!user) {
       return;
     }
 
-    if (bleService.getConnectionState().deviceId === deviceId) {
-      await bleService.disconnect();
-    }
-
-    await forgetPairedDevice(user.uid, deviceId);
+    await bleService.disconnect(device.deviceId);
+    await forgetPairedDevice(user.uid, device.docId);
   }, []);
 
   const setAutoConnect = useCallback(async (enabled: boolean) => {
@@ -312,9 +372,10 @@ export function BleProvider({ children }: { children: ReactNode }) {
       scanError,
       startScan,
       stopScan,
-      connection,
+      connections,
       connect,
       disconnect,
+      dismissError,
       pairedDevices,
       forgetDevice,
       autoConnect,
@@ -327,9 +388,10 @@ export function BleProvider({ children }: { children: ReactNode }) {
       scanError,
       startScan,
       stopScan,
-      connection,
+      connections,
       connect,
       disconnect,
+      dismissError,
       pairedDevices,
       forgetDevice,
       autoConnect,
@@ -338,7 +400,11 @@ export function BleProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <BleContext.Provider value={value}>{children}</BleContext.Provider>
+    <BleContext.Provider value={value}>
+      <LiveHeartRateContext.Provider value={liveHeartRate}>
+        {children}
+      </LiveHeartRateContext.Provider>
+    </BleContext.Provider>
   );
 }
 
@@ -350,4 +416,15 @@ export function useBle(): BleContextValue {
   }
 
   return context;
+}
+
+// The most recent heart rate received over Bluetooth from any connected
+// device, or null if none has been received since login
+export function useLiveHeartRate(): LiveHeartRate | null {
+  return useContext(LiveHeartRateContext);
+}
+
+// Connections that are connected or in progress (not failed attempts)
+export function activeConnections(connections: ConnectionState[]) {
+  return connections.filter((c) => c.status !== "disconnected");
 }

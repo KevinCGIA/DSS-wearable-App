@@ -13,12 +13,15 @@ import {
 
 import { State } from "react-native-ble-plx";
 
-import { useBle } from "../../services/ble/BleContext";
+import ConnectedDeviceList from "../../components/ConnectedDeviceList";
+import NfcPairingCard from "../../components/NfcPairingCard";
+import { activeConnections, useBle } from "../../services/ble/BleContext";
 import {
   ConnectionState,
   describeBluetoothState,
   ScannedDevice,
 } from "../../services/ble/BleService";
+import { MAX_CONNECTED_DEVICES } from "../../services/ble/constants";
 
 export default function Devices() {
   const router = useRouter();
@@ -29,9 +32,8 @@ export default function Devices() {
     scanError,
     startScan,
     stopScan,
-    connection,
+    connections,
     connect,
-    disconnect,
   } = useBle();
 
   // Stop scanning when leaving the screen to save battery
@@ -41,9 +43,8 @@ export default function Devices() {
     };
   }, [stopScan]);
 
-  const isBusy =
-    connection.status !== "disconnected" &&
-    connection.status !== "connected";
+  const atLimit =
+    activeConnections(connections).length >= MAX_CONNECTED_DEVICES;
 
   const bluetoothProblem =
     bluetoothState !== State.PoweredOn &&
@@ -51,8 +52,10 @@ export default function Devices() {
       ? describeBluetoothState(bluetoothState)
       : null;
 
-  return (
-    <View style={Styles.container}>
+  // Everything above the scan results scrolls with the list, so nothing
+  // gets squeezed on small screens
+  const header = (
+    <>
       <View style={Styles.header}>
         <Pressable onPress={() => router.back()}>
           <Text style={Styles.back}>‹ Back</Text>
@@ -61,10 +64,19 @@ export default function Devices() {
         <Text style={Styles.title}>Devices</Text>
       </View>
 
-      <ConnectionCard
-        connection={connection}
-        onDisconnect={disconnect}
-      />
+      <Text style={[Styles.sectionTitle, Styles.connectedTitle]}>
+        Connected devices
+      </Text>
+
+      <ConnectedDeviceList />
+
+      <NfcPairingCard />
+
+      <View style={[Styles.scanRow, Styles.nearbyTitle]}>
+        <Text style={Styles.sectionTitle}>Nearby devices</Text>
+
+        {isScanning && <ActivityIndicator size="small" />}
+      </View>
 
       {bluetoothProblem && (
         <Text style={Styles.warning}>{bluetoothProblem}</Text>
@@ -74,115 +86,67 @@ export default function Devices() {
         <Text style={Styles.warning}>{scanError}</Text>
       )}
 
-      <View style={Styles.scanRow}>
-        <Text style={Styles.sectionTitle}>Nearby devices</Text>
-
-        {isScanning && <ActivityIndicator size="small" />}
-      </View>
-
       <Button
         title={isScanning ? "Stop Scanning" : "Scan for Devices"}
         onPress={isScanning ? stopScan : startScan}
-        disabled={isBusy}
       />
 
-      <FlatList
-        style={Styles.list}
-        data={devices}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <DeviceRow
-            device={item}
-            isCurrent={item.id === connection.deviceId}
-            disabled={isBusy}
-            onPress={() => connect(item)}
-          />
-        )}
-        ListEmptyComponent={
-          <Text style={Styles.emptyText}>
-            {isScanning
-              ? "Looking for devices..."
-              : "Make sure your watch has Bluetooth on and is nearby, then tap Scan."}
-          </Text>
-        }
-      />
-    </View>
+      {atLimit && (
+        <Text style={Styles.limitText}>
+          {MAX_CONNECTED_DEVICES} devices connected, the most at once.
+          Disconnect one to add another.
+        </Text>
+      )}
+    </>
   );
-}
-
-function ConnectionCard({
-  connection,
-  onDisconnect,
-}: {
-  connection: ConnectionState;
-  onDisconnect: () => void;
-}) {
-  const { status, deviceName, attempt, batteryLevel, error } =
-    connection;
-
-  if (status === "disconnected") {
-    return (
-      <View style={Styles.card}>
-        <Text style={Styles.cardTitle}>No device connected</Text>
-
-        {error && <Text style={Styles.errorText}>{error}</Text>}
-      </View>
-    );
-  }
-
-  const statusText: Record<typeof status, string> = {
-    connecting: `Connecting (attempt ${attempt})...`,
-    reconnecting: `Connection lost, reconnecting (attempt ${attempt})...`,
-    discovering: "Setting up device...",
-    connected: "● Connected",
-    disconnecting: "Disconnecting...",
-  };
 
   return (
-    <View style={Styles.card}>
-      <Text style={Styles.cardTitle}>{deviceName ?? "Unknown device"}</Text>
-
-      <Text
-        style={
-          status === "connected" ? Styles.connectedText : Styles.pendingText
-        }
-      >
-        {statusText[status]}
-      </Text>
-
-      {status === "connected" && batteryLevel !== null && (
-        <Text style={Styles.smallText}>🔋 {batteryLevel}%</Text>
+    <FlatList
+      style={Styles.screen}
+      contentContainerStyle={Styles.container}
+      data={devices}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={header}
+      ListHeaderComponentStyle={Styles.listHeader}
+      renderItem={({ item }) => (
+        <DeviceRow
+          device={item}
+          connection={connections.find((c) => c.deviceId === item.id)}
+          atLimit={atLimit}
+          onPress={() => connect(item)}
+        />
       )}
-
-      {status !== "disconnecting" && (
-        <View style={Styles.cardButton}>
-          <Button
-            title={status === "connected" ? "Disconnect" : "Cancel"}
-            color="red"
-            onPress={onDisconnect}
-          />
-        </View>
-      )}
-    </View>
+      ListEmptyComponent={
+        <Text style={Styles.emptyText}>
+          {isScanning
+            ? "Looking for devices..."
+            : "Make sure your watch has Bluetooth on and is nearby, then tap Scan."}
+        </Text>
+      }
+    />
   );
 }
 
 function DeviceRow({
   device,
-  isCurrent,
-  disabled,
+  connection,
+  atLimit,
   onPress,
 }: {
   device: ScannedDevice;
-  isCurrent: boolean;
-  disabled: boolean;
+  // Present if this device is connected, connecting or just failed
+  connection: ConnectionState | undefined;
+  atLimit: boolean;
   onPress: () => void;
 }) {
+  const isActive = !!connection && connection.status !== "disconnected";
+  const disabled = isActive || atLimit;
+
   return (
     <Pressable
-      style={[Styles.row, disabled && Styles.rowDisabled]}
+      style={[Styles.row, disabled && !isActive && Styles.rowDisabled]}
       onPress={onPress}
-      disabled={disabled || isCurrent}
+      disabled={disabled}
     >
       <View style={Styles.rowText}>
         <Text style={Styles.deviceName}>
@@ -196,7 +160,11 @@ function DeviceRow({
       </View>
 
       <Text style={Styles.rowAction}>
-        {isCurrent ? "Current" : "Connect"}
+        {connection?.status === "connected"
+          ? "Connected"
+          : isActive
+            ? "Connecting..."
+            : "Connect"}
       </Text>
     </Pressable>
   );
@@ -209,10 +177,18 @@ function signalLabel(rssi: number) {
 }
 
 const Styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+  },
+
+  container: {
     paddingTop: 50,
     paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+
+  listHeader: {
+    marginBottom: 10,
   },
 
   header: {
@@ -230,37 +206,11 @@ const Styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  card: {
-    backgroundColor: "#f2f2f2",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-  },
 
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
 
-  cardButton: {
-    marginTop: 10,
-  },
 
-  connectedText: {
-    fontSize: 14,
-    color: "green",
-  },
 
-  pendingText: {
-    fontSize: 14,
-    color: "#b26a00",
-  },
 
-  errorText: {
-    fontSize: 14,
-    color: "red",
-  },
 
   warning: {
     backgroundColor: "#fff4e5",
@@ -268,6 +218,20 @@ const Styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 15,
+  },
+
+  connectedTitle: {
+    marginBottom: 10,
+  },
+
+  nearbyTitle: {
+    marginTop: 20,
+  },
+
+  limitText: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 8,
   },
 
   scanRow: {
@@ -282,10 +246,6 @@ const Styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  list: {
-    flex: 1,
-    marginTop: 10,
-  },
 
   emptyText: {
     color: "#666",

@@ -54,6 +54,12 @@
           "neverForLocation": true,
           "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to your wearable device over Bluetooth"
         }
+      ],
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Allow $(PRODUCT_NAME) to read NFC tags so you can pair a wearable by tapping it"
+        }
       ]
     ],
     "experiments": {

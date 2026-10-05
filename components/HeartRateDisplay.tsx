@@ -1,13 +1,15 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
+import { useLiveHeartRate } from "../services/ble/BleContext";
 import { formatAge, useNow } from "../services/sensors/time";
 import { useLatestSensorReading } from "../services/sensors/useLatestSensorReading";
 
-// A reading older than this is shown greyed out as "last reading"
+// A saved reading older than this is shown greyed out as "last reading"
 const STALE_AFTER_MS = 10 * 60 * 1000;
-// A reading newer than this gets a "Live" badge. Readings are saved once a
-// minute (HEART_RATE_SAVE_INTERVAL_MS), so allow a bit more than that.
-const LIVE_WITHIN_MS = 2 * 60 * 1000;
+// Bluetooth heart rate monitors send about one value a second. If the
+// newest one is older than this, the device has stopped sending (taken off,
+// out of range) and the display falls back to the latest saved reading.
+const LIVE_TIMEOUT_MS = 10 * 1000;
 
 type Props = {
   // "compact" for the Home dashboard, "large" for the Heart Rate tab
@@ -16,8 +18,32 @@ type Props = {
 
 export default function HeartRateDisplay({ variant = "compact" }: Props) {
   const { reading, loading, error } = useLatestSensorReading("heart_rate");
-  const now = useNow(30 * 1000);
+  const live = useLiveHeartRate();
+  const now = useNow(5 * 1000);
   const large = variant === "large";
+
+  // Straight from the connected device, updating every second
+  if (live && Date.now() - live.receivedAt < LIVE_TIMEOUT_MS) {
+    return (
+      <View style={Styles.container}>
+        <Title large={large} />
+
+        <Text style={[Styles.value, large && Styles.valueLarge]}>
+          {live.bpm}
+        </Text>
+
+        <Text style={Styles.unit}>BPM</Text>
+
+        <View style={Styles.statusRow}>
+          <Text style={Styles.live}>● Live</Text>
+        </View>
+
+        {large && live.deviceName && (
+          <Text style={Styles.device}>from {live.deviceName}</Text>
+        )}
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -54,7 +80,6 @@ export default function HeartRateDisplay({ variant = "compact" }: Props) {
 
   const age = now - reading.timestamp.getTime();
   const isStale = age > STALE_AFTER_MS;
-  const isLive = age <= LIVE_WITHIN_MS;
 
   return (
     <View style={Styles.container}>
@@ -73,8 +98,6 @@ export default function HeartRateDisplay({ variant = "compact" }: Props) {
       <Text style={Styles.unit}>BPM</Text>
 
       <View style={Styles.statusRow}>
-        {isLive && <Text style={Styles.live}>● Live</Text>}
-
         <Text style={Styles.updated}>
           {isStale ? "Last reading " : "Updated "}
           {formatAge(age)}
