@@ -1,4 +1,4 @@
-import type { AuthService, SignUpInput } from './authService';
+import type { AuthService, SignUpInput } from './authTypes';
 
 export type NativeSessionUser = {
   uid: string;

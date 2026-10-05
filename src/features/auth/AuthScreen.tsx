@@ -74,7 +74,7 @@ export function AuthScreen(props: AuthScreenProps) {
       >
         {confirmation ? <ConfirmationCard {...props} confirmation={confirmation} /> : <FormCard {...props} />}
 
-        {previewMode && onPreview ? (
+        {__DEV__ && previewMode && onPreview ? (
           <View style={styles.previewBlock}>
             <Pill label="Preview mode · no Firebase connected" tier="neutral" icon="info" />
             <Button

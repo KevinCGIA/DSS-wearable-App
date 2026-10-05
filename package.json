@@ -21,7 +21,6 @@
     "expo-linear-gradient": "~57.0.1",
     "expo-splash-screen": "~57.0.8",
     "expo-status-bar": "~57.0.1",
-    "firebase": "^12.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -40,7 +39,8 @@
     "typecheck": "tsc --noEmit",
     "test:auth": "node --experimental-strip-types --test tests/nativeAuth*.test.mjs",
     "test:profile": "node --experimental-strip-types --test tests/nativeAccount*.test.mjs",
-    "test:alerts": "node --experimental-strip-types --test tests/nativeThreshold*.test.mjs"
+    "test:alerts": "node --experimental-strip-types --test tests/nativeThreshold*.test.mjs",
+    "test:session": "node --experimental-strip-types --test tests/authSessionModel.test.mjs"
   },
   "private": true
 }
