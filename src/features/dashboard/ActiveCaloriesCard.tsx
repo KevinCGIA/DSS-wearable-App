@@ -28,10 +28,8 @@ export function ActiveCaloriesCard({ activity, initiallyExpanded, onOpen }: Prop
         <>
           <CardTitle ionicon="flame-outline" title="Active Calories" right={<ExpandChevron expanded={expanded} />} />
           <View style={styles.row}>
-            <Text style={[type.statLarge, styles.value]}>
-              {reported ? activeCalories.toLocaleString() : '--'}
-              <Text style={[type.unit, styles.unit]}> kcal</Text>
-            </Text>
+            <Text style={[type.statLarge, styles.value]}>{reported ? activeCalories.toLocaleString() : '--'}</Text>
+            <Text style={[type.unit, styles.unit, styles.unitGap]}>kcal</Text>
           </View>
           {!reported ? <Text style={[type.caption, styles.unit]}>Not reported by connected devices yet.</Text> : null}
         </>
@@ -50,5 +48,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'baseline', marginTop: spacing.lg },
   value: { color: colors.text },
   unit: { color: colors.textMuted },
+  unitGap: { marginLeft: spacing.xs },
   source: { color: colors.textSecondary },
 });

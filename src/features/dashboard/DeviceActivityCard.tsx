@@ -115,7 +115,7 @@ export function DeviceActivityCard({
             {...toggleA11y(expanded)}
           >
             <View style={styles.eyebrowRow}>
-              <Text style={[type.caption, styles.eyebrow]}>TODAY'S ACTIVITY</Text>
+              <Text style={[type.overline, styles.eyebrow]}>TODAY'S ACTIVITY</Text>
               <ExpandChevron expanded={expanded} />
             </View>
             <ActivityRow label="Steps" value={stepsToday.toLocaleString()} />
@@ -130,7 +130,7 @@ export function DeviceActivityCard({
       )}
     >
       <View style={styles.expanded}>
-        <Text style={[type.caption, styles.section]}>DEVICES</Text>
+        <Text style={[type.overline, styles.section]}>DEVICES</Text>
         {devices.length === 0 ? (
           <>
             <Text style={[type.body, styles.muted]}>No device connected</Text>
@@ -140,7 +140,7 @@ export function DeviceActivityCard({
           devices.map((d) => <DeviceRow key={d.deviceId} device={d} now={now} />)
         )}
 
-        <Text style={[type.caption, styles.section]}>TODAY</Text>
+        <Text style={[type.overline, styles.section]}>TODAY</Text>
         <TodaySteps history={stepsHistory} now={now} />
         <Text style={[type.caption, styles.muted]}>
           {stepsUpdatedAt ? `Steps updated ${formatAge(now - stepsUpdatedAt)}` : 'No steps recorded yet'}
@@ -208,10 +208,10 @@ function ActivityRow({ label, value, unit }: { label: string; value: string; uni
   return (
     <View style={styles.row}>
       <Text style={[type.body, styles.rowLabel]}>{label}</Text>
-      <Text style={[type.statSmall, styles.rowValue]} numberOfLines={1}>
-        {value}
-        {unit ? <Text style={[type.caption, styles.rowUnit]}> {unit}</Text> : null}
-      </Text>
+      <View style={styles.rowRight}>
+        <Text style={[type.statSmall, styles.rowValue]}>{value}</Text>
+        {unit ? <Text style={[type.unit, styles.rowUnit]}>{unit}</Text> : null}
+      </View>
     </View>
   );
 }
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   columns: { flexDirection: 'row' },
   pressed: { backgroundColor: colors.surfaceSunken },
   deviceColumn: { flex: 1, paddingBottom: spacing.md },
-  device: { alignItems: 'center', padding: spacing.lg, paddingBottom: spacing.sm },
+  device: { alignItems: 'center', padding: spacing.xl, paddingBottom: spacing.sm },
   syncRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,11 +242,11 @@ const styles = StyleSheet.create({
   status: { textAlign: 'center', marginTop: spacing.xs, letterSpacing: 0.6 },
   hint: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
   divider: { width: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.lg },
-  activity: { flex: 1.15, padding: spacing.lg, justifyContent: 'center' },
+  activity: { flex: 1.15, padding: spacing.xl, justifyContent: 'center' },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.sm },
-  eyebrow: { color: colors.textMuted, letterSpacing: 0.8, textAlign: 'center' },
-  expanded: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
-  section: { color: colors.textMuted, letterSpacing: 0.8, marginTop: spacing.xs },
+  eyebrow: { color: colors.textMuted, textAlign: 'center' },
+  expanded: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.sm },
+  section: { color: colors.textMuted, marginTop: spacing.xs },
   muted: { color: colors.textMuted },
   good: { color: colors.good },
   pending: { color: colors.accentText },
@@ -261,11 +261,12 @@ const styles = StyleSheet.create({
   links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.xl },
   row: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
   },
   rowLabel: { color: colors.textSecondary, marginRight: spacing.sm },
+  rowRight: { flexDirection: 'row', alignItems: 'baseline', flexShrink: 1 },
   rowValue: { color: colors.text, textAlign: 'right', flexShrink: 1 },
-  rowUnit: { color: colors.textMuted },
+  rowUnit: { color: colors.textMuted, marginLeft: spacing.xs },
 });

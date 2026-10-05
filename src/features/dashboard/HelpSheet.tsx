@@ -39,7 +39,7 @@ export function HelpSheet({ visible, onClose }: Props) {
       <Text style={[type.subheading, styles.heading, styles.section]}>Connection states</Text>
       {states.map((state) => (
         <View key={state.label} style={styles.state}>
-          <Text style={[type.label, styles.stateLabel]}>{state.label}</Text>
+          <Text style={[type.overline, styles.stateLabel]}>{state.label}</Text>
           <Text style={[type.body, styles.text]}>{state.text}</Text>
         </View>
       ))}
@@ -54,5 +54,5 @@ const styles = StyleSheet.create({
   number: { color: colors.accentText, width: spacing.xl },
   text: { color: colors.textSecondary, flex: 1 },
   state: { marginTop: spacing.md },
-  stateLabel: { color: colors.text, letterSpacing: 0.6 },
+  stateLabel: { color: colors.text },
 });
