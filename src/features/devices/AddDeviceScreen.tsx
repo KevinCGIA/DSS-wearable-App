@@ -112,7 +112,7 @@ export function AddDeviceScreen({
       <Card padding={0}>
         <Toggle
           label="Auto-connect"
-          hint="Reconnect to your last device when the app opens"
+          hint="Reconnect to your remembered devices when the app opens"
           value={autoConnect}
           onValueChange={onSetAutoConnect}
         />
