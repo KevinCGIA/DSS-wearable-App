@@ -1,16 +1,16 @@
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useBle } from "../services/ble/BleContext";
+import { activeConnections, useBle } from "../services/ble/BleContext";
+import { MAX_CONNECTED_DEVICES } from "../services/ble/constants";
 import { PairedDevice } from "../services/devices/pairedDevices";
 import { formatAge } from "../services/sensors/time";
 
 // Devices this account has connected to before, with Connect / Forget
 export default function PairedDeviceList() {
-  const { pairedDevices, connection, connect, forgetDevice } = useBle();
+  const { pairedDevices, connections, connect, forgetDevice } = useBle();
 
-  const isBusy =
-    connection.status !== "disconnected" &&
-    connection.status !== "connected";
+  const atLimit =
+    activeConnections(connections).length >= MAX_CONNECTED_DEVICES;
 
   const confirmForget = (device: PairedDevice) => {
     Alert.alert(
@@ -23,7 +23,7 @@ export default function PairedDeviceList() {
           style: "destructive",
           onPress: async () => {
             try {
-              await forgetDevice(device.deviceId);
+              await forgetDevice(device);
             } catch (e: any) {
               Alert.alert("Error", "Failed to forget device: " + e.message);
             }
@@ -44,11 +44,17 @@ export default function PairedDeviceList() {
   return (
     <View>
       {pairedDevices.map((device) => {
-        const isCurrent = device.deviceId === connection.deviceId;
-        const isConnected = isCurrent && connection.status === "connected";
+        const connection = connections.find(
+          (c) => c.deviceId === device.deviceId
+        );
+        const isConnected = connection?.status === "connected";
+        const isConnecting =
+          !!connection &&
+          connection.status !== "connected" &&
+          connection.status !== "disconnected";
 
         return (
-          <View key={device.deviceId} style={Styles.row}>
+          <View key={device.docId} style={Styles.row}>
             <View style={Styles.rowText}>
               <Text style={Styles.name}>{device.name}</Text>
 
@@ -57,7 +63,7 @@ export default function PairedDeviceList() {
               >
                 {isConnected
                   ? "● Connected"
-                  : isCurrent && isBusy
+                  : isConnecting
                     ? "Connecting..."
                     : device.lastConnectedAt
                       ? `Last connected ${formatAge(Date.now() - device.lastConnectedAt.getTime())}`
@@ -65,16 +71,16 @@ export default function PairedDeviceList() {
               </Text>
             </View>
 
-            {!isCurrent && (
+            {!isConnected && !isConnecting && (
               <Pressable
                 style={Styles.action}
-                disabled={isBusy}
+                disabled={atLimit}
                 onPress={() =>
                   connect({ id: device.deviceId, name: device.name })
                 }
               >
                 <Text
-                  style={[Styles.actionText, isBusy && Styles.disabled]}
+                  style={[Styles.actionText, atLimit && Styles.disabled]}
                 >
                   Connect
                 </Text>
