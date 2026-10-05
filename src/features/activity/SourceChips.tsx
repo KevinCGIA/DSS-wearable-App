@@ -46,11 +46,11 @@ export function SourceChips({ sources, selected, onSelect }: Props) {
 
 const styles = StyleSheet.create({
   // Bleed to the screen edges so chips scroll under the padding.
-  scroller: { marginHorizontal: -layout.screenPadding, marginTop: spacing.lg },
+  scroller: { marginHorizontal: -layout.screenPadding, marginTop: spacing.xl },
   row: { paddingHorizontal: layout.screenPadding, gap: spacing.sm },
   chip: {
     minHeight: layout.minTouch,
-    maxWidth: 220,
+    maxWidth: layout.chipMaxWidth,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,

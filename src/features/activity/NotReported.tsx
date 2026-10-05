@@ -15,7 +15,7 @@ type Props = {
 // A bio stat the selected source doesn't report. Never estimated.
 export function NotReported({ icon, title, message, first = false }: Props) {
   return (
-    <Card style={first ? styles.first : styles.card}>
+    <Card style={first ? undefined : styles.card}>
       <CardTitle icon={icon} title={title} />
       <Text style={[type.body, styles.text]}>{message}</Text>
     </Card>
@@ -23,7 +23,6 @@ export function NotReported({ icon, title, message, first = false }: Props) {
 }
 
 const styles = StyleSheet.create({
-  first: { marginTop: spacing.sm },
   card: { marginTop: spacing.lg },
   text: { color: colors.textMuted, marginTop: spacing.md },
 });
