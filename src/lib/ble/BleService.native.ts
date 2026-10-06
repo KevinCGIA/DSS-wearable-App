@@ -207,6 +207,25 @@ export class BleService {
 
   // A stale iOS peripheral UUID can be rediscovered only when both the
   // advertised name and service match; ambiguous results need user selection.
+  // Scans until a device matching `matches` is found, then stops. Resolves null if none is
+  // found before the scan times out. Used for NFC pairing on iOS, which can't connect by
+  // Bluetooth address and so has to find the device by name.
+  async findDevice(matches: (device: ScannedDevice) => boolean): Promise<ScannedDevice | null> {
+    return new Promise((resolve, reject) => {
+      let found: ScannedDevice | null = null;
+      this.startScan({
+        onDevice: (device) => {
+          if (!found && matches(device)) {
+            found = device;
+            void this.stopScan();
+          }
+        },
+        onError: (message) => reject(new Error(message)),
+        onStop: () => resolve(found),
+      }).catch(reject);
+    });
+  }
+
   async findMatchingDevice(name: string, serviceUUIDs: string[]): Promise<ScannedDevice | null> {
     if (!name.trim() || serviceUUIDs.length === 0) return null;
     const matches = new Map<string, ScannedDevice>();
@@ -648,21 +667,24 @@ class DeviceConnection {
 }
 
 function toScannedDevice(device: Device): ScannedDevice | null {
+  const isHeartRateDevice =
+    device.serviceUUIDs?.some(
+      (uuid) => canonicalGattUuid(uuid) === GATT.HEART_RATE_SERVICE
+    ) ?? false;
   const name = device.name ?? device.localName;
 
-  // Skip anonymous beacons and trackers so the list stays readable
-  if (!name || device.rssi === null) {
+  // Skip anonymous beacons and trackers so the list stays readable, but keep unnamed
+  // heart rate sensors: phone-based heart rate emulators and some straps leave the name
+  // out to fit the small advertising packet
+  if ((!name && !isHeartRateDevice) || device.rssi === null) {
     return null;
   }
 
   return {
     id: deviceKey(Platform.OS === "ios" ? "ios" : "android", device.id),
-    name,
+    name: name ?? `Heart rate sensor (${device.id.slice(-5)})`,
     rssi: device.rssi,
-    isHeartRateDevice:
-      device.serviceUUIDs?.some(
-        (uuid) => canonicalGattUuid(uuid) === GATT.HEART_RATE_SERVICE
-      ) ?? false,
+    isHeartRateDevice,
     serviceUUIDs: device.serviceUUIDs ?? undefined,
   };
 }

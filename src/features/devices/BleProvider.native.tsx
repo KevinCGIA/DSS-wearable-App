@@ -333,6 +333,12 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     () => Object.values(devicesById).sort((a, b) => Number(b.isHeartRateDevice) - Number(a.isHeartRateDevice) || b.rssi - a.rssi),
     [devicesById],
   );
+  const findDeviceByName = useCallback(async (name: string) => {
+    if (!(await requestBlePermissions())) return null;
+    watchBluetoothState();
+    return bleService.findDevice((device) => device.name === name);
+  }, [watchBluetoothState]);
+
   const value = useMemo<BleContextValue>(() => ({
     bluetoothState,
     isScanning,
@@ -353,9 +359,11 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     pausedDevices: [],
     supportsTestControls: false,
     ensureBluetoothReady,
+    findDeviceByName,
   }), [
     bluetoothState, isScanning, devices, scanError, startScan, stopScan, connection, connections,
     connect, disconnect, pairedDevices, forgetDevice, autoConnect, setAutoConnect, ensureBluetoothReady,
+    findDeviceByName,
   ]);
 
   return <BleContext.Provider value={value}>{children}</BleContext.Provider>;

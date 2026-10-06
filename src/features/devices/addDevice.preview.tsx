@@ -10,6 +10,7 @@ import {
 import type { PreviewEntry } from '@/features/previews/types';
 import { AddDeviceScreen } from './AddDeviceScreen';
 import type { AddDeviceScreenProps } from './AddDeviceScreen';
+import type { NfcPairingCardProps } from './NfcPairingCard';
 
 const noop = () => undefined;
 
@@ -32,6 +33,17 @@ const base = (): AddDeviceScreenProps => ({
 });
 
 const found = mockScannedDevices;
+
+const nfc = (overrides: Partial<NfcPairingCardProps> = {}): NfcPairingCardProps => ({
+  availability: 'available',
+  step: 'idle',
+  writableDevices: [],
+  onPair: noop,
+  onWrite: noop,
+  onCancel: noop,
+  ...overrides,
+});
+const watch = { deviceId: connectedConnection.deviceId ?? 'watch', name: connectedConnection.deviceName ?? 'Watch' };
 
 export const addDevicePreview: PreviewEntry = {
   title: 'Add device',
@@ -58,5 +70,20 @@ export const addDevicePreview: PreviewEntry = {
       label: 'No paired',
       render: () => <AddDeviceScreen {...base()} pairedDevices={[]} autoConnect={false} />,
     },
+    { label: 'NFC: ready', render: () => <AddDeviceScreen {...base()} nfc={nfc()} /> },
+    {
+      label: 'NFC: connected (write tag)',
+      render: () => (
+        <AddDeviceScreen {...base()} connection={connectedConnection} nfc={nfc({ writableDevices: [watch] })} />
+      ),
+    },
+    { label: 'NFC: waiting for tag', render: () => <AddDeviceScreen {...base()} nfc={nfc({ step: 'waitingForTag' })} /> },
+    {
+      label: 'NFC: writing tag',
+      render: () => (
+        <AddDeviceScreen {...base()} connection={connectedConnection} nfc={nfc({ step: 'writing', writableDevices: [watch] })} />
+      ),
+    },
+    { label: 'NFC: turned off', render: () => <AddDeviceScreen {...base()} nfc={nfc({ availability: 'disabled' })} /> },
   ],
 };

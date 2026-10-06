@@ -17,7 +17,9 @@
       }
     },
     "android": {
-      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#EAF3FF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -73,6 +75,12 @@
           "isBackgroundEnabled": false,
           "neverForLocation": true,
           "bluetoothAlwaysPermission": "Allow DSS Wearables to connect to your wearable device over Bluetooth."
+        }
+      ],
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Allow DSS Wearables to read NFC tags so you can pair a wearable by tapping it."
         }
       ]
     ],
