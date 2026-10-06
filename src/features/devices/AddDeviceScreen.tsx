@@ -13,6 +13,7 @@ import type { BluetoothState, ConnectionState, PairedDevice, ScannedDevice } fro
 import { colors, layout, spacing, type } from '@/theme';
 import { bluetoothProblem, isBusy, signalFor } from './bluetoothText';
 import { ConnectionCard } from './ConnectionCard';
+import { NfcPairingCard, type NfcPairingCardProps } from './NfcPairingCard';
 import { PairedDeviceList } from './PairedDeviceList';
 
 export type AddDeviceScreenProps = {
@@ -32,6 +33,10 @@ export type AddDeviceScreenProps = {
   onSetAutoConnect: (enabled: boolean) => void;
   onBack: () => void;
   onOpenSettings?: () => void;
+  // Every connected or connecting device, so each shows as Current (several devices at once)
+  activeDeviceIds?: string[];
+  // Real devices only; Previews leave it out
+  nfc?: NfcPairingCardProps;
 };
 
 export function AddDeviceScreen({
@@ -51,6 +56,8 @@ export function AddDeviceScreen({
   onSetAutoConnect,
   onBack,
   onOpenSettings,
+  activeDeviceIds = [],
+  nfc,
 }: AddDeviceScreenProps) {
   const busy = isBusy(connection);
   const problem = bluetoothProblem(bluetoothState);
@@ -99,7 +106,7 @@ export function AddDeviceScreen({
             <DeviceRow
               key={device.id}
               device={device}
-              current={device.id === connection.deviceId}
+              current={device.id === connection.deviceId || activeDeviceIds.includes(device.id)}
               disabled={busy}
               divider={index > 0}
               onPress={() => onConnect({ id: device.id, name: device.name })}
@@ -107,6 +114,8 @@ export function AddDeviceScreen({
           ))
         )}
       </Card>
+
+      {nfc ? <NfcPairingCard {...nfc} /> : null}
 
       <SectionLabel title="Paired devices" />
       <Card padding={0}>
