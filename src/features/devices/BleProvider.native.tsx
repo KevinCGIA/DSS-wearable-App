@@ -4,6 +4,7 @@ import { getAuth } from '@react-native-firebase/auth';
 import { State, type Subscription } from 'react-native-ble-plx';
 import type { BluetoothState, ConnectionState, PairedDevice, ScannedDevice } from '@/data/types';
 import { bleService, describeBluetoothState } from '@/lib/ble/BleService.native';
+import { MAX_CONNECTED_DEVICES } from '@/lib/ble/constants';
 import { hasBlePermissions, requestBlePermissions } from '@/lib/ble/permissions.native';
 import {
   forgetPairedDevice,
@@ -19,15 +20,27 @@ import type { BleContextValue } from './BleProvider';
 const BleContext = createContext<BleContextValue | null>(null);
 const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
-// Kevin's single-connection service is the native backend for B1. The public
-// context retains Tarun's multi-device shape; B2 replaces this backend map.
+const idle: ConnectionState = {
+  status: 'disconnected',
+  deviceId: null,
+  deviceName: null,
+  attempt: 0,
+  batteryLevel: null,
+  error: null,
+};
+
+// Real BLE backend (Phase 2 B2): several devices at once, up to MAX_CONNECTED_DEVICES.
+// bleService keeps one session per device (its own retries, reconnects and heart rate
+// stream), so connecting one device never affects another. `connection` is the device the
+// user acted on most recently, for screens that show a single device.
 export function BleProvider({ children }: { children: React.ReactNode }) {
   const uid = getAuth().currentUser?.uid ?? null;
   const [bluetoothState, setBluetoothState] = useState<BluetoothState>('Unknown');
   const [isScanning, setIsScanning] = useState(false);
   const [devicesById, setDevicesById] = useState<Record<string, ScannedDevice>>({});
   const [scanError, setScanError] = useState<string | null>(null);
-  const [connection, setConnection] = useState<ConnectionState>(bleService.getConnectionState());
+  const [connectionList, setConnectionList] = useState(bleService.getConnections());
+  const [latestId, setLatestId] = useState<string | null>(null);
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
   const [pairedLoaded, setPairedLoaded] = useState(false);
   const [autoConnectLoaded, setAutoConnectLoaded] = useState(false);
@@ -60,13 +73,13 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     clearReadings();
-    const unsubscribe = bleService.subscribe(setConnection);
+    const unsubscribe = bleService.subscribe(setConnectionList);
     return () => {
       unsubscribe();
       stateSubscription.current?.remove();
       stateSubscription.current = null;
       void bleService.stopScan();
-      void bleService.disconnect();
+      void bleService.disconnectAll();
       clearReadings();
     };
   }, []);
@@ -105,49 +118,81 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     };
   }, [uid]);
 
+  // This phone's saved devices: Bluetooth IDs from another platform can't be used here
+  const eligiblePaired = useCallback(
+    () => pairedRef.current.filter((device) => (device.platform ?? 'android') === platform),
+    [],
+  );
+
   useEffect(() => {
     // iOS must not show its permission prompt immediately after login unless
     // an eligible saved iOS device should auto-connect.
     if (!pairedLoaded || !autoConnectLoaded || !autoConnect) return;
-    const eligible = pairedDevices.find((device) => (device.platform ?? 'android') === platform);
-    if (eligible) ensureBluetoothReady();
-  }, [pairedLoaded, autoConnectLoaded, pairedDevices, autoConnect, ensureBluetoothReady]);
+    if (eligiblePaired().length > 0) ensureBluetoothReady();
+  }, [pairedLoaded, autoConnectLoaded, pairedDevices, autoConnect, ensureBluetoothReady, eligiblePaired]);
 
+  // Connects by saved ID. On iOS a stale peripheral UUID falls back to finding the device
+  // again by its advertised name and service.
+  const connectSaved = useCallback(async (device: { id: string; name: string | null }) => {
+    const connected = await bleService.connect(device.id, device.name);
+    const paired = pairedRef.current.find((item) => item.deviceId === device.id);
+    if (connected || Platform.OS !== 'ios' || paired?.platform !== 'ios' || !paired.serviceUUIDs?.length) {
+      return connected;
+    }
+    const match = await bleService.findMatchingDevice(paired.localName ?? paired.name, paired.serviceUUIDs);
+    if (!match) return false;
+    scannedRef.current = { ...scannedRef.current, [match.id]: match };
+    setDevicesById((previous) => ({ ...previous, [match.id]: match }));
+    return bleService.connect(match.id, match.name);
+  }, []);
+
+  // Once per login: reconnect every saved device for this phone (up to the limit), most
+  // recent first, one at a time since Android connects more reliably that way.
   useEffect(() => {
     if (autoConnectAttempted.current || !pairedLoaded || !autoConnectLoaded || bluetoothState !== 'PoweredOn') return;
     autoConnectAttempted.current = true;
-    const latest = pairedDevices.find((device) => (device.platform ?? 'android') === platform);
-    if (autoConnect && latest && bleService.getConnectionState().status === 'disconnected') {
-      void bleService.connect(latest.deviceId, latest.name).then(async (connected) => {
-        if (connected || Platform.OS !== 'ios' || !latest.serviceUUIDs?.length) return;
-        const match = await bleService.findMatchingDevice(latest.localName ?? latest.name, latest.serviceUUIDs);
-        if (match) {
-          scannedRef.current = { ...scannedRef.current, [match.id]: match };
-          setDevicesById((previous) => ({ ...previous, [match.id]: match }));
-          await bleService.connect(match.id, match.name);
+    if (!autoConnect) return;
+
+    void (async () => {
+      for (const device of eligiblePaired().slice(0, MAX_CONNECTED_DEVICES)) {
+        if (bleService.getConnection(device.deviceId)) continue;
+        try {
+          await connectSaved({ id: device.deviceId, name: device.name });
+        } catch (error) {
+          setScanError(String(error));
         }
-      }).catch((error) => setScanError(String(error)));
-    }
-  }, [pairedLoaded, autoConnectLoaded, pairedDevices, bluetoothState, autoConnect]);
+      }
+    })();
+  }, [pairedLoaded, autoConnectLoaded, pairedDevices, bluetoothState, autoConnect, connectSaved, eligiblePaired]);
+
+  // Remember every device that connects successfully
+  const connectedKey = connectionList
+    .filter((c) => c.status === 'connected')
+    .map((c) => c.deviceId)
+    .join(',');
 
   useEffect(() => {
-    if (!uid || connection.status !== 'connected' || !connection.deviceId) return;
-    const scanned = scannedRef.current[connection.deviceId];
-    const previous = pairedRef.current.find((device) => device.deviceId === connection.deviceId);
-    void savePairedDevice(uid, connection.deviceId, connection.deviceName ?? 'Unknown device', {
-      platform,
-      localName: scanned?.name ?? previous?.localName,
-      serviceUUIDs: scanned?.serviceUUIDs ?? previous?.serviceUUIDs,
-    }).catch(() => setScanError("Couldn't save the paired device."));
-  }, [uid, connection.status, connection.deviceId, connection.deviceName]);
+    if (!uid) return;
+    for (const c of bleService.getConnections()) {
+      if (c.status !== 'connected') continue;
+      const scanned = scannedRef.current[c.deviceId];
+      const previous = pairedRef.current.find((device) => device.deviceId === c.deviceId);
+      void savePairedDevice(uid, c.deviceId, c.deviceName ?? 'Unknown device', {
+        platform,
+        localName: scanned?.name ?? previous?.localName,
+        serviceUUIDs: scanned?.serviceUUIDs ?? previous?.serviceUUIDs,
+      }).catch(() => setScanError("Couldn't save the paired device."));
+    }
+  }, [uid, connectedKey]);
 
+  // Every heart rate sample from every connected device, tagged with that device
   useEffect(
-    () => bleService.onHeartRate((bpm) => {
-      const current = bleService.getConnectionState();
-      if (current.status !== 'connected' || !current.deviceId) return;
+    () => bleService.onHeartRate((bpm, deviceId) => {
+      const current = bleService.getConnection(deviceId);
+      if (current?.status !== 'connected') return;
       void addSensorReading(SENSOR_UID, 'heart_rate', {
         value: bpm,
-        deviceId: current.deviceId,
+        deviceId,
         deviceName: current.deviceName,
         source: 'ble',
       });
@@ -194,30 +239,39 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       watchBluetoothState();
-      const connected = await bleService.connect(device.id, device.name);
-      if (connected || Platform.OS !== 'ios' || paired?.platform !== 'ios' || !paired.serviceUUIDs?.length) {
-        return connected;
-      }
-      const match = await bleService.findMatchingDevice(paired.localName ?? paired.name, paired.serviceUUIDs);
-      if (!match) return false;
-      scannedRef.current = { ...scannedRef.current, [match.id]: match };
-      setDevicesById((previous) => ({ ...previous, [match.id]: match }));
-      return bleService.connect(match.id, match.name);
+      setLatestId(device.id);
+      return await connectSaved(device);
     } catch (error) {
       setScanError(error instanceof Error ? error.message : String(error));
       return false;
     }
-  }, [startScan, watchBluetoothState]);
+  }, [startScan, watchBluetoothState, connectSaved]);
+
+  const connections = useMemo(() => {
+    const map: Record<string, ConnectionState> = {};
+    for (const c of connectionList) map[c.deviceId] = c;
+    return map;
+  }, [connectionList]);
+
+  // The device acted on most recently, else the newest connection
+  const connection = useMemo<ConnectionState>(() => {
+    if (latestId && connections[latestId]) return connections[latestId];
+    return connectionList.length ? connectionList[connectionList.length - 1] : idle;
+  }, [latestId, connections, connectionList]);
 
   const disconnect = useCallback(async (deviceId?: string) => {
-    const active = bleService.getConnectionState().deviceId;
-    if (!deviceId || deviceId === active) await bleService.disconnect();
-  }, []);
+    const target = deviceId ?? connection.deviceId;
+    if (!target) return;
+    const state = bleService.getConnection(target);
+    // A failed attempt has nothing to disconnect; clear its error instead
+    if (state?.status === 'disconnected') bleService.dismissError(target);
+    else await bleService.disconnect(target);
+  }, [connection.deviceId]);
 
   const forgetDevice = useCallback(async (deviceId: string) => {
     if (!uid) return;
     try {
-      if (bleService.getConnectionState().deviceId === deviceId) await bleService.disconnect();
+      await bleService.disconnect(deviceId);
       await forgetPairedDevice(uid, deviceId);
     } catch {
       setScanError("Couldn't forget the paired device.");
@@ -236,14 +290,17 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [uid, autoConnect]);
 
+  const findDeviceByName = useCallback(async (name: string) => {
+    if (!(await requestBlePermissions())) return null;
+    watchBluetoothState();
+    return bleService.findDevice((device) => device.name === name);
+  }, [watchBluetoothState]);
+
   const devices = useMemo(
     () => Object.values(devicesById).sort((a, b) => b.rssi - a.rssi),
     [devicesById],
   );
-  const connections = useMemo(
-    () => connection.deviceId ? { [connection.deviceId]: connection } : {},
-    [connection],
-  );
+
   const value = useMemo<BleContextValue>(() => ({
     bluetoothState,
     isScanning,
@@ -264,9 +321,11 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     pausedDevices: [],
     supportsTestControls: false,
     ensureBluetoothReady,
+    findDeviceByName,
   }), [
     bluetoothState, isScanning, devices, scanError, startScan, stopScan, connection, connections,
     connect, disconnect, pairedDevices, forgetDevice, autoConnect, setAutoConnect, ensureBluetoothReady,
+    findDeviceByName,
   ]);
 
   return <BleContext.Provider value={value}>{children}</BleContext.Provider>;

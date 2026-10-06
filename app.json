@@ -72,6 +72,12 @@
           "neverForLocation": true,
           "bluetoothAlwaysPermission": "Allow DSS Wearables to connect to your wearable device over Bluetooth."
         }
+      ],
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Allow DSS Wearables to read NFC tags so you can pair a wearable by tapping it."
+        }
       ]
     ],
     "scheme": "dsswearables",
