@@ -1,0 +1,78 @@
+rules_version = '2';
+
+// Firestore security rules for the DSS Wearables app (Android and iOS).
+//
+// Every path the app uses is under the signed-in user's own document:
+//   users/{uid}                                        profile, autoConnectDevice
+//   users/{uid}/private/avatarData                     profile picture
+//   users/{uid}/settings/alerts                        heart rate alert thresholds
+//   users/{uid}/devices/{deviceId}                     paired wearables
+//   users/{uid}/sensor_readings/{type}/readings/{id}   one reading a minute per device
+//   users/{uid}/reading_batches/{id}                   full-resolution samples per minute
+//
+// A user can read and write only their own data. Anything else is denied.
+//
+// NOT ACTIVE until deployed: paste into Firebase console -> Firestore Database -> Rules,
+// or run `firebase deploy --only firestore:rules`. Compare with the rules currently in
+// the console first so nothing the team relies on is lost.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isSensorType(type) {
+      return type in ['heart_rate', 'steps'];
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // Listed one by one rather than with a {document=**} wildcard: Firestore ORs
+      // matching rules together, so a wildcard would also allow any write to the
+      // validated collections below and skip their checks.
+
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /devices/{deviceId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /settings/{docId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && (docId != 'alerts' || (
+            request.resource.data.enabled is bool
+            && request.resource.data.hrMin is number
+            && request.resource.data.hrMax is number
+            && request.resource.data.hrMin < request.resource.data.hrMax));
+      }
+
+      // Kevin's original format, still written once a minute per device
+      match /sensor_readings/{type}/readings/{readingId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isSensorType(type)
+          && request.resource.data.value is number
+          && request.resource.data.value >= 0
+          && request.resource.data.timestamp is timestamp;
+      }
+
+      // Full-resolution samples, at most one document per device per minute
+      match /reading_batches/{batchId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isSensorType(request.resource.data.type)
+          && request.resource.data.source in ['ble', 'test']
+          && request.resource.data.samples is list
+          && request.resource.data.samples.size() > 0
+          && request.resource.data.samples.size() <= 500
+          && request.resource.data.startAt is timestamp
+          && request.resource.data.endAt is timestamp;
+      }
+    }
+  }
+}
