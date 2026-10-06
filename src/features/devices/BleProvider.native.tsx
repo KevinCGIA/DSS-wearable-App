@@ -20,11 +20,19 @@ import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import type { BleContextValue } from './BleProvider';
 import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
 import { logConnectionEvent, startConnectionLog } from '@/lib/devices/connectionLog.native';
+import { usePreferences } from '@/features/preferences/PreferencesProvider';
+import { subscribeToAlertThresholds } from '@/lib/alerts/thresholds.native';
+import { checkHeartRate, alertCooldownKey } from '@/lib/alerts/heartRateAlert';
+import { addAlert } from '@/lib/alerts/alertHistory.native';
+import { presentHeartRateAlert } from '@/lib/alerts/localNotification.native';
+import { onLiveReading } from '@/lib/sensors/readings.native';
+import type { AlertThresholds } from '@/data/types';
 
 const BleContext = createContext<BleContextValue | null>(null);
 const platform: 'ios' | 'android' = Platform.OS === 'ios' ? 'ios' : 'android';
 
 export function BleProvider({ children }: { children: React.ReactNode }) {
+  const { preferences, loaded: preferencesLoaded } = usePreferences();
   const [uid, setUid] = useState<string | null>(getAuth().currentUser?.uid ?? null);
   useEffect(() => nativeAuthService.subscribe((user) => setUid(user?.uid ?? null)), []);
   const [bluetoothState, setBluetoothState] = useState<BluetoothState>('Unknown');
@@ -38,6 +46,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
   const requests = useRef(new Map<string, number>());
   const previousStatuses = useRef<Record<string, string>>({});
   const savedMetadata = useRef<Record<string, string>>({});
+  const lastAlerts = useRef(new Map<string, number>());
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
   const [pairedLoaded, setPairedLoaded] = useState(false);
   const [autoConnectLoaded, setAutoConnectLoaded] = useState(false);
@@ -81,6 +90,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     setConnections({});
     previousStatuses.current = {};
     savedMetadata.current = {};
+    lastAlerts.current.clear();
     const unsubscribe = bleService.subscribe(setConnections);
     return () => {
       activeOwner = false;
@@ -185,6 +195,33 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
     void addSensorReading(SENSOR_UID, 'heart_rate', { value: bpm, deviceId, deviceName, source: 'ble' });
   }), [uid]);
+
+  useEffect(() => {
+    if (!uid || !preferencesLoaded || !preferences.notifications) return;
+    let active = true;
+    let thresholds: AlertThresholds | null = null;
+    const stopThresholds = subscribeToAlertThresholds(uid, (next) => { thresholds = next; }, (error) => {
+      if (active) setScanError(`Couldn't load alert thresholds: ${error.message}`);
+    });
+    const stopReadings = onLiveReading((reading) => {
+      if (!active || !thresholds || getAuth().currentUser?.uid !== uid) return;
+      const alertType = reading.value > thresholds.hrMax ? 'HR_HIGH' : reading.value < thresholds.hrMin ? 'HR_LOW' : null;
+      if (!alertType) return;
+      const key = alertCooldownKey(reading, alertType);
+      const alert = checkHeartRate(reading, thresholds, lastAlerts.current.get(key), Date.now(), __DEV__);
+      if (!alert) return;
+      lastAlerts.current.set(key, alert.timestamp);
+      void addAlert(uid, alert).then(async () => {
+        if (active && getAuth().currentUser?.uid === uid) {
+          try { await presentHeartRateAlert(alert); }
+          catch (error) { if (active) setScanError(`Couldn't show heart rate notification: ${String(error)}`); }
+        }
+      }).catch((error) => {
+        if (active) setScanError(`Couldn't save heart rate alert: ${String(error)}`);
+      });
+    });
+    return () => { active = false; stopReadings(); stopThresholds(); };
+  }, [uid, preferencesLoaded, preferences.notifications]);
 
   const startScan = useCallback(async () => {
     setScanError(null);

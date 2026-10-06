@@ -61,4 +61,10 @@ Same-account Android testing is assigned to the Android team.
 
 ## T7 alerts
 
-Pending implementation steps; perform these in the final combined session.
+1. With a LightBlue heart-rate device connected, open Alert Thresholds. Set Max below the current BPM and save. Keep the app in the foreground. Confirm the iOS notification permission prompt appears on the first alert; allow it.
+2. Send the same high BPM again within 60 seconds. Confirm only one local notification appears. After 60 seconds, send it again and confirm a new notification appears.
+3. Open Notifications. Confirm the high alert shows the LightBlue device name, BPM and time. Relaunch; confirm the history remains. With a second device, trigger another high alert within the first device's cooldown and confirm that device can alert independently.
+4. Set Min above a live BPM and confirm a low alert. Disable Heart rate alerts in Alert Thresholds, then send out-of-range BPM: no new alert or notification should appear.
+5. Re-enable thresholds but turn off Notifications in Preferences and save. Send out-of-range BPM; confirm no new alert or notification. Turn it back on before continuing.
+6. Deny notification permission (or disable it in iOS Settings), then trigger an alert after its cooldown. The app may save it in Notifications, but no system notification should be claimed or expected. Restore permission for any further notification checks.
+7. In a development build, add a Test data reading and confirm any test alert is labelled with its test source/device. Production builds must ignore test readings. Clear all alerts and confirm the list stays empty after relaunch.

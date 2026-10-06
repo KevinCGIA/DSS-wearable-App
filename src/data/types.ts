@@ -122,6 +122,8 @@ export type AlertItem = {
   value: number;
   message: string;
   timestamp: number;
+  deviceId?: string | null;
+  deviceName?: string | null;
 };
 
 export type Preferences = {

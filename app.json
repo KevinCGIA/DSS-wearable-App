@@ -17,6 +17,7 @@
       }
     },
     "android": {
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
       "adaptiveIcon": {
         "backgroundColor": "#EAF3FF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,6 +33,7 @@
     },
     "plugins": [
       "expo-font",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
