@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import type { AlertItem } from '@/data/types';
 import { addAlert, clearAlerts, subscribeToAlerts } from '@/lib/alerts/alertHistory';
-import { subscribeToAlertThresholds } from '@/lib/alerts/thresholds';
+import { getAlertThresholdsUid, subscribeToAlertThresholds } from '@/lib/alerts/thresholds';
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 
 // iOS only (no Android equivalent). Phase 2: the alert engine writes these; this hook only reads.
 export function useNotifications() {
+  const uid = getAlertThresholdsUid() ?? SENSOR_UID;
   const now = useNow(60 * 1000);
   const [alerts, setAlerts] = useState<AlertItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -17,25 +18,25 @@ export function useNotifications() {
   useEffect(
     () =>
       subscribeToAlerts(
-        SENSOR_UID,
+        uid,
         (next) => {
           setAlerts(next);
           setError(null);
         },
         () => setError("Couldn't load your alerts."),
       ),
-    [attempt],
+    [attempt, uid],
   );
 
   useEffect(
-    () => subscribeToAlertThresholds(SENSOR_UID, (t) => setLimits({ hrMin: t.hrMin, hrMax: t.hrMax }), () => undefined),
-    [],
+    () => subscribeToAlertThresholds(uid, (t) => setLimits({ hrMin: t.hrMin, hrMax: t.hrMax }), () => undefined),
+    [uid],
   );
 
   const clearAll = () => {
     Alert.alert('Clear all alerts?', 'This removes every alert from this list.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear all', style: 'destructive', onPress: () => clearAlerts(SENSOR_UID) },
+      { text: 'Clear all', style: 'destructive', onPress: () => { void clearAlerts(uid).catch(() => setError("Couldn't clear your alerts.")); } },
     ]);
   };
 
@@ -43,13 +44,13 @@ export function useNotifications() {
   const addTestAlert = useCallback(() => {
     const high = Math.random() < 0.6;
     const value = high ? limits.hrMax + 5 + Math.floor(Math.random() * 25) : limits.hrMin - 3 - Math.floor(Math.random() * 8);
-    addAlert(SENSOR_UID, {
+    void addAlert(uid, {
       type: high ? 'HR_HIGH' : 'HR_LOW',
       value,
       message: high ? `Heart rate above ${limits.hrMax} BPM` : `Heart rate below ${limits.hrMin} BPM`,
       timestamp: Date.now(),
     });
-  }, [limits]);
+  }, [limits, uid]);
 
   return {
     now,
