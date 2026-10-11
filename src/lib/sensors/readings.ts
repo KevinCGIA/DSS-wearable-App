@@ -1,20 +1,22 @@
 import type { ReadingSource, SensorReading, SensorType } from '@/data/types';
+import { SENSOR_TYPES, STORED_UNITS } from '@/lib/biometrics/metrics';
+import { sampleVitals } from '@/lib/biometrics/sampleData';
 
 // In-memory stand-in for Android's services/sensors/readings.ts (Firestore
 // users/{uid}/sensor_readings/{type}/readings). Same function names and arguments,
 // so Phase 2 swaps this file for the ported Firestore version and nothing else changes.
 
-const UNITS: Record<SensorType, string> = { heart_rate: 'bpm', steps: 'steps' };
+const UNITS = STORED_UNITS;
 
-const store: Record<SensorType, SensorReading[]> = { heart_rate: [], steps: [] };
+const emptyStore = () => Object.fromEntries(SENSOR_TYPES.map((t) => [t, []])) as unknown as Record<SensorType, SensorReading[]>;
+let store: Record<SensorType, SensorReading[]> = emptyStore();
 const listeners = new Set<() => void>();
 let nextId = 1;
 
 // Native B1 readings are live-only until B3 persists the full pipeline.
 // Clear them when the signed-in BLE provider changes accounts or unmounts.
 export function clearReadings() {
-  store.heart_rate = [];
-  store.steps = [];
+  store = emptyStore();
   emit();
 }
 
@@ -118,6 +120,8 @@ export async function addSampleDay(_uid: string): Promise<void> {
     dayTotal += hour >= 7 && hour < 22 ? 200 + Math.round(Math.random() * 900) : 0;
     add('steps', dayTotal, t);
   }
+
+  for (const sample of sampleVitals(now)) add(sample.type, sample.value, sample.t);
 
   emit();
 }

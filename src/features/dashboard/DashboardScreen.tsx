@@ -22,6 +22,8 @@ import { HelpSheet } from './HelpSheet';
 import { ringViewFrom, stepsTodayFrom } from './dashboardModel';
 import type { DeviceSummary, RestingRange } from './dashboardModel';
 import { SleepRecoveryCard } from './SleepRecoveryCard';
+import { VitalsCard } from './VitalsCard';
+import type { VitalView } from '@/features/activity/vitalsModel';
 
 export type DashboardScreenProps = {
   now: number;
@@ -37,6 +39,8 @@ export type DashboardScreenProps = {
   steps: LatestReadingState;
   stepsHistory: HistoryState;
   activity: DailyActivityExtras;
+  // Extra vitals the devices report; the Vitals card only appears when there are some.
+  vitals: VitalView[];
   units: Units;
   sleep: SleepSummary | null;
   sleepTrends: SleepTrends | null;
@@ -49,6 +53,7 @@ export type DashboardScreenProps = {
   onOpenHeartRate: () => void;
   onOpenSteps: () => void;
   onOpenSleep: () => void;
+  onOpenVitals: () => void;
 };
 
 // The old Home layout (approved). Cards expand in place; "Open in Activity" links open that Activity section.
@@ -65,6 +70,7 @@ export function DashboardScreen({
   steps,
   stepsHistory,
   activity,
+  vitals,
   units,
   sleep,
   sleepTrends,
@@ -76,6 +82,7 @@ export function DashboardScreen({
   onOpenHeartRate,
   onOpenSteps,
   onOpenSleep,
+  onOpenVitals,
 }: DashboardScreenProps) {
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -142,7 +149,15 @@ export function DashboardScreen({
 
       <SleepRecoveryCard sleep={sleep} trends={sleepTrends} initiallyExpanded={initiallyExpanded} onOpen={onOpenSleep} />
 
-      <ActiveCaloriesCard activity={activity} initiallyExpanded={initiallyExpanded} onOpen={onOpenSteps} />
+      <ActiveCaloriesCard
+        activity={activity}
+        initiallyExpanded={initiallyExpanded}
+        onOpen={activity.activeCalories !== null ? onOpenVitals : onOpenSteps}
+      />
+
+      {vitals.length ? (
+        <VitalsCard now={now} vitals={vitals} units={units} initiallyExpanded={initiallyExpanded} onOpen={onOpenVitals} />
+      ) : null}
 
       <HelpSheet visible={helpOpen} onClose={() => setHelpOpen(false)} />
     </Screen>

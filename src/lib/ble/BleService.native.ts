@@ -23,6 +23,21 @@ import {
 } from "./constants";
 import { canonicalGattUuid, sharesAdvertisedService } from "./uuid";
 import { parseHeartRateMeasurement } from "./heartRateMeasurement";
+import type { SensorType } from '@/data/types';
+import {
+  decodeBloodPressureMeasurement,
+  decodeBodyCompositionMeasurement,
+  decodeGlucoseMeasurement,
+  decodeHeartRateMeasurement,
+  decodePlxContinuous,
+  decodePlxSpotCheck,
+  decodeRscMeasurement,
+  decodeTemperatureMeasurement,
+  decodeWeightMeasurement,
+  RACP_REPORT_ALL_RECORDS,
+  rmssd,
+} from '../biometrics/decoders';
+import { type DeviceMeasure, measuresForServices, orderMeasures, SERVICE_UUIDS } from '../biometrics/metrics';
 import type { ConnectionEvent } from '../devices/connectionLog';
 
 export type ScannedDevice = {
@@ -54,7 +69,38 @@ export type ConnectionState = {
   rssi?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
+  // Health data this device provides (from its services, plus anything it has sent)
+  measures?: DeviceMeasure[];
 };
+
+// One decoded value from a device. timestamp is set when the device recorded when it was
+// measured (spot measurements); otherwise the value is "now".
+export type MetricSample = { type: SensorType; value: number; timestamp?: Date };
+
+const uuid16 = (short: string) => `0000${short}-0000-1000-8000-00805f9b34fb`;
+const CHARACTERISTICS = {
+  HEART_RATE_MEASUREMENT: uuid16('2a37'),
+  PLX_CONTINUOUS: uuid16('2a5f'),
+  PLX_SPOT_CHECK: uuid16('2a5e'),
+  TEMPERATURE_MEASUREMENT: uuid16('2a1c'),
+  BLOOD_PRESSURE_MEASUREMENT: uuid16('2a35'),
+  RSC_MEASUREMENT: uuid16('2a53'),
+  WEIGHT_MEASUREMENT: uuid16('2a9d'),
+  BODY_COMPOSITION_MEASUREMENT: uuid16('2a9c'),
+  GLUCOSE_MEASUREMENT: uuid16('2a18'),
+  RECORD_ACCESS_CONTROL_POINT: uuid16('2a52'),
+};
+
+// HRV (RMSSD) is calculated from the RR intervals received over this window
+const HRV_WINDOW_MS = 30000;
+
+// Device clocks are often unset; ignore measurement times that can't be right
+function measuredAt(timestamp: Date | null): Date | undefined {
+  if (!timestamp) return undefined;
+  const time = timestamp.getTime();
+  const now = Date.now();
+  return time > now - 30 * 86400000 && time < now + 5 * 60000 ? timestamp : undefined;
+}
 
 type BleEvent = Omit<ConnectionEvent, 'id' | 'timestamp'>;
 
@@ -99,6 +145,7 @@ export class BleService {
   private latestId: string | null = null;
   private listeners = new Set<(states: Record<string, ConnectionState>) => void>();
   private heartRateListeners = new Set<(bpm: number, deviceId: string, name: string | null) => void>();
+  private metricListeners = new Set<(samples: MetricSample[], deviceId: string, name: string | null) => void>();
   private eventListeners = new Set<(event: BleEvent) => void>();
 
   private getManager(): BleManager {
@@ -267,6 +314,12 @@ export class BleService {
     return () => { this.heartRateListeners.delete(listener); };
   }
 
+  // Every decoded health value other than heart rate (see onHeartRate), per device
+  onMetrics(listener: (samples: MetricSample[], deviceId: string, name: string | null) => void) {
+    this.metricListeners.add(listener);
+    return () => { this.metricListeners.delete(listener); };
+  }
+
   onConnectionEvent(listener: (event: BleEvent) => void) {
     this.eventListeners.add(listener);
     return () => { this.eventListeners.delete(listener); };
@@ -300,6 +353,10 @@ export class BleService {
       if (this.sessions.get(key) !== entry || entry.cancelled) return;
       this.heartRateListeners.forEach((listener) => listener(bpm, key, name));
     });
+    entry.connection.onMetrics((samples) => {
+      if (this.sessions.get(key) !== entry || entry.cancelled) return;
+      this.metricListeners.forEach((listener) => listener(samples, key, name));
+    });
     entry.pending = (async () => {
       await this.stopScan();
       if (entry.cancelled) return false;
@@ -331,8 +388,11 @@ let nextSessionId = 0;
 class DeviceConnection {
   private sessionId = ++nextSessionId;
   private disconnectSubscription: Subscription | null = null;
-  private heartRateSubscription: Subscription | null = null;
+  private healthSubscriptions: Subscription[] = [];
   private heartRateListeners = new Set<(bpm: number) => void>();
+  private metricListeners = new Set<(samples: MetricSample[]) => void>();
+  private rrBuffer: number[] = [];
+  private rrWindowStart = 0;
   private connection: ConnectionState = INITIAL_CONNECTION;
   private listeners = new Set<(state: ConnectionState) => void>();
   private connectionToken = 0;
@@ -362,6 +422,22 @@ class DeviceConnection {
     return () => {
       this.heartRateListeners.delete(listener);
     };
+  }
+
+  onMetrics(listener: (samples: MetricSample[]) => void): () => void {
+    this.metricListeners.add(listener);
+    return () => { this.metricListeners.delete(listener); };
+  }
+
+  private emitMetrics(samples: MetricSample[]) {
+    if (samples.length) this.metricListeners.forEach((listener) => listener(samples));
+  }
+
+  // Adds measures a device turned out to send (e.g. HRV only once RR intervals arrive)
+  private noteMeasures(found: DeviceMeasure[]) {
+    const current = this.connection.measures ?? [];
+    if (found.every((m) => current.includes(m))) return;
+    this.setConnection({ measures: orderMeasures([...current, ...found]) });
   }
 
   private setConnection(update: Partial<ConnectionState>) {
@@ -517,7 +593,7 @@ class DeviceConnection {
     this.throwIfStale(token);
 
     // Device Information is optional and is not required by this handshake.
-    const hasHeartRate = await this.startHeartRateMonitor(deviceId, token);
+    const measures = await this.startHealthMonitors(deviceId, token);
     this.throwIfStale(token);
 
     this.watchForDisconnect(deviceId, token);
@@ -526,7 +602,10 @@ class DeviceConnection {
       status: "connected",
       attempt: 0,
       batteryLevel: null,
-      error: hasHeartRate ? null : "This device doesn't provide heart rate.",
+      measures,
+      error: measures.some((m) => m !== 'activity_monitor')
+        ? null
+        : "This device doesn't provide heart rate or other supported health data.",
     });
     void this.readBatteryLevel(deviceId).then((batteryLevel) => {
       if (!this.isStale(token) && this.connection.status === 'connected') this.setConnection({ batteryLevel });
@@ -560,46 +639,173 @@ class DeviceConnection {
       });
   }
 
-  // Subscribes to Heart Rate Measurement notifications if the device has
-  // the standard Heart Rate service. Devices without it are left alone.
-  private async startHeartRateMonitor(deviceId: string, token: number) {
+  // Subscribes to every standard health measurement the device offers (heart rate, pulse
+  // oximeter, thermometer, blood pressure, running speed & cadence, weight scale, body
+  // composition, glucose) and returns what it measures. Characteristics a device doesn't
+  // implement just report an error to their callback, which is ignored.
+  private async startHealthMonitors(deviceId: string, token: number): Promise<DeviceMeasure[]> {
     this.stopHeartRateMonitor();
 
     const services = await withDeadline(this.getManager().servicesForDevice(deviceId));
     this.throwIfStale(token);
-    const hasHeartRate = services.some(
-      (service) => canonicalGattUuid(service.uuid) === GATT.HEART_RATE_SERVICE
-    );
+    const uuids = services.map((service) => canonicalGattUuid(service.uuid));
+    const has = (service: string) => uuids.includes(service);
 
-    if (!hasHeartRate) {
-      return false;
-    }
+    const monitor = (service: string, characteristic: string, handle: (value: string) => MetricSample[] | void) => {
+      this.healthSubscriptions.push(
+        this.getManager().monitorCharacteristicForDevice(deviceId, service, characteristic, (error, value) => {
+          // Errors mean the link dropped, monitoring stopped, or the device lacks this one
+          if (this.isStale(token) || error || !value?.value) return;
+          const samples = handle(value.value);
+          if (samples) this.emitMetrics(samples);
+        }),
+      );
+    };
 
-    this.heartRateSubscription =
-      this.getManager().monitorCharacteristicForDevice(
-        deviceId,
-        GATT.HEART_RATE_SERVICE,
-        GATT.HEART_RATE_MEASUREMENT,
-        (error, characteristic) => {
-          // Errors here mean the link dropped or monitoring was stopped,
-          // which the disconnect handling already deals with
-          if (this.isStale(token) || error || !characteristic?.value) {
-            return;
-          }
-
-          const bpm = parseHeartRateMeasurement(characteristic.value);
-
-          if (bpm !== null) {
-            this.heartRateListeners.forEach((listener) => listener(bpm));
+    if (has(GATT.HEART_RATE_SERVICE)) {
+      this.rrBuffer = [];
+      this.rrWindowStart = Date.now();
+      monitor(GATT.HEART_RATE_SERVICE, CHARACTERISTICS.HEART_RATE_MEASUREMENT, (value) => {
+        const measurement = decodeHeartRateMeasurement(value);
+        const bpm = measurement?.bpm ?? parseHeartRateMeasurement(value);
+        if (bpm !== null) this.heartRateListeners.forEach((listener) => listener(bpm));
+        if (!measurement) return;
+        const samples: MetricSample[] = [];
+        if (measurement.energyKcal !== null) {
+          samples.push({ type: 'energy', value: measurement.energyKcal });
+          this.noteMeasures(['energy']);
+        }
+        if (measurement.rrIntervalsMs.length) {
+          this.rrBuffer.push(...measurement.rrIntervalsMs);
+          if (this.rrBuffer.length > 300) this.rrBuffer = this.rrBuffer.slice(-300);
+          if (Date.now() - this.rrWindowStart >= HRV_WINDOW_MS) {
+            const hrv = rmssd(this.rrBuffer);
+            // Keep the newest interval so the next window's first difference is real
+            this.rrBuffer = this.rrBuffer.slice(-1);
+            this.rrWindowStart = Date.now();
+            if (hrv !== null) {
+              samples.push({ type: 'hrv', value: hrv });
+              this.noteMeasures(['hrv']);
+            }
           }
         }
-      );
-    return true;
+        return samples;
+      });
+    }
+
+    if (has(SERVICE_UUIDS.PULSE_OXIMETER)) {
+      const oximetry = (decode: typeof decodePlxContinuous) => (value: string) => {
+        const m = decode(value);
+        if (!m) return;
+        const at = measuredAt(m.timestamp);
+        const samples: MetricSample[] = [{ type: 'spo2', value: m.spo2, timestamp: at }];
+        // Pulse from an oximeter is heart rate too, unless the device has a Heart Rate service
+        if (m.pulse !== null && !has(GATT.HEART_RATE_SERVICE)) {
+          const pulse = m.pulse;
+          this.heartRateListeners.forEach((listener) => listener(pulse));
+        }
+        return samples;
+      };
+      monitor(SERVICE_UUIDS.PULSE_OXIMETER, CHARACTERISTICS.PLX_CONTINUOUS, oximetry(decodePlxContinuous));
+      monitor(SERVICE_UUIDS.PULSE_OXIMETER, CHARACTERISTICS.PLX_SPOT_CHECK, oximetry(decodePlxSpotCheck));
+    }
+
+    if (has(SERVICE_UUIDS.HEALTH_THERMOMETER)) {
+      monitor(SERVICE_UUIDS.HEALTH_THERMOMETER, CHARACTERISTICS.TEMPERATURE_MEASUREMENT, (value) => {
+        const m = decodeTemperatureMeasurement(value);
+        return m ? [{ type: 'body_temperature', value: m.celsius, timestamp: measuredAt(m.timestamp) }] : undefined;
+      });
+    }
+
+    if (has(SERVICE_UUIDS.BLOOD_PRESSURE)) {
+      monitor(SERVICE_UUIDS.BLOOD_PRESSURE, CHARACTERISTICS.BLOOD_PRESSURE_MEASUREMENT, (value) => {
+        const m = decodeBloodPressureMeasurement(value);
+        if (!m) return;
+        // Both halves share one time so they stay paired, even without a device clock
+        const at = measuredAt(m.timestamp) ?? new Date();
+        return [
+          { type: 'bp_systolic', value: m.systolic, timestamp: at },
+          { type: 'bp_diastolic', value: m.diastolic, timestamp: at },
+        ];
+      });
+    }
+
+    if (has(SERVICE_UUIDS.RUNNING_SPEED_CADENCE)) {
+      monitor(SERVICE_UUIDS.RUNNING_SPEED_CADENCE, CHARACTERISTICS.RSC_MEASUREMENT, (value) => {
+        const m = decodeRscMeasurement(value);
+        if (!m) return;
+        const samples: MetricSample[] = [
+          { type: 'cadence', value: m.cadence },
+          { type: 'speed', value: m.speedKmh },
+        ];
+        if (m.strideLengthM !== null) {
+          samples.push({ type: 'stride_length', value: m.strideLengthM });
+          this.noteMeasures(['stride_length']);
+        }
+        if (m.totalDistanceM !== null) {
+          samples.push({ type: 'distance', value: m.totalDistanceM });
+          this.noteMeasures(['distance']);
+        }
+        return samples;
+      });
+    }
+
+    if (has(SERVICE_UUIDS.WEIGHT_SCALE)) {
+      monitor(SERVICE_UUIDS.WEIGHT_SCALE, CHARACTERISTICS.WEIGHT_MEASUREMENT, (value) => {
+        const m = decodeWeightMeasurement(value);
+        if (!m) return;
+        const at = measuredAt(m.timestamp) ?? new Date();
+        const samples: MetricSample[] = [{ type: 'weight', value: m.kg, timestamp: at }];
+        if (m.bmi !== null) {
+          samples.push({ type: 'bmi', value: m.bmi, timestamp: at });
+          this.noteMeasures(['bmi']);
+        }
+        return samples;
+      });
+    }
+
+    if (has(SERVICE_UUIDS.BODY_COMPOSITION)) {
+      monitor(SERVICE_UUIDS.BODY_COMPOSITION, CHARACTERISTICS.BODY_COMPOSITION_MEASUREMENT, (value) => {
+        const m = decodeBodyCompositionMeasurement(value);
+        if (!m) return;
+        const at = measuredAt(m.timestamp) ?? new Date();
+        const samples: MetricSample[] = [{ type: 'body_fat', value: m.bodyFatPercent, timestamp: at }];
+        if (m.weightKg !== null && !has(SERVICE_UUIDS.WEIGHT_SCALE)) {
+          samples.push({ type: 'weight', value: m.weightKg, timestamp: at });
+          this.noteMeasures(['weight']);
+        }
+        return samples;
+      });
+    }
+
+    if (has(SERVICE_UUIDS.GLUCOSE)) {
+      monitor(SERVICE_UUIDS.GLUCOSE, CHARACTERISTICS.GLUCOSE_MEASUREMENT, (value) => {
+        const m = decodeGlucoseMeasurement(value);
+        if (!m || m.mmolPerL === null) return;
+        return [{ type: 'glucose', value: m.mmolPerL, timestamp: measuredAt(m.timestamp) ?? new Date() }];
+      });
+      // Glucose meters only send stored records when asked through the Record Access
+      // Control Point, whose responses are indications that must be enabled first
+      monitor(SERVICE_UUIDS.GLUCOSE, CHARACTERISTICS.RECORD_ACCESS_CONTROL_POINT, () => undefined);
+      setTimeout(() => {
+        if (this.isStale(token)) return;
+        void this.getManager()
+          .writeCharacteristicWithResponseForDevice(
+            deviceId,
+            SERVICE_UUIDS.GLUCOSE,
+            CHARACTERISTICS.RECORD_ACCESS_CONTROL_POINT,
+            RACP_REPORT_ALL_RECORDS,
+          )
+          .catch(() => undefined);
+      }, 500);
+    }
+
+    return measuresForServices(uuids);
   }
 
   private stopHeartRateMonitor() {
-    this.heartRateSubscription?.remove();
-    this.heartRateSubscription = null;
+    this.healthSubscriptions.forEach((subscription) => subscription.remove());
+    this.healthSubscriptions = [];
   }
 
   // Standard Battery Level characteristic. Returns null if the device

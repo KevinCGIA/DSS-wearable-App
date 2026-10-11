@@ -2,6 +2,15 @@ import { buildDeviceHistory, mockDeviceC } from '@/data/deviceHistory';
 import { mockDeviceA, mockDeviceB } from '@/data/mocks';
 import type { MockDevice } from '@/data/mocks';
 import type { ConnectionState, PairedDevice, SensorReading } from '@/data/types';
+import { orderMeasures } from '@/lib/biometrics/metrics';
+import type { TestedDevice } from './deviceModel';
+
+const MEASURES: Record<string, string[]> = {
+  'Galaxy Watch8': ['heart_rate', 'hrv', 'energy', 'spo2', 'body_temperature'],
+  'Polar H10': ['heart_rate', 'hrv', 'energy'],
+  'Mi Smart Band 8': ['heart_rate', 'activity_monitor'],
+  'Garmin Venu 3': ['heart_rate', 'spo2', 'cadence', 'speed', 'distance'],
+};
 import type { ConnectionEvent } from '@/lib/devices/connectionLog';
 import { buildDevicesModel } from './deviceModel';
 import type { DevicesModel } from './deviceModel';
@@ -129,7 +138,7 @@ export function devicesFixture(now: number, { live = [], keep, copies = [] }: Op
     paired = [entry, ...paired.filter((d) => d.deviceId !== l.device.id)];
   }
 
-  return buildDevicesModel({
+  const model = buildDevicesModel({
     connections,
     pairedDevices: paired,
     events: events.sort((a, b) => a.timestamp - b.timestamp).map((e, i) => ({ ...e, id: `f${i}` })),
@@ -138,4 +147,7 @@ export function devicesFixture(now: number, { live = [], keep, copies = [] }: Op
     pausedDevices: [],
     now,
   });
+  // What each mock device measures, so previews show the Measures row
+  const withMeasures = (d: TestedDevice): TestedDevice => ({ ...d, measures: orderMeasures(MEASURES[d.name] ?? ['heart_rate']) });
+  return { ...model, connected: model.connected.map(withMeasures), previous: model.previous.map(withMeasures) };
 }

@@ -2,6 +2,8 @@ import type { ConnectionState, ConnectionStatus, PairedDevice, SensorReading } f
 import type { ConnectionEvent } from '@/lib/devices/connectionLog';
 import { computeDeviceStats, healthBadge } from '@/lib/devices/deviceStats';
 import type { DeviceStats, HealthBadge, Session } from '@/lib/devices/deviceStats';
+import { orderMeasures } from '@/lib/biometrics/metrics';
+import type { DeviceMeasure } from '@/lib/biometrics/metrics';
 
 // One card on the Devices tab: a device the researcher has tested, live or past.
 export type TestedDevice = {
@@ -14,6 +16,8 @@ export type TestedDevice = {
   // Live while connected, otherwise the last known value.
   rssi: number | null;
   battery: number | null;
+  // Health data it provides (empty when unknown)
+  measures: DeviceMeasure[];
   lastConnectedAt: number | null;
   stats: DeviceStats;
   badge: HealthBadge | null;
@@ -60,6 +64,7 @@ export function buildDevicesModel(input: DevicesModelInput): DevicesModel {
       error: connection?.error ?? null,
       rssi: (status !== 'disconnected' ? connection?.rssi : null) ?? known?.lastRssi ?? null,
       battery: live ? (connection?.batteryLevel ?? null) : (known?.lastBattery ?? null),
+      measures: orderMeasures((connection?.measures?.length ? connection.measures : known?.measures) ?? []),
       lastConnectedAt: known?.lastConnectedAt?.getTime() ?? null,
       stats,
       badge: healthBadge(stats, live, now),

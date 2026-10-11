@@ -3,7 +3,9 @@ import test from 'node:test';
 import { ReadingBatchQueue, MAX_BATCH_SAMPLES } from '../src/lib/sensors/readingBatches.ts';
 import { loadAdapter } from './loadAdapter.mjs';
 import * as keys from '../src/lib/ble/deviceKey.ts';
-const { legacyReading, batchReadings, mergeReadings } = loadAdapter('../src/lib/sensors/readingDocuments.ts', { '../ble/deviceKey': keys });
+import * as metrics from '../src/lib/biometrics/metrics.ts';
+import * as samples from '../src/lib/biometrics/sampleData.ts';
+const { legacyReading, batchReadings, mergeReadings } = loadAdapter('../src/lib/sensors/readingDocuments.ts', { '../ble/deviceKey': keys, '../biometrics/metrics': metrics });
 
 const input = (deviceId = 'A') => ({ deviceId, deviceName: deviceId, platform: 'ios', type: 'heart_rate', source: 'ble' });
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

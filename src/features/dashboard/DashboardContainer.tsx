@@ -33,6 +33,7 @@ export function DashboardContainer({ displayName, onOpenActivity, ...actions }: 
       onOpenSteps={() => open('steps', sourceOf(data.steps.reading))}
       // The only sleep today is the dev sample night (Test data).
       onOpenSleep={() => open('sleep', data.sleep ? TEST_SOURCE : null)}
+      onOpenVitals={() => open('vitals', data.vitalsSource)}
     />
   );
 }

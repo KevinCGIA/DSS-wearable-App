@@ -180,9 +180,10 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
         lastBattery: current.batteryLevel ?? previous?.lastBattery ?? undefined,
         modelNumber: current.modelNumber ?? previous?.modelNumber ?? undefined,
         firmwareRevision: current.firmwareRevision ?? previous?.firmwareRevision ?? undefined,
+        measures: current.measures?.length ? current.measures : previous?.measures,
       };
       // RSSI is polled every ten seconds but paired metadata need not be written that often.
-      const fingerprint = JSON.stringify({ battery: metadata.lastBattery, model: metadata.modelNumber, firmware: metadata.firmwareRevision });
+      const fingerprint = JSON.stringify({ battery: metadata.lastBattery, model: metadata.modelNumber, firmware: metadata.firmwareRevision, measures: metadata.measures });
       if (before === 'connected' && savedMetadata.current[id] === fingerprint) continue;
       savedMetadata.current[id] = fingerprint;
       void withDeadline(savePairedDevice(uid, nativeDeviceId(id), current.deviceName ?? 'Unknown device', {
@@ -194,6 +195,16 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => bleService.onHeartRate((bpm, deviceId, deviceName) => {
     if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
     void addSensorReading(SENSOR_UID, 'heart_rate', { value: bpm, deviceId, deviceName, source: 'ble' });
+  }), [uid]);
+
+  // Every other biometric (SpO2, temperature, blood pressure, HRV, weight, glucose, …)
+  useEffect(() => bleService.onMetrics((samples, deviceId, deviceName) => {
+    if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
+    for (const sample of samples) {
+      void addSensorReading(SENSOR_UID, sample.type, {
+        value: sample.value, timestamp: sample.timestamp, deviceId, deviceName, source: 'ble',
+      });
+    }
   }), [uid]);
 
   useEffect(() => {

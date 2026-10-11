@@ -15,6 +15,7 @@ import {
   totalStats,
 } from './deviceFormat';
 import type { TestedDevice } from './deviceModel';
+import { DeviceMeasures } from './DeviceMeasures';
 import { DeviceSignal } from './DeviceSignal';
 import { StatGrid } from './StatGrid';
 
@@ -73,6 +74,7 @@ export function DeviceCard({ device, now, bluetoothBlocked, onOpen, onConnect, o
         </View>
 
         <DeviceSignal rssi={device.rssi} battery={device.battery} lastKnown={idle} />
+        <DeviceMeasures measures={device.measures} />
         {device.error && idle ? <Text style={[type.caption, styles.error]}>{device.error}</Text> : null}
         {device.paused ? <Text style={[type.caption, styles.pending]}>Readings paused (testing)</Text> : null}
 

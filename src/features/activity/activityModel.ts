@@ -3,8 +3,9 @@ import type { HistoryState, RestingHrTrends, SensorReading, SleepSummary, SleepT
 import { restingRangeFrom } from '@/features/dashboard/dashboardModel';
 import type { RestingRange } from '@/features/dashboard/dashboardModel';
 import { isSameDay } from '@/lib/time';
+import { buildVitals, type VitalReadings, type VitalView } from './vitalsModel';
 
-export type ActivitySection = 'heart-rate' | 'steps' | 'sleep';
+export type ActivitySection = 'heart-rate' | 'steps' | 'sleep' | 'vitals';
 
 // Chip keys: a deviceId, Test data (dev only), or readings saved without a deviceId (shared data rule).
 export const TEST_SOURCE = 'test-data';
@@ -41,6 +42,9 @@ export type ActivityView = {
   heartRate: HeartRateView | null;
   steps: StepsView | null;
   sleep: SleepView | null;
+  // Extra biometrics this source reported (SpO2, temperature, blood pressure, …). Empty when
+  // it reported none; a metric without data never gets a card.
+  vitals: VitalView[];
 };
 
 export type ActivityInput = {
@@ -48,6 +52,8 @@ export type ActivityInput = {
   // Oldest first, as the readings store returns them.
   heartRate: SensorReading[];
   steps: SensorReading[];
+  // Every other biometric by type, oldest first (optional so older callers still work)
+  vitals?: VitalReadings;
   // Labels for chips: paired and connected devices by id.
   names: Record<string, string>;
   // Test data chip (dev builds only).
@@ -64,9 +70,13 @@ export function buildActivity(input: ActivityInput): ActivityView {
   const usable = (r: SensorReading) => includeTest || r.source === 'ble';
   const heartRate = input.heartRate.filter(usable);
   const steps = input.steps.filter(usable);
+  const vitals: VitalReadings = {};
+  for (const [type, readings] of Object.entries(input.vitals ?? {}) as [keyof VitalReadings, SensorReading[]][]) {
+    vitals[type] = readings.filter(usable);
+  }
 
   const latestBy = new Map<string, SensorReading>();
-  for (const r of [...heartRate, ...steps]) {
+  for (const r of [...heartRate, ...steps, ...Object.values(vitals).flat()]) {
     const key = sourceKeyOf(r);
     const known = latestBy.get(key);
     if (!known || known.timestamp < r.timestamp) latestBy.set(key, r);
@@ -88,7 +98,7 @@ export function buildActivity(input: ActivityInput): ActivityView {
       : devices;
 
   const selected = sources.some((s) => s.key === input.selected) ? input.selected : (sources[0]?.key ?? null);
-  if (!selected) return { sources, selected, heartRate: null, steps: null, sleep: null };
+  if (!selected) return { sources, selected, heartRate: null, steps: null, sleep: null, vitals: [] };
 
   const own = (readings: SensorReading[]) => readings.filter((r) => sourceKeyOf(r) === selected);
   const ownHr = own(heartRate);
@@ -109,6 +119,10 @@ export function buildActivity(input: ActivityInput): ActivityView {
 
   const hrHistory = window(ownHr);
   const restingTrends = input.restingTrendsFor(selected);
+  const ownVitals: VitalReadings = {};
+  for (const [type, readings] of Object.entries(vitals) as [keyof VitalReadings, SensorReading[]][]) {
+    ownVitals[type] = own(readings);
+  }
 
   return {
     sources,
@@ -125,6 +139,7 @@ export function buildActivity(input: ActivityInput): ActivityView {
       ? { latest: ownSteps[ownSteps.length - 1], history: window(ownSteps), daily: dailySteps(ownSteps, now) }
       : null,
     sleep: input.sleepFor(selected),
+    vitals: buildVitals(ownVitals, now),
   };
 }
 

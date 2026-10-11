@@ -6,6 +6,8 @@ import type { ReadingSource, SensorReading, SensorType } from '@/data/types';
 import { subscribeWithDeadline, withDeadline } from '../asyncDeadline';
 import { devicePlatform, nativeDeviceId } from '../ble/deviceKey';
 import { ReadingBatchQueue, type ReadingBatch } from './readingBatches';
+import { isSensorType, METRIC_BY_ID, metricForType, SENSOR_TYPES, STORED_UNITS } from '../biometrics/metrics';
+import { sampleVitals } from '../biometrics/sampleData';
 import { batchReadings, legacyReading, mergeReadings, timestampMs } from './readingDocuments';
 
 type Input = { value: number; timestamp?: Date; deviceId?: string | null; deviceName?: string | null; source: ReadingSource };
@@ -21,7 +23,8 @@ const liveListeners = new Set<(reading: SensorReading) => void>();
 const closing = new Map<string, Promise<void>>();
 const HISTORY_DAYS = 30;
 const BATCH_DISPLAY_LIMIT = 2000;
-const LEGACY_DISPLAY_LIMIT = 20000;
+// Firestore rejects listener limits above 10,000 (invalid-argument)
+const LEGACY_DISPLAY_LIMIT = 10000;
 
 function emit() {
   cached = current ? mergeReadings([...current.remote.values()].flat().concat([...current.live.values()])) : [];
@@ -61,7 +64,7 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
           startAt: samples[0].t, endAt: samples[samples.length - 1].t, samples,
         });
         if (batch.legacy) transaction.set(doc(db, 'users', uid, 'sensor_readings', batch.type, 'readings', batch.id), {
-          value: batch.legacy.v, unit: batch.type === 'heart_rate' ? 'bpm' : 'steps',
+          value: batch.legacy.v, unit: STORED_UNITS[batch.type],
           timestamp: Timestamp.fromMillis(batch.legacy.t),
           deviceId: batch.source === 'test' ? null : batch.deviceId, deviceName: batch.deviceName,
           source: batch.source, platform: batch.platform,
@@ -90,7 +93,7 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
     await session.queue.flush();
     if (!session.active) return;
     const since = Timestamp.fromMillis(Date.now() - HISTORY_DAYS * 86400000);
-    for (const type of ['heart_rate', 'steps'] as const) {
+    for (const type of SENSOR_TYPES) {
       watch(query(collection(db, 'users', uid, 'sensor_readings', type, 'readings'), where('timestamp', '>=', since), orderBy('timestamp', 'desc'), limit(LEGACY_DISPLAY_LIMIT)), (snapshot) => {
         session.remote.set(type, snapshot.docs.map((d) => legacyReading(`legacy:${type}:${d.id}`, type, d.data())).filter((r): r is SensorReading => r !== null));
         if (snapshot.size === LEGACY_DISPLAY_LIMIT) report(session, new Error('The saved-reading display limit was reached. Older readings remain in Firestore.'));
@@ -100,7 +103,7 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
       const readings: SensorReading[] = [];
       for (const d of snapshot.docs) {
         const data = d.data();
-        if (!Array.isArray(data.samples) || !['heart_rate', 'steps'].includes(data.type) || typeof data.deviceId !== 'string') continue;
+        if (!Array.isArray(data.samples) || !isSensorType(data.type) || typeof data.deviceId !== 'string') continue;
         const batch: ReadingBatch = {
           id: d.id, deviceId: data.deviceId, deviceName: data.deviceName ?? null,
           platform: data.platform === 'ios' ? 'ios' : 'android', type: data.type,
@@ -167,13 +170,19 @@ export async function addSensorReading(_uid: string, type: SensorType, input: In
     const source = input.source === 'ble' ? 'ble' : 'test';
     const timestamp = input.timestamp ?? new Date();
     const deviceId = input.deviceId ?? 'test-data';
+    // Spot-measurement devices (blood pressure, scales, thermometers, glucose meters) resend
+    // their stored records on every connection. Keep each measurement once.
+    if (input.timestamp && METRIC_BY_ID[metricForType(type)].kind === 'spot' && source === 'ble') {
+      const time = timestamp.getTime();
+      if (cached.some((r) => r.type === type && r.deviceId === deviceId && r.timestamp.getTime() === time)) return;
+    }
     const result = session.queue.add({
       deviceId: nativeDeviceId(deviceId), deviceName: input.deviceName ?? null,
       platform: source === 'ble' ? devicePlatform(deviceId) : Platform.OS === 'ios' ? 'ios' : 'android', type, source,
     }, { t: timestamp.getTime(), v: input.value });
     const reading: SensorReading = {
       id: `${result.id}:${result.index}`, type, value: input.value, timestamp,
-      unit: type === 'heart_rate' ? 'bpm' : 'steps', deviceId: source === 'ble' ? deviceId : null,
+      unit: STORED_UNITS[type], deviceId: source === 'ble' ? deviceId : null,
       deviceName: input.deviceName ?? null, source, resolution: 'sample',
     };
     session.live.set(reading.id, reading);
@@ -197,6 +206,9 @@ export async function addSampleDay(uid: string): Promise<void> {
     if (nextDay !== day) { day = nextDay; total = 0; }
     total += Math.floor(Math.random() * 700);
     await addSensorReading(uid, 'steps', { value: total, timestamp: new Date(t), source: 'test', deviceName: 'Test data' });
+  }
+  for (const sample of sampleVitals(end)) {
+    await addSensorReading(uid, sample.type, { value: sample.value, timestamp: new Date(sample.t), source: 'test', deviceName: 'Test data' });
   }
   flushReadings();
 }

@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { mockProfile, mockScannedDevices, noActivityExtras } from '@/data/mocks';
-import type { UserProfile } from '@/data/types';
+import { mockProfile, mockScannedDevices } from '@/data/mocks';
+import type { DailyActivityExtras, SensorReading, UserProfile } from '@/data/types';
+import { sourceKeyOf } from '@/features/activity/activityModel';
+import { buildVitals } from '@/features/activity/vitalsModel';
+import type { VitalReadings } from '@/features/activity/vitalsModel';
+import { VITAL_METRICS } from '@/lib/biometrics/metrics';
 import { useBle } from '@/features/devices/BleProvider';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import { useProfile } from '@/features/profile/ProfileProvider';
 import { useSampleSleep } from '@/lib/sensors/testExtras';
-import { useLatestSensorReading, useSensorHistory } from '@/lib/sensors/useSensorReadings';
+import { useLatestSensorReading, useSensorHistories, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { useNow } from '@/lib/useNow';
 import { connectionsOf } from '@/features/devices/connections';
 import { restingRangeFrom } from './dashboardModel';
 import type { DeviceSummary } from './dashboardModel';
 
 const REFRESH_MS = 1200;
+const VITAL_TYPES = VITAL_METRICS.flatMap((m) => m.types);
+// On their own cards (Today's Activity, Active Calories) rather than the Vitals card
+const ACTIVITY_TOTALS = ['energy', 'distance'];
 
 // The old Home data, unchanged: useBle(), the profile and the readings store. Phase 2 swaps those providers.
 export function useDashboardData(displayName: string) {
@@ -23,6 +30,8 @@ export function useDashboardData(displayName: string) {
   const steps = useLatestSensorReading('steps');
   const stepsHistory = useSensorHistory('steps', 24);
   const sampleSleep = useSampleSleep();
+  // 48 h so today's first running-total reading has yesterday's to compare with
+  const vitalsHistory = useSensorHistories(VITAL_TYPES, 48);
   const { units } = usePreferences().preferences;
   const [refreshing, setRefreshing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +79,36 @@ export function useDashboardData(displayName: string) {
       });
   }, [ble, heartRateHistory.readings, stepsHistory.readings]);
 
+  // Every source together: running totals are summed per device, the rest show the newest value.
+  // Test data counts only in development.
+  const { vitals, activity, vitalsSource } = useMemo(() => {
+    const usable: VitalReadings = {};
+    let newest: SensorReading | null = null;
+    for (const [type, list] of Object.entries(vitalsHistory.readings) as [keyof VitalReadings, SensorReading[]][]) {
+      const own = list.filter((r) => __DEV__ || r.source === 'ble');
+      usable[type] = own;
+      const last = own[own.length - 1];
+      if (last && !ACTIVITY_TOTALS.includes(type) && (!newest || newest.timestamp < last.timestamp)) newest = last;
+    }
+    const views = buildVitals(usable, now);
+    const today = (id: string) => {
+      const view = views.find((v) => v.metric.id === id);
+      return view?.kind === 'total' ? view.today : null;
+    };
+    const distance = today('distance');
+    const energy = today('energy');
+    const extras: DailyActivityExtras = {
+      distanceKm: distance === null ? null : distance / 1000,
+      floors: null,
+      activeCalories: energy === null ? null : Math.round(energy),
+    };
+    return {
+      vitals: views.filter((v) => !ACTIVITY_TOTALS.includes(v.metric.id)),
+      activity: extras,
+      vitalsSource: newest ? sourceKeyOf(newest) : null,
+    };
+  }, [vitalsHistory.readings, now]);
+
   const profile = useMemo<UserProfile>(
     () => loadedProfile ?? { ...mockProfile, name: displayName },
     [loadedProfile, displayName],
@@ -87,8 +126,11 @@ export function useDashboardData(displayName: string) {
     restingRange: restingRangeFrom(heartRateHistory),
     steps,
     stepsHistory,
-    // No source for distance, floors or calories (Android has none): always "--" until Phase 2 data exists.
-    activity: noActivityExtras,
+    // Distance and calories only when a device reports them (RSC total distance, HR energy
+    // expended); floors have no BLE source, so they stay "--".
+    activity,
+    vitals,
+    vitalsSource,
     units,
     sleep: sampleSleep?.sleep ?? null,
     sleepTrends: sampleSleep?.trends ?? null,
