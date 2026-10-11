@@ -22,8 +22,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Keep in step with SensorType in src/data/types.ts
     function isSensorType(type) {
-      return type in ['heart_rate', 'steps'];
+      return type in [
+        'heart_rate', 'steps', 'hrv', 'energy', 'spo2', 'body_temperature',
+        'bp_systolic', 'bp_diastolic', 'cadence', 'speed', 'stride_length',
+        'distance', 'weight', 'bmi', 'body_fat', 'glucose'
+      ];
     }
 
     match /users/{uid} {
