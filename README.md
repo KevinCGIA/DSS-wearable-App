@@ -118,7 +118,7 @@ Everything is under the signed-in user's own document in Firestore:
 | `users/{uid}/reading_batches/{id}` | readings at full detail, about one document per device, metric and minute |
 | `users/{uid}/sensor_readings/{type}/readings/{id}` | one reading per device, metric and minute (the original format) |
 
-The security rules are in the open pull request for `firestore.rules`. They only take effect when
+The security rules are in `firestore.rules`. They only take effect when
 someone deploys them from the Firebase console or CLI.
 
 On the phone, AsyncStorage holds the upload queue, the alert history, the connection log and the

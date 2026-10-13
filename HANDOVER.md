@@ -32,7 +32,7 @@ automated tests pass but nobody has tried it on hardware.
 
 ## 2. Do these before anyone relies on the app
 
-1. **Check and deploy the Firestore security rules.** The rules in the `firestore.rules` pull request
+1. **Check and deploy the Firestore security rules.** The rules in `firestore.rules`
    are a proposal. Nobody on the team could see which rules are live. Open the Firebase console →
    Firestore Database → Rules, compare, and deploy. Until then, assume user data is only as safe as
    whatever is live.
@@ -43,8 +43,6 @@ automated tests pass but nobody has tried it on hardware.
    the user's documents and the account are gone.
 5. **Decide the Firebase plan.** See "Data volume" below. The free plan is enough for demos, not for
    continuous recording.
-6. **Merge.** `main` still holds the old Android-only app. The unified app is on `ui-changes`, and the
-   newest work is in open pull requests on top of it.
 
 ## 3. Connecting the project owner's wearable
 
@@ -129,7 +127,7 @@ automated tests pass but nobody has tried it on hardware.
 
 ## 6. Suggested order of work
 
-1. Section 2 above (rules, real-device tests, plan, merge).
+1. Section 2 above (rules, real-device tests, plan).
 2. The custom wearable's data format, including steps and sleep.
 3. Daily summary documents, then week and month views.
 4. Alert thresholds for other vitals (low SpO₂, high temperature).
