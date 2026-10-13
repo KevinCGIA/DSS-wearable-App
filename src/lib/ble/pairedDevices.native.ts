@@ -33,6 +33,7 @@ export type PairedDevice = {
   lastBattery?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
+  measures?: string[];
 };
 
 type PairedDeviceDoc = {
@@ -47,6 +48,7 @@ type PairedDeviceDoc = {
   lastBattery?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
+  measures?: string[];
 };
 
 function devicesCollection(uid: string) {
@@ -86,6 +88,7 @@ export function subscribeToPairedDevices(
             lastBattery: data.lastBattery,
             modelNumber: data.modelNumber,
             firmwareRevision: data.firmwareRevision,
+            measures: Array.isArray(data.measures) ? data.measures.filter((m): m is string => typeof m === 'string') : undefined,
           };
         })
       );
@@ -100,7 +103,7 @@ export async function savePairedDevice(
   uid: string,
   deviceId: string,
   name: string,
-  metadata: { platform: "ios" | "android"; localName?: string; serviceUUIDs?: string[]; lastRssi?: number; lastBattery?: number; modelNumber?: string; firmwareRevision?: string; updateConnectionTime?: boolean }
+  metadata: { platform: "ios" | "android"; localName?: string; serviceUUIDs?: string[]; lastRssi?: number; lastBattery?: number; modelNumber?: string; firmwareRevision?: string; measures?: string[]; updateConnectionTime?: boolean }
 ): Promise<void> {
   const ref = deviceDoc(uid, deviceId);
   const existing = await getDoc(ref);
@@ -112,6 +115,7 @@ export async function savePairedDevice(
     ...(typeof metadata.lastBattery === 'number' ? { lastBattery: metadata.lastBattery } : {}),
     ...(metadata.modelNumber ? { modelNumber: metadata.modelNumber } : {}),
     ...(metadata.firmwareRevision ? { firmwareRevision: metadata.firmwareRevision } : {}),
+    ...(metadata.measures?.length ? { measures: metadata.measures } : {}),
   };
 
   if (existing.exists()) {

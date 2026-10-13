@@ -1,5 +1,6 @@
 import type { SensorReading, SensorType } from '@/data/types';
 import { deviceKey } from '../ble/deviceKey';
+import { STORED_UNITS } from '../biometrics/metrics';
 import type { ReadingBatch } from './readingBatches';
 
 export function timestampMs(value: unknown): number | null {
@@ -12,7 +13,7 @@ export function legacyReading(id: string, type: SensorType, data: Record<string,
   const time = timestampMs(data.timestamp);
   if (time === null || typeof data.value !== 'number' || !Number.isFinite(data.value)) return null;
   return {
-    id, type, value: data.value, unit: typeof data.unit === 'string' ? data.unit : type === 'heart_rate' ? 'bpm' : 'steps',
+    id, type, value: data.value, unit: typeof data.unit === 'string' ? data.unit : STORED_UNITS[type],
     timestamp: new Date(time),
     deviceId: typeof data.deviceId === 'string' ? deviceKey(data.platform === 'ios' ? 'ios' : 'android', data.deviceId) : null,
     deviceName: typeof data.deviceName === 'string' ? data.deviceName : null,
@@ -24,7 +25,7 @@ export function legacyReading(id: string, type: SensorType, data: Record<string,
 export function batchReadings(batch: ReadingBatch): SensorReading[] {
   return batch.samples.map((sample, index) => ({
     id: `${batch.id}:${index}`, type: batch.type, value: sample.v,
-    unit: batch.type === 'heart_rate' ? 'bpm' : 'steps', timestamp: new Date(sample.t),
+    unit: STORED_UNITS[batch.type], timestamp: new Date(sample.t),
     deviceId: batch.source === 'test' ? null : deviceKey(batch.platform, batch.deviceId),
     deviceName: batch.deviceName, source: batch.source, resolution: 'sample',
   }));

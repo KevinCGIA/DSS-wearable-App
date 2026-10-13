@@ -30,6 +30,7 @@ import {
   statusText,
 } from './deviceFormat';
 import type { TestedDevice } from './deviceModel';
+import { DeviceMeasures } from './DeviceMeasures';
 import { DeviceSignal } from './DeviceSignal';
 import { StatGrid } from './StatGrid';
 
@@ -92,6 +93,7 @@ export function DeviceDetailScreen({
         </View>
         {device.badge ? <Text style={[type.caption, styles.muted]}>{badgeHint[device.badge]}</Text> : null}
         <DeviceSignal rssi={device.rssi} battery={device.battery} lastKnown={idle} />
+        <DeviceMeasures measures={device.measures} />
         {device.error && idle ? <Text style={[type.caption, styles.error]}>{device.error}</Text> : null}
         {problem ? <ErrorBanner message={problem} tone="warning" /> : null}
         <View style={styles.actions}>

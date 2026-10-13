@@ -1,9 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { useBle } from '@/features/devices/BleProvider';
+import { usePreferences } from '@/features/preferences/PreferencesProvider';
+import { VITAL_METRICS } from '@/lib/biometrics/metrics';
 import { connectionsOf } from '@/features/devices/connections';
 import { addSampleDay, addSensorReading } from '@/lib/sensors/readings';
 import { addSampleSleep, useSampleSleep } from '@/lib/sensors/testExtras';
-import { SENSOR_UID, useSensorHistory } from '@/lib/sensors/useSensorReadings';
+import { SENSOR_UID, useSensorHistories, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { isSameDay } from '@/lib/time';
 import { useNow } from '@/lib/useNow';
 import { useActivityFocus } from './ActivityFocusProvider';
@@ -11,6 +13,7 @@ import { buildActivity, TEST_SOURCE } from './activityModel';
 
 // A week covers the daily steps chart and lists every source with recent data.
 const WINDOW_HOURS = 7 * 24;
+const VITAL_TYPES = VITAL_METRICS.flatMap((m) => m.types);
 
 // Android: app/(auth)/heart-rate.tsx, fitness.tsx and sleep.tsx, merged and split by source.
 // The device list is used only to name chips.
@@ -19,6 +22,8 @@ export function useActivityData() {
   const ble = useBle();
   const heartRate = useSensorHistory('heart_rate', WINDOW_HOURS);
   const steps = useSensorHistory('steps', WINDOW_HOURS);
+  const vitals = useSensorHistories(VITAL_TYPES, WINDOW_HOURS);
+  const { preferences } = usePreferences();
   const sample = useSampleSleep();
   const { selected, select, scrollRequest, clearScrollRequest } = useActivityFocus();
 
@@ -35,6 +40,7 @@ export function useActivityData() {
         now,
         heartRate: heartRate.readings,
         steps: steps.readings,
+        vitals: vitals.readings,
         names,
         includeTest: __DEV__,
         selected,
@@ -43,7 +49,7 @@ export function useActivityData() {
         // No source reports resting heart rate yet, and it's never estimated.
         restingTrendsFor: () => null,
       }),
-    [now, heartRate.readings, steps.readings, names, selected, sample],
+    [now, heartRate.readings, steps.readings, vitals.readings, names, selected, sample],
   );
 
   const addTestReading = useCallback(() => {
@@ -78,8 +84,9 @@ export function useActivityData() {
 
   return {
     now,
-    loading: heartRate.loading || steps.loading,
-    error: heartRate.error ?? steps.error,
+    loading: heartRate.loading || steps.loading || vitals.loading,
+    error: heartRate.error ?? steps.error ?? vitals.error,
+    units: preferences.units,
     view,
     scrollRequest,
     onSelect: select,

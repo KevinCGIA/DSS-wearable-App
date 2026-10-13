@@ -3,9 +3,11 @@ import test from 'node:test';
 import { loadAdapter } from './loadAdapter.mjs';
 import * as queues from '../src/lib/sensors/readingBatches.ts';
 import * as keys from '../src/lib/ble/deviceKey.ts';
+import * as metrics from '../src/lib/biometrics/metrics.ts';
+import * as samples from '../src/lib/biometrics/sampleData.ts';
 import * as deadlines from '../src/lib/asyncDeadline.ts';
 
-const documents = loadAdapter('../src/lib/sensors/readingDocuments.ts', { '../ble/deviceKey': keys });
+const documents = loadAdapter('../src/lib/sensors/readingDocuments.ts', { '../ble/deviceKey': keys, '../biometrics/metrics': metrics });
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 test('native readings preserve shared paths and native IDs, persist before upload and isolate users', async (t) => {
@@ -31,7 +33,7 @@ test('native readings preserve shared paths and native IDs, persist before uploa
         commit: async () => {},
       }),
     },
-    '../asyncDeadline': deadlines, '../ble/deviceKey': keys, './readingBatches': queues, './readingDocuments': documents,
+    '../asyncDeadline': deadlines, '../ble/deviceKey': keys, '../biometrics/metrics': metrics, '../biometrics/sampleData': samples, './readingBatches': queues, './readingDocuments': documents,
   });
   const fatal = [];
   const stopOne = adapter.startReadingSession(uid, (error) => fatal.push(error));

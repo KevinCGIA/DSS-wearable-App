@@ -29,6 +29,8 @@ export type ConnectionState = {
   rssi?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
+  // Health data the device provides (lib/biometrics/metrics.ts DeviceMeasure ids)
+  measures?: string[];
 };
 
 // Same string values as react-native-ble-plx's State enum.
@@ -61,9 +63,30 @@ export type PairedDevice = {
   lastBattery?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
+  // Health data the device provides (lib/biometrics/metrics.ts DeviceMeasure ids)
+  measures?: string[];
 };
 
-export type SensorType = 'heart_rate' | 'steps';
+// Every metric the app records. Values are stored in metric/SI units (see
+// lib/biometrics/metrics.ts STORED_UNITS). steps, energy and distance are running totals
+// reported by the device; the rest are measurements.
+export type SensorType =
+  | 'heart_rate'
+  | 'steps'
+  | 'hrv'
+  | 'energy'
+  | 'spo2'
+  | 'body_temperature'
+  | 'bp_systolic'
+  | 'bp_diastolic'
+  | 'cadence'
+  | 'speed'
+  | 'stride_length'
+  | 'distance'
+  | 'weight'
+  | 'bmi'
+  | 'body_fat'
+  | 'glucose';
 
 export type ReadingSource = 'ble' | 'manual' | 'test';
 

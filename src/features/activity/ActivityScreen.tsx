@@ -16,6 +16,8 @@ import { HeartRateSection } from './HeartRateSection';
 import { SleepSection } from './SleepSection';
 import { SourceChips } from './SourceChips';
 import { StepsSection } from './StepsSection';
+import { VitalCard } from './VitalCard';
+import type { Preferences } from '@/data/types';
 
 export type ActivityScreenProps = {
   now: number;
@@ -23,6 +25,7 @@ export type ActivityScreenProps = {
   error: string | null;
   view: ActivityView;
   bottomInset: number;
+  units: Preferences['units'];
   // From a Dashboard "Open in Activity" link.
   scrollRequest: ScrollRequest | null;
   onSelect: (key: string) => void;
@@ -40,6 +43,7 @@ export function ActivityScreen({
   error,
   view,
   bottomInset,
+  units,
   scrollRequest,
   onSelect,
   onScrollHandled,
@@ -51,6 +55,7 @@ export function ActivityScreen({
   const heartRateRef = useRef<View>(null);
   const stepsRef = useRef<View>(null);
   const sleepRef = useRef<View>(null);
+  const vitalsRef = useRef<View>(null);
   const empty = !loading && !error && view.sources.length === 0;
   const notReported = view.selected === TEST_SOURCE ? 'No test data for this yet.' : 'Not reported by this device.';
 
@@ -61,6 +66,7 @@ export function ActivityScreen({
       'heart-rate': heartRateRef,
       steps: stepsRef,
       sleep: sleepRef,
+      vitals: vitalsRef,
     };
     const timer = setTimeout(() => {
       const target = refs[scrollRequest.section].current;
@@ -85,7 +91,7 @@ export function ActivityScreen({
       scroll
       scrollRef={scrollRef}
       bottomInset={bottomInset}
-      hero={<HeroHeader title="Activity" subtitle="Heart rate, steps and sleep from one device at a time." />}
+      hero={<HeroHeader title="Activity" subtitle="Heart rate, steps, sleep and other vitals from one device at a time." />}
     >
       {error ? <ErrorBanner message={error} style={styles.first} /> : null}
 
@@ -116,6 +122,15 @@ export function ActivityScreen({
             <SectionLabel title="Sleep" />
             <SleepSection view={view.sleep} notReported={notReported} />
           </View>
+
+          {view.vitals.length ? (
+            <View ref={vitalsRef} collapsable={false}>
+              <SectionLabel title="More vitals" />
+              {view.vitals.map((vital, i) => (
+                <VitalCard key={vital.metric.id} now={now} vital={vital} units={units} first={i === 0} />
+              ))}
+            </View>
+          ) : null}
         </>
       )}
 

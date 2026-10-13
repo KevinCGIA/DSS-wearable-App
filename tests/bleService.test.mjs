@@ -6,6 +6,8 @@ import * as uuid from '../src/lib/ble/uuid.ts';
 import * as parser from '../src/lib/ble/heartRateMeasurement.ts';
 import * as deadlines from '../src/lib/asyncDeadline.ts';
 import * as keys from '../src/lib/ble/deviceKey.ts';
+import * as decoders from '../src/lib/biometrics/decoders.ts';
+import * as metrics from '../src/lib/biometrics/metrics.ts';
 
 function serviceFor({ heartRate = true, battery = null, platform = 'ios', connectHook } = {}) {
   const calls = [];
@@ -27,7 +29,7 @@ function serviceFor({ heartRate = true, battery = null, platform = 'ios', connec
   const { BleService } = loadAdapter('../src/lib/ble/BleService.native.ts', {
     'react-native': { Platform: { OS: platform } },
     'react-native-ble-plx': { BleManager: class { constructor() { return manager; } }, BleError: class extends Error {}, BleErrorCode: {}, State: {} },
-    './constants': { ...constants, RETRY_BASE_DELAY_MS: 1 }, './deviceKey': keys, './uuid': uuid, './heartRateMeasurement': parser, '../asyncDeadline': deadlines,
+    './constants': { ...constants, RETRY_BASE_DELAY_MS: 1 }, './deviceKey': keys, './uuid': uuid, './heartRateMeasurement': parser, '../asyncDeadline': deadlines, '../biometrics/decoders': decoders, '../biometrics/metrics': metrics,
   });
   return { service: new BleService(), calls, monitors, drops, connects, cancelled };
 }

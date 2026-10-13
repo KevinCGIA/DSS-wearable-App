@@ -1,10 +1,12 @@
+import type { SensorType } from '@/data/types';
+
 export type Sample = { t: number; v: number };
 export type ReadingBatch = {
   id: string;
   deviceId: string;
   deviceName: string | null;
   platform: 'ios' | 'android';
-  type: 'heart_rate' | 'steps';
+  type: SensorType;
   source: 'ble' | 'test';
   samples: Sample[];
   legacy: Sample | null;

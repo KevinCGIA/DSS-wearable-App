@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { heartRateHistory, mockDeviceA, mockDeviceB, mockRestingHrTrends, mockSleep, mockSleepTrends, stepsHistory } from '@/data/mocks';
 import type { MockDevice } from '@/data/mocks';
-import type { SensorReading } from '@/data/types';
+import type { Preferences, SensorReading } from '@/data/types';
+import { mockVitalReadings } from '@/data/vitalsMocks';
 import type { PreviewEntry } from '@/features/previews/types';
 import { buildActivity, TEST_SOURCE } from './activityModel';
 import type { ActivityInput, SleepView } from './activityModel';
+import type { VitalReadings } from './vitalsModel';
 import { ActivityScreen } from './ActivityScreen';
 import type { ActivityScreenProps } from './ActivityScreen';
 
@@ -37,6 +39,8 @@ function deviceReadings(device: MockDevice, hrOffset: number, todaySteps: number
   return { heartRate, steps };
 }
 
+const deviceVitals = (device: MockDevice): VitalReadings => mockVitalReadings(device);
+
 const asTestData = (readings: SensorReading[]): SensorReading[] =>
   readings.map((r) => ({ ...r, id: `test-${r.id}`, deviceId: null, deviceName: 'Test data', source: 'manual' }));
 
@@ -46,19 +50,22 @@ const olderThan = (readings: SensorReading[], ms: number) =>
 type Setup = {
   heartRate?: SensorReading[];
   steps?: SensorReading[];
+  vitals?: VitalReadings;
+  units?: Preferences['units'];
   sleep?: Record<string, SleepView>;
   resting?: string[];
   selected?: string;
   extra?: Partial<ActivityScreenProps>;
 };
 
-function Preview({ heartRate = [], steps = [], sleep = {}, resting = [], selected: initial, extra }: Setup) {
+function Preview({ heartRate = [], steps = [], vitals = {}, units = 'metric', sleep = {}, resting = [], selected: initial, extra }: Setup) {
   const [selected, setSelected] = useState<string | null>(initial ?? null);
   const sort = (r: SensorReading[]) => [...r].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   const input: ActivityInput = {
     now: Date.now(),
     heartRate: sort(heartRate),
     steps: sort(steps),
+    vitals,
     names: { [mockDeviceA.id]: mockDeviceA.name, [mockDeviceB.id]: mockDeviceB.name },
     includeTest: true,
     selected,
@@ -72,6 +79,7 @@ function Preview({ heartRate = [], steps = [], sleep = {}, resting = [], selecte
       error={null}
       view={buildActivity(input)}
       bottomInset={0}
+      units={units}
       scrollRequest={null}
       onSelect={setSelected}
       onScrollHandled={noop}
@@ -111,6 +119,23 @@ export const activityPreview: PreviewEntry = {
             resting={[mockDeviceA.id]}
           />
         );
+      },
+    },
+    {
+      label: 'Every vital (one device)',
+      render: () => <Preview {...deviceReadings(mockDeviceA, 0, 6842)} vitals={deviceVitals(mockDeviceA)} />,
+    },
+    {
+      label: 'Every vital, imperial',
+      render: () => (
+        <Preview {...deviceReadings(mockDeviceA, 0, 6842)} vitals={deviceVitals(mockDeviceA)} units="imperial" />
+      ),
+    },
+    {
+      label: 'Vitals only (blood pressure cuff)',
+      render: () => {
+        const all = deviceVitals(mockDeviceB);
+        return <Preview vitals={{ bp_systolic: all.bp_systolic, bp_diastolic: all.bp_diastolic }} />;
       },
     },
     {

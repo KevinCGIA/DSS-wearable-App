@@ -16,6 +16,8 @@ import {
 } from '@/data/mocks';
 import { TabBar, tabBarBaseHeight } from '@/components/ui/TabBar';
 import type { PreviewEntry } from '@/features/previews/types';
+import { mockVitalReadings } from '@/data/vitalsMocks';
+import { buildVitals } from '@/features/activity/vitalsModel';
 import { restingRangeFrom } from './dashboardModel';
 import type { DeviceSummary } from './dashboardModel';
 import { DashboardScreen } from './DashboardScreen';
@@ -42,6 +44,8 @@ const base = (): Omit<DashboardScreenProps, 'now'> => ({
   onOpenHeartRate: noop,
   onOpenSteps: noop,
   onOpenSleep: noop,
+  onOpenVitals: noop,
+  vitals: [],
 });
 
 const watch: DeviceSummary = {
@@ -115,6 +119,27 @@ export const dashboardPreview: PreviewEntry = {
       render: () => (
         <DashboardScreen {...base()} connection={failedConnection} heartRate={emptyLatest} now={Date.now()} />
       ),
+    },
+    {
+      label: 'Vitals reported',
+      render: () => {
+        const all = buildVitals(mockVitalReadings(mockDeviceA), Date.now());
+        const today = (id: string) => all.find((v) => v.metric.id === id);
+        const energy = today('energy');
+        const distance = today('distance');
+        return (
+          <DashboardScreen
+            {...connected()}
+            vitals={all.filter((v) => v.metric.id !== 'energy' && v.metric.id !== 'distance')}
+            activity={{
+              distanceKm: distance?.kind === 'total' ? distance.today / 1000 : null,
+              floors: null,
+              activeCalories: energy?.kind === 'total' ? Math.round(energy.today) : null,
+            }}
+            now={Date.now()}
+          />
+        );
+      },
     },
     {
       label: 'Expanded: no device',

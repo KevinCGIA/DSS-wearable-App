@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { HistoryState, LatestReadingState, SensorType } from '@/data/types';
+import type { HistoryState, LatestReadingState, SensorReading, SensorType } from '@/data/types';
 import { useNow } from '@/lib/useNow';
 import { subscribeToLatestReading, subscribeToReadingsSince } from './readings';
 
@@ -47,4 +47,46 @@ export function useSensorHistory(type: SensorType, hours: number): HistoryState 
   const end = Math.max(now, latest ? latest.timestamp.getTime() + 1 : 0);
 
   return { ...state, start, end };
+}
+
+// Several types at once (the vitals cards), each oldest first. Loading until every type has
+// answered; the first error wins.
+export function useSensorHistories(types: SensorType[], hours: number) {
+  const now = useNow(60 * 1000);
+  const start = now - hours * 60 * 60 * 1000;
+  const key = types.join(',');
+  const [state, setState] = useState<{ readings: Partial<Record<SensorType, SensorReading[]>>; loading: boolean; error: string | null }>({
+    readings: {},
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    const list = key ? (key.split(',') as SensorType[]) : [];
+    const answered = new Set<SensorType>();
+    const readings: Partial<Record<SensorType, SensorReading[]>> = {};
+    let error: string | null = null;
+    const publish = () => setState({ readings: { ...readings }, loading: answered.size < list.length, error });
+    const stops = list.map((type) =>
+      subscribeToReadingsSince(
+        SENSOR_UID,
+        type,
+        new Date(start),
+        (data) => {
+          readings[type] = data;
+          answered.add(type);
+          publish();
+        },
+        () => {
+          error = "Couldn't load your history.";
+          answered.add(type);
+          publish();
+        },
+      ),
+    );
+    if (!list.length) publish();
+    return () => stops.forEach((stop) => stop());
+  }, [key, start]);
+
+  return state;
 }
