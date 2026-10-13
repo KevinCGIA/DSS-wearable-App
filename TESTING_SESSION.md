@@ -1,0 +1,69 @@
+# Combined Phase 2 test session
+
+## Setup — iOS Simulator
+
+- Open DSS Wearables on the iPhone 18 Pro Simulator. Confirm the sign-in screen appears. Verified on 2026-10-06; the development build displays its Preview mode badge.
+
+## T2 Step A live checks — iOS Simulator
+
+1. Register a test account; confirm Auth and the string `name`, `height`, `weight` fields under `users/{uid}` in Firebase Console.
+2. Confirm unverified login is blocked, verify the email, then log in.
+3. Request a password reset and check the email.
+4. Google sign-in with a new account: confirm the profile and photo or initials.
+5. Google sign-in with an existing account: confirm existing profile values survive.
+6. Edit profile and avatar, relaunch, and check they persist.
+7. Exercise change email and change password.
+8. Save alert thresholds and reload; check `users/{uid}/settings/alerts`. Report any `permission-denied` to Kevin/Jared.
+9. Confirm signed-in state survives relaunch and Logout returns to sign-in.
+10. Disconnect networking and open Profile and Alert Thresholds: loading must end in an error or cached data within eight seconds. Restore networking and retry.
+
+Same-account Android testing is assigned to the Android team.
+
+## T3 one-device test — physical iPhone + LightBlue phone
+
+1. In LightBlue, create a Heart Rate virtual device without Battery or Device Information services. Keep the phone awake and LightBlue open.
+2. On the app iPhone, check Bluetooth off/on banners and denied permission → Settings.
+3. Scan; check heart-rate marker, signal ordering and automatic stop after 15 seconds.
+4. Connect, cancel during setup, then connect again. The missing optional services must not cause a disconnect or retry; Devices shows battery as Not reported.
+5. Change Heart Rate Measurement in Hex: `0046` (70), `0064` (100), `012C01` (300). Dashboard and Activity must update.
+6. Send malformed/empty data if LightBlue permits it: the app must stay responsive.
+7. Test a virtual device without the Heart Rate service. It stays connected and the existing Add device banner says it does not provide heart rate.
+8. Disconnect; turn the LightBlue device off and on to test unexpected-drop reconnect; Forget; relaunch with auto-connect off, then on.
+
+## T4 multi-device test — app iPhone + 2 LightBlue phones
+
+1. Keep both LightBlue phones unlocked with Heart Rate virtual devices active. Give them distinct names if possible.
+2. Connect each from Add device. Devices must show two Connected now cards; Dashboard must show two devices connected.
+3. Set device A to `0046` (70), B to `0064` (100). In Activity, select each chip and check its value. Change A to `005A` (90); B must stay at 100.
+4. Disconnect A. B must continue streaming. Reconnect A, then Forget A; B must remain connected.
+5. Pair A again, enable auto-connect, relaunch: both remembered devices reconnect. Switch auto-connect off and relaunch: neither reconnects automatically.
+6. With additional equipment, connect four devices, then try a fifth. Expect the existing error banner to state the four-device limit; all four streams continue. Two LightBlue phones alone cannot validate this physical limit test.
+7. Cancel one device while it is connecting or reconnecting; the other remains connected and the cancelled device must not return later.
+
+## T5 saved readings
+
+1. With two LightBlue devices streaming for two minutes, check `users/{uid}/reading_batches` in Firebase Console. Expect a separate document per device per minute with `samples`, timestamps, native `deviceId`, and `source: ble`.
+2. Check `users/{uid}/sensor_readings/heart_rate/readings`. Expect one representative BPM document per device per minute with Kevin's fields and `source: ble`.
+3. Change both devices' BPM, close and relaunch the app, and select each Activity chip. Its saved chart and Dashboard history should return from Firestore.
+4. Set Airplane Mode while connected, change BPM values, restore networking after a minute, and check that queued batches upload without duplicate IDs. The app should keep showing live readings while offline.
+5. In a development build, add a Test data reading. Confirm the batch and representative document use `source: test`, and the reading is excluded from device stats.
+6. If the app reports `permission-denied` on `reading_batches`, stop this test and send the exact error to Kevin/Jared. Do not edit Firestore rules.
+
+## T6 device stats
+
+1. With two devices connected, open Devices and each Device Detail. Check live RSSI/signal, battery when LightBlue reports it, and “Not reported” when it does not.
+2. Keep one device connected for at least a minute and watch its session time, readings count and badge update. Check that the other device has separate values.
+3. Turn off one LightBlue device or walk it out of range. Its drop-out count should increase as unexpected; the other device should keep streaming.
+4. Tap Disconnect on the second device. Its session should end as a user disconnect, without increasing its unexpected drop-out count.
+5. Relaunch the app and reopen both Device Details. Their connection history should remain on the phone under this account.
+6. Lock or background the app, then return. Background time must not add a gap or drop-out. B6 background recording is deferred, so readings need not continue while locked.
+
+## T7 alerts
+
+1. With a LightBlue heart-rate device connected, open Alert Thresholds. Set Max below the current BPM and save. Keep the app in the foreground. Confirm the iOS notification permission prompt appears on the first alert; allow it.
+2. Send the same high BPM again within 60 seconds. Confirm only one local notification appears. After 60 seconds, send it again and confirm a new notification appears.
+3. Open Notifications. Confirm the high alert shows the LightBlue device name, BPM and time. Relaunch; confirm the history remains. With a second device, trigger another high alert within the first device's cooldown and confirm that device can alert independently.
+4. Set Min above a live BPM and confirm a low alert. Disable Heart rate alerts in Alert Thresholds, then send out-of-range BPM: no new alert or notification should appear.
+5. Re-enable thresholds but turn off Notifications in Preferences and save. Send out-of-range BPM; confirm no new alert or notification. Turn it back on before continuing.
+6. Deny notification permission (or disable it in iOS Settings), then trigger an alert after its cooldown. The app may save it in Notifications, but no system notification should be claimed or expected. Restore permission for any further notification checks.
+7. In a development build, add a Test data reading and confirm any test alert is labelled with its test source/device. Production builds must ignore test readings. Clear all alerts and confirm the list stays empty after relaunch.

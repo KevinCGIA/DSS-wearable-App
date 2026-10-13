@@ -1,0 +1,77 @@
+import { TextStyle } from 'react-native';
+
+// IBM Plex Sans. Numbers are semibold with tabular figures so digits don't shift.
+export const fonts = {
+  ui: 'IBMPlexSans_400Regular',
+  uiMedium: 'IBMPlexSans_500Medium',
+  uiSemiBold: 'IBMPlexSans_600SemiBold',
+  uiBold: 'IBMPlexSans_700Bold',
+  numeric: 'IBMPlexSans_600SemiBold',
+  numericBold: 'IBMPlexSans_700Bold',
+} as const;
+
+const tabular: TextStyle['fontVariant'] = ['tabular-nums'];
+
+type Variant =
+  | 'hero'
+  | 'statLarge'
+  | 'statMedium'
+  | 'statSmall'
+  | 'title'
+  | 'heading'
+  | 'subheading'
+  | 'body'
+  | 'bodyStrong'
+  | 'label'
+  | 'caption'
+  | 'unit'
+  | 'axis'
+  | 'overline';
+
+export const type: Record<Variant, TextStyle> = {
+  hero: { fontFamily: fonts.numeric, fontSize: 68, lineHeight: 76, letterSpacing: -2, fontVariant: tabular },
+  statLarge: { fontFamily: fonts.numeric, fontSize: 38, lineHeight: 44, letterSpacing: -0.8, fontVariant: tabular },
+  statMedium: { fontFamily: fonts.numeric, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, fontVariant: tabular },
+  statSmall: { fontFamily: fonts.numeric, fontSize: 20, lineHeight: 26, letterSpacing: -0.2, fontVariant: tabular },
+  title: { fontFamily: fonts.uiSemiBold, fontSize: 26, lineHeight: 34, letterSpacing: -0.5 },
+  heading: { fontFamily: fonts.uiSemiBold, fontSize: 20, lineHeight: 28, letterSpacing: -0.2 },
+  subheading: { fontFamily: fonts.uiMedium, fontSize: 16, lineHeight: 22 },
+  body: { fontFamily: fonts.ui, fontSize: 15, lineHeight: 22 },
+  bodyStrong: { fontFamily: fonts.uiMedium, fontSize: 15, lineHeight: 22 },
+  label: { fontFamily: fonts.uiMedium, fontSize: 13, lineHeight: 18 },
+  caption: { fontFamily: fonts.ui, fontSize: 12, lineHeight: 17 },
+  unit: { fontFamily: fonts.uiMedium, fontSize: 15, lineHeight: 20 },
+  // Chart axis and value labels (numbers and times).
+  axis: { fontFamily: fonts.numeric, fontSize: 12, lineHeight: 16, fontVariant: tabular },
+  // Section labels and in-card eyebrows (uppercase text).
+  overline: { fontFamily: fonts.uiSemiBold, fontSize: 12, lineHeight: 16, letterSpacing: 0.9 },
+};
+
+export type TextScale = 'default' | 'large' | 'xlarge';
+
+export const TEXT_SCALES: Record<TextScale, number> = { default: 1, large: 1.15, xlarge: 1.3 };
+
+const baseType: Record<Variant, TextStyle> = Object.fromEntries(
+  Object.entries(type).map(([key, style]) => [key, { ...style }]),
+) as Record<Variant, TextStyle>;
+
+export function scaledType(scale: TextScale): Record<Variant, TextStyle> {
+  const factor = TEXT_SCALES[scale];
+  return Object.fromEntries(
+    Object.entries(baseType).map(([key, style]) => [
+      key,
+      {
+        ...style,
+        fontSize: (style.fontSize ?? 0) * factor,
+        lineHeight: style.lineHeight ? style.lineHeight * factor : undefined,
+      },
+    ]),
+  ) as Record<Variant, TextStyle>;
+}
+
+// Replace styles because React Native freezes style objects after rendering them.
+// The system text size (Dynamic Type) still applies on top of this.
+export function applyTextScale(scale: TextScale) {
+  const next = scaledType(scale);
+  (Object.keys(type) as Variant[]).forEach((key) => { type[key] = next[key]; });
+}
