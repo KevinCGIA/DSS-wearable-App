@@ -32,6 +32,9 @@ export type BleContextValue = {
   pausedDevices: string[];
   supportsTestControls?: boolean;
   ensureBluetoothReady?: () => void;
+  // Real backend only: scans until a device with this name is found (NFC pairing on iOS,
+  // which can't connect by Bluetooth address). Resolves null if none is found.
+  findDeviceByName?: (name: string) => Promise<ScannedDevice | null>;
 };
 
 // Android constants (services/ble/constants.ts)
