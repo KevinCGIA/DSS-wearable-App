@@ -13,8 +13,7 @@ import { colors, layout, spacing, type } from '@/theme';
 
 type Props = {
   now: number;
-  // Latest value of every extra vital a device has reported (energy and distance excluded:
-  // they're on the activity and calories cards).
+  // latest value per vital (energy and distance are on their own cards)
   vitals: VitalView[];
   units: Units;
   initiallyExpanded?: boolean;
@@ -29,7 +28,6 @@ function shown(vital: VitalView, units: Units) {
   return { value: `${main.value}/${formatMetric(vital.type, vital.latest.secondary, units).value}`, unit: main.unit };
 }
 
-// Only shown when a device has reported something beyond heart rate and steps.
 export function VitalsCard({ now, vitals, units, initiallyExpanded, onOpen }: Props) {
   const label = vitals
     .map((v) => {

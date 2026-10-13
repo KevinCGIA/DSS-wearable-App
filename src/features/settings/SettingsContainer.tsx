@@ -9,6 +9,7 @@ type Props = {
   onOpenAlertThresholds: () => void;
   onOpenNotifications: () => void;
   onOpenPreferences: () => void;
+  onOpenExport: () => void;
   onOpenPreviews?: () => void;
 };
 

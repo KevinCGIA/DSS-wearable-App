@@ -45,6 +45,8 @@ One of:
 | 5. Sleep: storage | `src/data/types.ts`, `src/lib/sensors/` | Sleep is not a single number, so it needs its own shape. The screens expect `SleepSummary` (total minutes, score, rating, start, end, stages) and `SleepTrends`. Save nights in a **new** Firestore collection (e.g. `users/{uid}/sleep_sessions/{id}`); do not change existing collections. |
 | 6. Sleep: show it | `src/features/activity/useActivityData.ts` (`sleepFor`), `src/features/dashboard/useDashboardData.ts` (`sleep`, `sleepTrends`) | Return the real night for the selected device instead of `null`. No screen changes needed. Then delete `src/lib/sensors/testExtras.ts`. |
 | 7. Rules | `firestore.rules` | Allow the new sleep collection for the owner only. Kevin/Jared deploy rules; never edit them in the console. |
+| 8. Account deletion | `src/features/profile/nativeAccountDeletion.ts` | Add the new sleep collection to the list that Delete Account empties. |
+| 9. Export | `src/lib/export/` | Steps are exported automatically. Sleep nights need their own rows or file if researchers want them. |
 
 ## Rules to keep
 

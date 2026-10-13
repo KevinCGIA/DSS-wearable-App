@@ -28,9 +28,8 @@ export function openNfcSettings() {
   return NfcManager.goToNfcSetting();
 }
 
-// Waits for the user to hold the phone to a tag and returns the wearable it describes, or
-// null if the tag isn't a pairing tag. Rejects if the user cancels (iOS shows its own scan
-// sheet with a Cancel button) or the read fails.
+// Resolves with the wearable on the tag, or null if it isn't a pairing tag.
+// Rejects if the user cancels or the read fails.
 export async function readPairingTag(): Promise<PairingInfo | null> {
   await ensureStarted();
   try {
@@ -49,7 +48,7 @@ export async function readPairingTag(): Promise<PairingInfo | null> {
   }
 }
 
-// Writes a pairing tag for a device onto a writable NDEF tag or sticker
+// Writes a pairing tag to a blank NDEF tag
 export async function writePairingTag(device: { deviceId: string; name: string }): Promise<void> {
   await ensureStarted();
   try {

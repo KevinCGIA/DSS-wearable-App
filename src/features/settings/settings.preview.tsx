@@ -14,6 +14,7 @@ const base = (): SettingsScreenProps => ({
   onOpenAlertThresholds: noop,
   onOpenNotifications: noop,
   onOpenPreferences: noop,
+  onOpenExport: noop,
   onLogout: noop,
   onOpenPreviews: noop,
 });

@@ -17,7 +17,7 @@ import type { DeviceSummary } from './dashboardModel';
 
 const REFRESH_MS = 1200;
 const VITAL_TYPES = VITAL_METRICS.flatMap((m) => m.types);
-// On their own cards (Today's Activity, Active Calories) rather than the Vitals card
+// shown on Today's Activity and Active Calories instead
 const ACTIVITY_TOTALS = ['energy', 'distance'];
 
 // The old Home data, unchanged: useBle(), the profile and the readings store. Phase 2 swaps those providers.
@@ -30,7 +30,7 @@ export function useDashboardData(displayName: string) {
   const steps = useLatestSensorReading('steps');
   const stepsHistory = useSensorHistory('steps', 24);
   const sampleSleep = useSampleSleep();
-  // 48 h so today's first running-total reading has yesterday's to compare with
+  // 48 h: running totals need yesterday as a baseline
   const vitalsHistory = useSensorHistories(VITAL_TYPES, 48);
   const { units } = usePreferences().preferences;
   const [refreshing, setRefreshing] = useState(false);
@@ -79,8 +79,7 @@ export function useDashboardData(displayName: string) {
       });
   }, [ble, heartRateHistory.readings, stepsHistory.readings]);
 
-  // Every source together: running totals are summed per device, the rest show the newest value.
-  // Test data counts only in development.
+  // all sources; test data only in development
   const { vitals, activity, vitalsSource } = useMemo(() => {
     const usable: VitalReadings = {};
     let newest: SensorReading | null = null;
@@ -91,9 +90,12 @@ export function useDashboardData(displayName: string) {
       if (last && !ACTIVITY_TOTALS.includes(type) && (!newest || newest.timestamp < last.timestamp)) newest = last;
     }
     const views = buildVitals(usable, now);
+    // "--" until a device reports the total today
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
     const today = (id: string) => {
       const view = views.find((v) => v.metric.id === id);
-      return view?.kind === 'total' ? view.today : null;
+      return view?.kind === 'total' && view.latest.timestamp.getTime() >= midnight.getTime() ? view.today : null;
     };
     const distance = today('distance');
     const energy = today('energy');
@@ -126,8 +128,7 @@ export function useDashboardData(displayName: string) {
     restingRange: restingRangeFrom(heartRateHistory),
     steps,
     stepsHistory,
-    // Distance and calories only when a device reports them (RSC total distance, HR energy
-    // expended); floors have no BLE source, so they stay "--".
+    // distance and calories are device-reported; nothing reports floors
     activity,
     vitals,
     vitalsSource,

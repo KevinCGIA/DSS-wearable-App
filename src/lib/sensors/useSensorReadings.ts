@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { HistoryState, LatestReadingState, SensorReading, SensorType } from '@/data/types';
 import { useNow } from '@/lib/useNow';
-import { subscribeToLatestReading, subscribeToReadingsSince } from './readings';
+import { subscribeToLatestReading, subscribeToReadingNotice, subscribeToReadingsSince } from './readings';
 
 // Same hooks as Android's services/sensors/useLatestSensorReading.ts and useSensorHistory.ts.
 // Phase 2: uid comes from getAuth().currentUser, as on Android.
@@ -49,8 +49,7 @@ export function useSensorHistory(type: SensorType, hours: number): HistoryState 
   return { ...state, start, end };
 }
 
-// Several types at once (the vitals cards), each oldest first. Loading until every type has
-// answered; the first error wins.
+// Several types at once. Loading until all have answered; the first error wins.
 export function useSensorHistories(types: SensorType[], hours: number) {
   const now = useNow(60 * 1000);
   const start = now - hours * 60 * 60 * 1000;
@@ -89,4 +88,11 @@ export function useSensorHistories(types: SensorType[], hours: number) {
   }, [key, start]);
 
   return state;
+}
+
+// a note, not an error: more is saved than the screens load
+export function useReadingNotice(): string | null {
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => subscribeToReadingNotice(setNotice), []);
+  return notice;
 }

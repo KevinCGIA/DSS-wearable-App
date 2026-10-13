@@ -23,6 +23,8 @@ export type ActivityScreenProps = {
   now: number;
   loading: boolean;
   error: string | null;
+  // informational, e.g. the display limit note
+  notice?: string | null;
   view: ActivityView;
   bottomInset: number;
   units: Preferences['units'];
@@ -41,6 +43,7 @@ export function ActivityScreen({
   now,
   loading,
   error,
+  notice,
   view,
   bottomInset,
   units,
@@ -71,8 +74,9 @@ export function ActivityScreen({
     const timer = setTimeout(() => {
       const target = refs[scrollRequest.section].current;
       const scroller = scrollRef.current;
-      const content = scroller?.getInnerViewNode();
-      if (target && scroller && content !== null && content !== undefined) {
+      // measureLayout needs a ref, not a node handle. getInnerViewRef is missing from the types.
+      const content = (scroller as (ScrollView & { getInnerViewRef?: () => View | null }) | null)?.getInnerViewRef?.();
+      if (target && scroller && content) {
         target.measureLayout(
           content,
           (_x, y) => scroller.scrollTo({ y: Math.max(0, y - spacing.lg), animated: true }),
@@ -94,6 +98,7 @@ export function ActivityScreen({
       hero={<HeroHeader title="Activity" subtitle="Heart rate, steps, sleep and other vitals from one device at a time." />}
     >
       {error ? <ErrorBanner message={error} style={styles.first} /> : null}
+      {notice && !error ? <ErrorBanner message={notice} tone="info" style={styles.first} /> : null}
 
       {loading ? (
         <View style={styles.loading} accessibilityLabel="Loading your data">

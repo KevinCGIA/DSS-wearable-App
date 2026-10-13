@@ -28,6 +28,7 @@ export type ProfileScreenProps = {
   emailError?: string;
   accountBusy: AccountBusy;
   accountNotice: ProfileNotice | null;
+  deleteNotice: ProfileNotice | null;
   onRetryProfile: () => void;
   onChangeForm: (field: keyof ProfileForm, value: string) => void;
   onChooseProfilePicture: () => void;
@@ -35,6 +36,7 @@ export type ProfileScreenProps = {
   onChangeNewEmail: (value: string) => void;
   onChangeEmail: () => void;
   onChangePassword: () => void;
+  onDeleteAccount: () => void;
   onBack: () => void;
 };
 
@@ -58,6 +60,8 @@ export function ProfileScreen(props: ProfileScreenProps) {
           <DetailsCard {...props} />
           <SectionLabel title="Account" />
           <AccountCard {...props} />
+          <SectionLabel title="Delete account" />
+          <DeleteCard {...props} />
         </>
       )}
     </Screen>
@@ -186,11 +190,34 @@ function AccountCard({
   );
 }
 
+function DeleteCard({ accountBusy, deleteNotice, onDeleteAccount }: ProfileScreenProps) {
+  return (
+    <Card>
+      <View style={styles.deleteFields}>
+        {deleteNotice ? <ErrorBanner message={deleteNotice.message} tone={deleteNotice.tone} /> : null}
+        <Text style={[type.caption, styles.hint]}>
+          Permanently deletes your account, your profile and every saved reading. This cannot be undone.
+        </Text>
+        <Button
+          label="Delete Account"
+          variant="destructive"
+          icon="trash-2"
+          onPress={onDeleteAccount}
+          loading={accountBusy === 'delete'}
+          disabled={accountBusy !== null}
+          fullWidth
+        />
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   first: { marginTop: spacing.xl },
   spinner: { marginVertical: spacing.xxl },
   avatarBlock: { alignItems: 'center', gap: spacing.xs },
   fields: { gap: spacing.lg, marginTop: spacing.lg },
+  deleteFields: { gap: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.md },
   half: { flex: 1 },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },

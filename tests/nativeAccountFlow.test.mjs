@@ -128,3 +128,45 @@ test('Firestore permission errors propagate instead of silently becoming missing
   const f = fixture({ overrides: { readAvatar: async () => { throw denied; } } });
   await assert.rejects(f.service.loadProfile(''), (error) => error === denied);
 });
+
+test('deleting an account needs a recent sign-in, removes the data first and then the account', async () => {
+  const steps = [];
+  let signedInAt = 0;
+  const f = fixture({ overrides: {
+    lastSignIn: async () => signedInAt,
+    now: () => 10 * 60 * 1000,
+    deleteData: async (uid) => { steps.push(`data:${uid}`); },
+    deleteUser: async () => { steps.push('user'); },
+    eraseLocal: (uid) => { steps.push(`local:${uid}`); },
+  } });
+  // Signed in ten minutes ago: nothing is touched
+  await assert.rejects(f.service.deleteAccount(), { code: 'auth/requires-recent-login' });
+  assert.deepEqual(steps, []);
+  signedInAt = 9 * 60 * 1000;
+  await f.service.deleteAccount();
+  assert.deepEqual(steps, ['data:one', 'user', 'local:one']);
+});
+
+test('a failed data deletion leaves the account in place', async () => {
+  const steps = [];
+  const f = fixture({ overrides: {
+    lastSignIn: async () => 1000, now: () => 2000,
+    deleteData: async () => { throw Object.assign(new Error('offline'), { code: 'firestore/unavailable' }); },
+    deleteUser: async () => { steps.push('user'); },
+    eraseLocal: () => { steps.push('local'); },
+  } });
+  await assert.rejects(f.service.deleteAccount(), { code: 'firestore/unavailable' });
+  assert.deepEqual(steps, []);
+});
+
+test('nothing is deleted if the signed-in account changes part-way', async () => {
+  const steps = [];
+  const f = fixture({ overrides: {
+    lastSignIn: async () => 1000, now: () => 2000,
+    deleteData: async () => { steps.push('data'); f.setUser({ ...authUser, uid: 'two' }); },
+    deleteUser: async () => { steps.push('user'); },
+    eraseLocal: () => { steps.push('local'); },
+  } });
+  await assert.rejects(f.service.deleteAccount(), { code: 'auth/user-mismatch' });
+  assert.deepEqual(steps, ['data']);
+});

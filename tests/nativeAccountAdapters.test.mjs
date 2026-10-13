@@ -20,6 +20,7 @@ test('native profile adapter reads the shared paths and merges updates without r
     '@/features/auth/nativeAuthService': { nativeAuthService: { subscribe: () => () => {} } },
     './nativeAccountFlow': { createNativeAccountService: (deps) => deps },
     './nativeProfileWrites': {},
+    './nativeAccountDeletion': {},
   });
   assert.equal((await adapter.readProfile('one')).name, 'Old');
   assert.equal((await adapter.readAvatar('one')).imageData, 'avatar');

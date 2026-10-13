@@ -29,7 +29,7 @@ export type ConnectionState = {
   rssi?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
-  // Health data the device provides (lib/biometrics/metrics.ts DeviceMeasure ids)
+  // DeviceMeasure ids (lib/biometrics/metrics.ts)
   measures?: string[];
 };
 
@@ -63,13 +63,11 @@ export type PairedDevice = {
   lastBattery?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
-  // Health data the device provides (lib/biometrics/metrics.ts DeviceMeasure ids)
+  // DeviceMeasure ids (lib/biometrics/metrics.ts)
   measures?: string[];
 };
 
-// Every metric the app records. Values are stored in metric/SI units (see
-// lib/biometrics/metrics.ts STORED_UNITS). steps, energy and distance are running totals
-// reported by the device; the rest are measurements.
+// Stored in metric/SI units. steps, energy and distance are device running totals.
 export type SensorType =
   | 'heart_rate'
   | 'steps'
@@ -141,7 +139,8 @@ export type AlertThresholds = { hrMin: number; hrMax: number; enabled: boolean }
 
 export type AlertItem = {
   id: string;
-  type: 'HR_HIGH' | 'HR_LOW';
+  type: 'HR_HIGH' | 'HR_LOW' | 'DEVICE_DISCONNECTED' | 'BATTERY_LOW';
+  // BPM, or percent for BATTERY_LOW; 0 for DEVICE_DISCONNECTED
   value: number;
   message: string;
   timestamp: number;

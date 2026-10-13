@@ -42,8 +42,7 @@ export type ActivityView = {
   heartRate: HeartRateView | null;
   steps: StepsView | null;
   sleep: SleepView | null;
-  // Extra biometrics this source reported (SpO2, temperature, blood pressure, …). Empty when
-  // it reported none; a metric without data never gets a card.
+  // one card per extra vital this source reported
   vitals: VitalView[];
 };
 
@@ -52,7 +51,7 @@ export type ActivityInput = {
   // Oldest first, as the readings store returns them.
   heartRate: SensorReading[];
   steps: SensorReading[];
-  // Every other biometric by type, oldest first (optional so older callers still work)
+  // other vitals by type, oldest first
   vitals?: VitalReadings;
   // Labels for chips: paired and connected devices by id.
   names: Record<string, string>;

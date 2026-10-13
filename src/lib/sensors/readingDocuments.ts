@@ -1,6 +1,6 @@
 import type { SensorReading, SensorType } from '@/data/types';
 import { deviceKey } from '../ble/deviceKey';
-import { STORED_UNITS } from '../biometrics/metrics';
+import { isSensorType, STORED_UNITS } from '../biometrics/metrics';
 import type { ReadingBatch } from './readingBatches';
 
 export function timestampMs(value: unknown): number | null {
@@ -19,6 +19,20 @@ export function legacyReading(id: string, type: SensorType, data: Record<string,
     deviceName: typeof data.deviceName === 'string' ? data.deviceName : null,
     source: data.source === 'manual' || data.source === 'test' ? 'test' : 'ble',
     resolution: 'representative',
+  };
+}
+
+// null if the document isn't a batch this version understands
+export function batchFromDocument(id: string, data: Record<string, unknown>): ReadingBatch | null {
+  if (!Array.isArray(data.samples) || !isSensorType(data.type) || typeof data.deviceId !== 'string') return null;
+  return {
+    id, deviceId: data.deviceId, deviceName: typeof data.deviceName === 'string' ? data.deviceName : null,
+    platform: data.platform === 'ios' ? 'ios' : 'android', type: data.type,
+    source: data.source === 'test' ? 'test' : 'ble', legacy: null,
+    samples: data.samples.flatMap((sample: { t?: unknown; v?: unknown } | null) => {
+      const t = timestampMs(sample?.t);
+      return t !== null && typeof sample?.v === 'number' && Number.isFinite(sample.v) ? [{ t, v: sample.v }] : [];
+    }),
   };
 }
 

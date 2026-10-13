@@ -126,6 +126,12 @@ export async function addSampleDay(_uid: string): Promise<void> {
   emit();
 }
 
+// the mock never hits a display limit
+export function subscribeToReadingNotice(listener: (notice: string | null) => void): () => void {
+  listener(null);
+  return () => undefined;
+}
+
 // Mock only (not in Android's API): load previously recorded readings, e.g. seeded device history.
 export function seedReadings(readings: SensorReading[]) {
   for (const reading of readings) insert(reading.type, reading);

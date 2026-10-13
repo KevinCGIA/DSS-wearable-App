@@ -16,7 +16,7 @@ export type TestedDevice = {
   // Live while connected, otherwise the last known value.
   rssi: number | null;
   battery: number | null;
-  // Health data it provides (empty when unknown)
+  // empty when unknown
   measures: DeviceMeasure[];
   lastConnectedAt: number | null;
   stats: DeviceStats;

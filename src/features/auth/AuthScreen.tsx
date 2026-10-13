@@ -209,7 +209,7 @@ function FormCard(props: AuthScreenProps) {
           label="Password"
           value={values.password}
           onChangeText={(v) => onChangeValue('password', v)}
-          placeholder={register ? 'At least 6 characters' : 'Your password'}
+          placeholder={register ? 'At least 8, with a letter and a number' : 'Your password'}
           icon="lock"
           secure
           autoComplete={register ? 'new-password' : 'password'}

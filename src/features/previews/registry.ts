@@ -7,6 +7,7 @@ import { addDevicePreview } from '@/features/devices/addDevice.preview';
 import { deviceDetailPreview } from '@/features/devices/deviceDetail.preview';
 import { devicesPreview } from '@/features/devices/devices.preview';
 import { dashboardPreview } from '@/features/dashboard/dashboard.preview';
+import { exportPreview } from '@/features/export/export.preview';
 import { preferencesPreview } from '@/features/preferences/preferences.preview';
 import { profilePreview } from '@/features/profile/profile.preview';
 import { settingsPreview } from '@/features/settings/settings.preview';
@@ -25,5 +26,6 @@ export const previewEntries: PreviewEntry[] = [
   alertThresholdsPreview,
   notificationsPreview,
   preferencesPreview,
+  exportPreview,
   primitivesPreview,
 ];

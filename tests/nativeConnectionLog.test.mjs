@@ -40,3 +40,36 @@ test('local connection history survives relaunch, closes offline gaps and stays 
   assert.equal(seen.at(-1).some((event) => event.deviceId === 'ios:A'), false);
   assert.equal(errors.length, 0);
 });
+
+test('time in the background counts while a wearable is being recorded', async (t) => {
+  const storage = new Map();
+  let onChange = () => {};
+  const app = { currentState: 'active', addEventListener: (_, listener) => { onChange = listener; return { remove() {} }; } };
+  const log = loadAdapter('../src/lib/devices/connectionLog.native.ts', {
+    react: { useEffect() {}, useState: () => [[], () => {}] },
+    'react-native': { AppState: app },
+    '@react-native-async-storage/async-storage': { getItem: async (key) => storage.get(key) ?? null, setItem: async (key, value) => { storage.set(key, value); } },
+    './connectionLogCore': core, '../asyncDeadline': deadlines,
+  });
+  let events = [];
+  const stopObserver = log.subscribeToConnectionLog((next) => { events = next; });
+  const stop = log.startConnectionLog('one', () => {});
+  t.after(() => { stop(); stopObserver(); log.setConnectionLogRecording(false); });
+  await tick(); await tick();
+  const types = () => Array.from(events, (event) => event.type);
+  const leave = () => { app.currentState = 'background'; onChange('background'); };
+  const open = () => { app.currentState = 'active'; onChange('active'); };
+
+  // Recording: leaving the screen is not "background" for the statistics
+  log.setConnectionLogRecording(true);
+  leave();
+  assert.deepEqual(types(), []);
+  // The wearable is lost while the app is off screen: from now on it is idle in the background
+  log.setConnectionLogRecording(false);
+  assert.deepEqual(types(), ['app_background']);
+  open();
+  assert.deepEqual(types(), ['app_background', 'app_foreground']);
+  // Nothing connected: leaving the screen counts as background, as before
+  leave();
+  assert.deepEqual(types().slice(-1), ['app_background']);
+});

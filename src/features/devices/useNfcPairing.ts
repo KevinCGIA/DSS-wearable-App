@@ -12,8 +12,7 @@ import type { BleContextValue } from './BleProvider';
 
 export type NfcStep = 'idle' | 'waitingForTag' | 'findingDevice' | 'writing';
 
-// "Tap to Pair" and "Write Pairing Tag" for the Add device screen. See lib/nfc/pairingTag.ts
-// for the tag formats.
+// Tap to Pair and Write Pairing Tag. Tag formats: lib/nfc/pairingTag.ts
 export function useNfcPairing(ble: Pick<BleContextValue, 'connect' | 'findDeviceByName'>) {
   const [availability, setAvailability] = useState<NfcAvailability | null>(null);
   const [step, setStep] = useState<NfcStep>('idle');

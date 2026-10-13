@@ -1,12 +1,9 @@
 import type { Preferences, SensorType } from '@/data/types';
 
-// One place that describes every biometric the app can record: how it's labelled, which
-// icon and unit it uses, and how it's shown. Screens build their cards from this list, so
-// adding a metric here (plus a decoder) is enough for it to appear wherever data exists.
+// Every metric the app records: label, icon, unit and how it's shown.
 
-// live: a stream of values (show latest + 24 h chart)
-// spot: separate measurements taken now and then (show latest + 7-day trend)
-// total: a running total the device accumulates (show today's increase + per-hour bars)
+// live: a stream (latest + 24 h chart). spot: occasional readings (latest + 7 days).
+// total: a device running total (today's increase + hourly bars).
 export type MetricKind = 'live' | 'spot' | 'total';
 
 export type FeatherIcon =
@@ -32,7 +29,7 @@ export type MetricDefinition = {
   shortLabel: string;
   icon: FeatherIcon;
   kind: MetricKind;
-  // Sensor types this metric is stored as (blood pressure is two)
+  // stored sensor types (blood pressure has two)
   types: SensorType[];
 };
 
@@ -77,13 +74,13 @@ export const METRICS: MetricDefinition[] = [
 
 export const METRIC_BY_ID = Object.fromEntries(METRICS.map((m) => [m.id, m])) as Record<MetricId, MetricDefinition>;
 
-// Shown in their own Activity sections already
+// have their own Activity sections
 export const SECTION_METRICS: MetricId[] = ['heart_rate', 'steps'];
 
-// Shown in "More vitals", in this order
+// "More vitals", in display order
 export const VITAL_METRICS = METRICS.filter((m) => !SECTION_METRICS.includes(m.id));
 
-// Unit stored in Firestore for each sensor type (always metric/SI)
+// stored units are always metric/SI
 export const STORED_UNITS: Record<SensorType, string> = {
   heart_rate: 'bpm',
   steps: 'steps',
@@ -115,7 +112,7 @@ export type FormattedValue = { value: string; unit: string };
 
 const KM_PER_MILE = 1.609344;
 
-// A stored value in the unit to show (follows the Preferences units setting)
+// converts a stored value for display
 export function formatMetric(type: SensorType, value: number, units: Units): FormattedValue {
   const imperial = units === 'imperial';
   switch (type) {
@@ -146,7 +143,7 @@ export function formatMetric(type: SensorType, value: number, units: Units): For
   }
 }
 
-// ----- What a device measures, from its standard Bluetooth services -----
+// Bluetooth services and what they measure
 
 export const SERVICE_UUIDS = {
   HEART_RATE: '0000180d-0000-1000-8000-00805f9b34fb',
@@ -160,8 +157,7 @@ export const SERVICE_UUIDS = {
   PHYSICAL_ACTIVITY_MONITOR: '0000183e-0000-1000-8000-00805f9b34fb',
 } as const;
 
-// Things a device can report. 'activity_monitor' is the Physical Activity Monitor service
-// (steps and sleep): detected, but its data isn't decoded yet.
+// activity_monitor: the steps and sleep service, detected but not decoded
 export type DeviceMeasure = MetricId | 'activity_monitor';
 
 const SERVICE_MEASURES: Record<string, DeviceMeasure[]> = {
@@ -176,7 +172,7 @@ const SERVICE_MEASURES: Record<string, DeviceMeasure[]> = {
   [SERVICE_UUIDS.PHYSICAL_ACTIVITY_MONITOR]: ['activity_monitor'],
 };
 
-// Measures implied by a device's services (canonical 128-bit lowercase UUIDs)
+// uuids: full 128-bit, lowercase
 export function measuresForServices(serviceUuids: string[]): DeviceMeasure[] {
   const found = new Set<DeviceMeasure>();
   for (const uuid of serviceUuids) for (const measure of SERVICE_MEASURES[uuid] ?? []) found.add(measure);
@@ -185,7 +181,7 @@ export function measuresForServices(serviceUuids: string[]): DeviceMeasure[] {
 
 const MEASURE_ORDER: DeviceMeasure[] = [...METRICS.map((m) => m.id), 'activity_monitor'];
 
-// Also drops ids this version doesn't know (e.g. written by a newer app)
+// unknown ids are dropped
 export function orderMeasures(measures: readonly string[]): DeviceMeasure[] {
   return [...new Set(measures)]
     .filter((m): m is DeviceMeasure => MEASURE_ORDER.includes(m as DeviceMeasure))
@@ -196,7 +192,6 @@ export function measureLabel(measure: DeviceMeasure): string {
   return measure === 'activity_monitor' ? 'Steps & sleep (not supported yet)' : METRIC_BY_ID[measure].shortLabel;
 }
 
-// The metric a stored sensor type belongs to
 export function metricForType(type: SensorType): MetricId {
   return type === 'bp_systolic' || type === 'bp_diastolic' ? 'blood_pressure' : type;
 }

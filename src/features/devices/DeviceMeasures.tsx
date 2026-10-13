@@ -7,8 +7,7 @@ import { spacing } from '@/theme';
 
 type Props = { measures: DeviceMeasure[] };
 
-// What the device measures, from the health services it provides. Nothing when unknown
-// (e.g. paired before this was recorded, or on another phone).
+// What the device measures; renders nothing when unknown.
 export function DeviceMeasures({ measures }: Props) {
   if (!measures.length) return null;
   return (

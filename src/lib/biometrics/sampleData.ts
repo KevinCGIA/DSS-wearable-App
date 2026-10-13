@@ -1,7 +1,6 @@
 import type { SensorType } from '@/data/types';
 
-// Development only: a plausible day of extra vitals for the "Add 24h of Sample Data" button,
-// so the vitals cards can be tried without devices. Always saved as Test data.
+// Dev only: a day of sample vitals for "Add 24h of Sample Data".
 
 export type SampleReading = { type: SensorType; value: number; t: number };
 

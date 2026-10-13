@@ -5,43 +5,114 @@ import { collection, doc, getFirestore, limit, onSnapshot, orderBy, query, Times
 import type { ReadingSource, SensorReading, SensorType } from '@/data/types';
 import { subscribeWithDeadline, withDeadline } from '../asyncDeadline';
 import { devicePlatform, nativeDeviceId } from '../ble/deviceKey';
-import { ReadingBatchQueue, type ReadingBatch } from './readingBatches';
-import { isSensorType, METRIC_BY_ID, metricForType, SENSOR_TYPES, STORED_UNITS } from '../biometrics/metrics';
+import { ReadingBatchQueue } from './readingBatches';
+import { METRIC_BY_ID, metricForType, SENSOR_TYPES, STORED_UNITS } from '../biometrics/metrics';
 import { sampleVitals } from '../biometrics/sampleData';
-import { batchReadings, legacyReading, mergeReadings, timestampMs } from './readingDocuments';
+import { batchFromDocument, batchReadings, legacyReading, mergeReadings } from './readingDocuments';
 
 type Input = { value: number; timestamp?: Date; deviceId?: string | null; deviceName?: string | null; source: ReadingSource };
 type Session = {
   uid: string; queue: ReadingBatchQueue; ready: Promise<void>; active: boolean;
   live: Map<string, SensorReading>; remote: Map<string, SensorReading[]>;
   error: Error | null; loaded: boolean; restored: boolean; fatalError: boolean; fatal: (error: Error) => void;
+  // listeners at their display limit
+  limited: Set<string>;
 };
 let current: Session | null = null;
-let cached: SensorReading[] = [];
-const listeners = new Set<() => void>();
+// loaded readings by type, oldest first
+let byType = new Map<SensorType, SensorReading[]>();
+// latest-value subscribers hear every change; history subscribers at most once a second
+const latestListeners = new Set<() => void>();
+const historyListeners = new Set<() => void>();
+const noticeListeners = new Set<(notice: string | null) => void>();
 const liveListeners = new Set<(reading: SensorReading) => void>();
 const closing = new Map<string, Promise<void>>();
-const HISTORY_DAYS = 30;
+// screens show 7 days; the extra day is a baseline for running totals
+const HISTORY_DAYS = 8;
 const BATCH_DISPLAY_LIMIT = 2000;
 // Firestore rejects listener limits above 10,000 (invalid-argument)
 const LEGACY_DISPLAY_LIMIT = 10000;
+const HISTORY_EMIT_MS = 1000;
+export const DISPLAY_LIMIT_NOTICE = 'Showing your most recent readings. Older readings are saved, but there are too many to show here.';
 
-function emit() {
-  cached = current ? mergeReadings([...current.remote.values()].flat().concat([...current.live.values()])) : [];
-  listeners.forEach((listener) => listener());
+// during a bulk add, screens refresh once at the end
+let bulk = false;
+let lastHistoryEmit = 0;
+let historyTimer: ReturnType<typeof setTimeout> | null = null;
+
+const readingsOf = (type: SensorType) => byType.get(type) ?? [];
+// production hides test data
+const visible = (reading: SensorReading) => __DEV__ || reading.source === 'ble';
+
+// First index whose reading is at or after `time`
+function indexAt(list: SensorReading[], time: number) {
+  let low = 0;
+  let high = list.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (list[middle].timestamp.getTime() < time) low = middle + 1; else high = middle;
+  }
+  return low;
+}
+
+// full merge, after a Firestore snapshot
+function rebuild() {
+  byType = new Map();
+  if (!current) return;
+  for (const reading of mergeReadings([...current.remote.values()].flat().concat([...current.live.values()]))) {
+    if (!visible(reading)) continue;
+    const list = byType.get(reading.type);
+    if (list) list.push(reading); else byType.set(reading.type, [reading]);
+  }
+}
+
+// a live reading goes straight into place
+function insert(reading: SensorReading) {
+  if (!visible(reading)) return;
+  const list = byType.get(reading.type);
+  if (!list) { byType.set(reading.type, [reading]); return; }
+  const time = reading.timestamp.getTime();
+  if (!list.length || list[list.length - 1].timestamp.getTime() <= time) list.push(reading);
+  else list.splice(indexAt(list, time + 1), 0, reading);
+}
+
+function notifyHistory(now = false) {
+  if (historyTimer && now) { clearTimeout(historyTimer); historyTimer = null; }
+  if (historyTimer) return;
+  const wait = now ? 0 : HISTORY_EMIT_MS - (Date.now() - lastHistoryEmit);
+  if (wait <= 0) { lastHistoryEmit = Date.now(); historyListeners.forEach((listener) => listener()); return; }
+  historyTimer = setTimeout(() => {
+    historyTimer = null; lastHistoryEmit = Date.now();
+    historyListeners.forEach((listener) => listener());
+  }, wait);
+}
+
+// reading: one new live reading; omitted when saved documents or the session changed
+function emit(reading?: SensorReading, now = false) {
+  if (reading && current) insert(reading); else rebuild();
+  if (bulk) return;
+  latestListeners.forEach((listener) => listener());
+  notifyHistory(now);
+}
+
+const noticeOf = (session: Session | null) => (session?.limited.size ? DISPLAY_LIMIT_NOTICE : null);
+function setLimited(session: Session, key: string, limited: boolean) {
+  if (limited === session.limited.has(key)) return;
+  if (limited) session.limited.add(key); else session.limited.delete(key);
+  if (current === session) noticeListeners.forEach((listener) => listener(noticeOf(session)));
 }
 
 function report(session: Session, error: Error, fatal = false) {
   if (!session.active || current !== session) return;
   const denied = String((error as Error & { code?: string }).code).includes('permission-denied');
-  session.error = denied ? new Error('Firestore denied saved readings. Kevin/Jared must allow reading_batches; recording stopped.') : error;
+  session.error = denied ? new Error('The server refused to save readings (permission denied), so recording has stopped. The Firestore security rules need to allow reading_batches.') : error;
   session.loaded = true;
   if (fatal || denied) {
     session.fatalError = true;
     if (session.restored) void session.queue.stop().catch(() => undefined);
     session.fatal(session.error);
   }
-  emit();
+  emit(undefined, true);
 }
 
 export function startReadingSession(uid: string, onFatal: (error: Error) => void): () => void {
@@ -50,6 +121,7 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
   const stops: (() => void)[] = [];
   const session: Session = {
     uid, active: true, live: new Map(), remote: new Map(), error: null, loaded: false, restored: false, fatalError: false, fatal: onFatal,
+    limited: new Set(),
     ready: Promise.resolve(),
     queue: new ReadingBatchQueue({
       id: () => doc(collection(db, 'users', uid, 'reading_batches')).id,
@@ -79,7 +151,15 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
   const watch = (reference: Query, receive: (snapshot: QuerySnapshot) => void) => {
     stops.push(subscribeWithDeadline<QuerySnapshot>(
       (onData, onError) => onSnapshot(reference, onData, onError),
-      (snapshot) => { if (session.active && current === session) { if (!session.fatalError) session.error = null; receive(snapshot); session.loaded = true; emit(); } },
+      (snapshot) => {
+        if (!session.active || current !== session) return;
+        if (!session.fatalError) session.error = null;
+        receive(snapshot);
+        // the first snapshot ends loading immediately
+        const first = !session.loaded;
+        session.loaded = true;
+        emit(undefined, first);
+      },
       (error) => report(session, error),
     ));
   };
@@ -96,27 +176,17 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
     for (const type of SENSOR_TYPES) {
       watch(query(collection(db, 'users', uid, 'sensor_readings', type, 'readings'), where('timestamp', '>=', since), orderBy('timestamp', 'desc'), limit(LEGACY_DISPLAY_LIMIT)), (snapshot) => {
         session.remote.set(type, snapshot.docs.map((d) => legacyReading(`legacy:${type}:${d.id}`, type, d.data())).filter((r): r is SensorReading => r !== null));
-        if (snapshot.size === LEGACY_DISPLAY_LIMIT) report(session, new Error('The saved-reading display limit was reached. Older readings remain in Firestore.'));
+        setLimited(session, `legacy:${type}`, snapshot.size >= LEGACY_DISPLAY_LIMIT);
       });
     }
     watch(query(collection(db, 'users', uid, 'reading_batches'), where('endAt', '>=', since), orderBy('endAt', 'desc'), limit(BATCH_DISPLAY_LIMIT)), (snapshot) => {
       const readings: SensorReading[] = [];
       for (const d of snapshot.docs) {
-        const data = d.data();
-        if (!Array.isArray(data.samples) || !isSensorType(data.type) || typeof data.deviceId !== 'string') continue;
-        const batch: ReadingBatch = {
-          id: d.id, deviceId: data.deviceId, deviceName: data.deviceName ?? null,
-          platform: data.platform === 'ios' ? 'ios' : 'android', type: data.type,
-          source: data.source === 'test' ? 'test' : 'ble', legacy: null,
-          samples: data.samples.flatMap((sample: { t: unknown; v: unknown }) => {
-            const t = timestampMs(sample.t);
-            return t !== null && typeof sample.v === 'number' && Number.isFinite(sample.v) ? [{ t, v: sample.v }] : [];
-          }),
-        };
-        readings.push(...batchReadings(batch));
+        const batch = batchFromDocument(d.id, d.data());
+        if (batch) readings.push(...batchReadings(batch));
       }
       session.remote.set('batches', readings);
-      if (snapshot.size === BATCH_DISPLAY_LIMIT) report(session, new Error('The full-resolution history display limit was reached. Older batches remain in Firestore.'));
+      setLimited(session, 'batches', snapshot.size >= BATCH_DISPLAY_LIMIT);
     });
   })().catch((error) => { report(session, error as Error, true); throw error; });
   void session.ready.catch(() => undefined);
@@ -131,7 +201,11 @@ export function startReadingSession(uid: string, onFatal: (error: Error) => void
     // Persist under the captured owner, even after auth changes. No new upload starts.
     const closed = session.ready.then(() => session.queue.stop()).catch(() => undefined);
     closing.set(uid, closed);
-    if (current === session) { current = null; emit(); }
+    if (current === session) {
+      current = null;
+      emit(undefined, true);
+      noticeListeners.forEach((listener) => listener(null));
+    }
   };
 }
 
@@ -145,20 +219,59 @@ export function flushReadings(deviceId?: string) {
   if (session) void session.ready.then(() => session.queue.flush(deviceId ? nativeDeviceId(deviceId) : undefined)).catch((error) => report(session, error, true));
 }
 
-function subscribe(type: SensorType, since: number, onData: (readings: SensorReading[]) => void, onError: (error: Error) => void) {
-  const listener = () => {
-    if (current?.error) { onError(current.error); return; }
-    if (current && !current.loaded && !cached.length) return;
-    onData(cached.filter((r) => r.type === type && r.timestamp.getTime() >= since && (__DEV__ || r.source === 'ble')));
-  };
-  listeners.add(listener); listener();
-  return () => { listeners.delete(listener); };
+// Wait for saved history before answering, unless live readings exist. Just after sign-in
+// the session hasn't started; a short grace period avoids flashing an empty Dashboard.
+const SESSION_GRACE_MS = 3000;
+let noSessionSince: number | null = null;
+let graceTimer: ReturnType<typeof setTimeout> | null = null;
+function waiting() {
+  if (current) { noSessionSince = null; return !current.loaded && !byType.size; }
+  if (!getAuth().currentUser) return false;
+  noSessionSince ??= Date.now();
+  const left = SESSION_GRACE_MS - (Date.now() - noSessionSince);
+  if (left <= 0) return false;
+  graceTimer ??= setTimeout(() => {
+    graceTimer = null;
+    latestListeners.forEach((listener) => listener());
+    historyListeners.forEach((listener) => listener());
+  }, left);
+  return true;
 }
+
+// subscribers are called only when their own data changed
 export function subscribeToLatestReading(_uid: string, type: SensorType, onData: (reading: SensorReading | null) => void, onError: (error: Error) => void) {
-  return subscribe(type, 0, (readings) => onData(readings[readings.length - 1] ?? null), onError);
+  let sent: SensorReading | null | undefined;
+  const listener = () => {
+    if (current?.error) { sent = undefined; onError(current.error); return; }
+    if (waiting()) return;
+    const list = readingsOf(type);
+    const latest = list[list.length - 1] ?? null;
+    if (latest === sent) return;
+    sent = latest;
+    onData(latest);
+  };
+  latestListeners.add(listener); listener();
+  return () => { latestListeners.delete(listener); };
 }
 export function subscribeToReadingsSince(_uid: string, type: SensorType, since: Date, onData: (readings: SensorReading[]) => void, onError: (error: Error) => void) {
-  return subscribe(type, since.getTime(), onData, onError);
+  let sent: { count: number; first: SensorReading | undefined; last: SensorReading | undefined } | null = null;
+  const listener = () => {
+    if (current?.error) { sent = null; onError(current.error); return; }
+    if (waiting()) return;
+    const list = readingsOf(type);
+    const start = indexAt(list, since.getTime());
+    const next = { count: list.length - start, first: list[start], last: list[list.length - 1] };
+    if (sent && sent.count === next.count && sent.first === next.first && sent.last === next.last) return;
+    sent = next;
+    onData(list.slice(start));
+  };
+  historyListeners.add(listener); listener();
+  return () => { historyListeners.delete(listener); };
+}
+// set when more is saved than the screens load
+export function subscribeToReadingNotice(listener: (notice: string | null) => void) {
+  noticeListeners.add(listener); listener(noticeOf(current));
+  return () => { noticeListeners.delete(listener); };
 }
 
 export async function addSensorReading(_uid: string, type: SensorType, input: Input): Promise<void> {
@@ -170,11 +283,13 @@ export async function addSensorReading(_uid: string, type: SensorType, input: In
     const source = input.source === 'ble' ? 'ble' : 'test';
     const timestamp = input.timestamp ?? new Date();
     const deviceId = input.deviceId ?? 'test-data';
-    // Spot-measurement devices (blood pressure, scales, thermometers, glucose meters) resend
-    // their stored records on every connection. Keep each measurement once.
+    // spot devices resend stored records on every connection; keep each once
     if (input.timestamp && METRIC_BY_ID[metricForType(type)].kind === 'spot' && source === 'ble') {
       const time = timestamp.getTime();
-      if (cached.some((r) => r.type === type && r.deviceId === deviceId && r.timestamp.getTime() === time)) return;
+      const list = readingsOf(type);
+      for (let i = indexAt(list, time); i < list.length && list[i].timestamp.getTime() === time; i += 1) {
+        if (list[i].deviceId === deviceId) return;
+      }
     }
     const result = session.queue.add({
       deviceId: nativeDeviceId(deviceId), deviceName: input.deviceName ?? null,
@@ -189,26 +304,32 @@ export async function addSensorReading(_uid: string, type: SensorType, input: In
     // Firestore owns durable history. Bound the additional live overlay.
     if (session.live.size > 100000) session.live.delete(session.live.keys().next().value!);
     liveListeners.forEach((listener) => listener(reading));
-    emit();
+    emit(reading);
   } catch (error) { report(session, error as Error, true); }
 }
 
 export async function addSampleDay(uid: string): Promise<void> {
   if (!__DEV__) return;
   const end = Date.now();
-  for (let t = end - 86400000; t <= end; t += 15 * 60000) {
-    await addSensorReading(uid, 'heart_rate', { value: 60 + Math.floor(Math.random() * 30), timestamp: new Date(t), source: 'test', deviceName: 'Test data' });
-  }
-  let total = 0;
-  let day = '';
-  for (let t = end - 86400000; t <= end; t += 3600000) {
-    const nextDay = new Date(t).toDateString();
-    if (nextDay !== day) { day = nextDay; total = 0; }
-    total += Math.floor(Math.random() * 700);
-    await addSensorReading(uid, 'steps', { value: total, timestamp: new Date(t), source: 'test', deviceName: 'Test data' });
-  }
-  for (const sample of sampleVitals(end)) {
-    await addSensorReading(uid, sample.type, { value: sample.value, timestamp: new Date(sample.t), source: 'test', deviceName: 'Test data' });
+  bulk = true;
+  try {
+    for (let t = end - 86400000; t <= end; t += 15 * 60000) {
+      await addSensorReading(uid, 'heart_rate', { value: 60 + Math.floor(Math.random() * 30), timestamp: new Date(t), source: 'test', deviceName: 'Test data' });
+    }
+    let total = 0;
+    let day = '';
+    for (let t = end - 86400000; t <= end; t += 3600000) {
+      const nextDay = new Date(t).toDateString();
+      if (nextDay !== day) { day = nextDay; total = 0; }
+      total += Math.floor(Math.random() * 700);
+      await addSensorReading(uid, 'steps', { value: total, timestamp: new Date(t), source: 'test', deviceName: 'Test data' });
+    }
+    for (const sample of sampleVitals(end)) {
+      await addSensorReading(uid, sample.type, { value: sample.value, timestamp: new Date(sample.t), source: 'test', deviceName: 'Test data' });
+    }
+  } finally {
+    bulk = false;
+    emit();
   }
   flushReadings();
 }

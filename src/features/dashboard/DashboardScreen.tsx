@@ -39,7 +39,7 @@ export type DashboardScreenProps = {
   steps: LatestReadingState;
   stepsHistory: HistoryState;
   activity: DailyActivityExtras;
-  // Extra vitals the devices report; the Vitals card only appears when there are some.
+  // the Vitals card is hidden when this is empty
   vitals: VitalView[];
   units: Units;
   sleep: SleepSummary | null;
@@ -141,6 +141,7 @@ export function DashboardScreen({
         refreshing={refreshing}
         onRefresh={onRefresh}
         stepsToday={stepsTodayFrom(steps.reading, now)}
+        stepsLoading={steps.loading}
         activity={activity}
         units={units}
         onOpenDevices={onOpenDevices}

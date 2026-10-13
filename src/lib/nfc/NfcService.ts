@@ -1,6 +1,6 @@
 import type { PairingInfo } from './pairingTag';
 
-// Web and Previews: no NFC. NfcService.native.ts is the real version on iOS and Android.
+// Web/preview: no NFC.
 
 export type NfcAvailability = 'available' | 'disabled' | 'unsupported';
 

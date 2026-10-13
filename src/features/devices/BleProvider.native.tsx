@@ -19,14 +19,17 @@ import { addSensorReading, startReadingSession, flushReadings } from '@/lib/sens
 import { SENSOR_UID } from '@/lib/sensors/useSensorReadings';
 import type { BleContextValue } from './BleProvider';
 import { subscribeWithDeadline, withDeadline } from '@/lib/asyncDeadline';
-import { logConnectionEvent, startConnectionLog } from '@/lib/devices/connectionLog.native';
+import { logConnectionEvent, setConnectionLogRecording, startConnectionLog } from '@/lib/devices/connectionLog.native';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import { subscribeToAlertThresholds } from '@/lib/alerts/thresholds.native';
 import { checkHeartRate, alertCooldownKey } from '@/lib/alerts/heartRateAlert';
 import { addAlert } from '@/lib/alerts/alertHistory.native';
-import { presentHeartRateAlert } from '@/lib/alerts/localNotification.native';
+import { presentAlert } from '@/lib/alerts/localNotification.native';
+import { connectionLostAlert, lowBatteryAlert } from '@/lib/alerts/deviceAlert';
+import type { AlertItem } from '@/data/types';
 import { onLiveReading } from '@/lib/sensors/readings.native';
 import type { AlertThresholds } from '@/data/types';
+import { setBackgroundRecording } from '@/lib/recording/backgroundRecording';
 
 const BleContext = createContext<BleContextValue | null>(null);
 const platform: 'ios' | 'android' = Platform.OS === 'ios' ? 'ios' : 'android';
@@ -192,12 +195,28 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [uid, connections]);
 
+  // Background recording: a foreground service on Android (startable only on screen, so
+  // retried when the app returns); the Bluetooth background mode on iOS.
+  const recordingDevices = uid
+    ? Object.values(connections).filter((c) => c.status === 'connected' || c.status === 'reconnecting').length
+    : 0;
+  useEffect(() => {
+    setBackgroundRecording(recordingDevices);
+    // background time counts in device stats while recording
+    setConnectionLogRecording(recordingDevices > 0);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setBackgroundRecording(recordingDevices);
+    });
+    return () => subscription.remove();
+  }, [recordingDevices]);
+  useEffect(() => () => { setBackgroundRecording(0); setConnectionLogRecording(false); }, []);
+
   useEffect(() => bleService.onHeartRate((bpm, deviceId, deviceName) => {
     if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
     void addSensorReading(SENSOR_UID, 'heart_rate', { value: bpm, deviceId, deviceName, source: 'ble' });
   }), [uid]);
 
-  // Every other biometric (SpO2, temperature, blood pressure, HRV, weight, glucose, …)
+  // all other vitals
   useEffect(() => bleService.onMetrics((samples, deviceId, deviceName) => {
     if (!uid || !ownerReady.current || getAuth().currentUser?.uid !== uid) return;
     for (const sample of samples) {
@@ -224,7 +243,7 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
       lastAlerts.current.set(key, alert.timestamp);
       void addAlert(uid, alert).then(async () => {
         if (active && getAuth().currentUser?.uid === uid) {
-          try { await presentHeartRateAlert(alert); }
+          try { await presentAlert(alert); }
           catch (error) { if (active) setScanError(`Couldn't show heart rate notification: ${String(error)}`); }
         }
       }).catch((error) => {
@@ -233,6 +252,31 @@ export function BleProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { active = false; stopReadings(); stopThresholds(); };
   }, [uid, preferencesLoaded, preferences.notifications]);
+
+  // Device alerts (lost connection, low battery); they follow the notifications preference.
+  const deviceAlertState = useRef<Record<string, { status: string; lowBattery: boolean }>>({});
+  useEffect(() => {
+    if (!uid || !preferencesLoaded) return;
+    const raise = (alert: Omit<AlertItem, 'id'>) => {
+      if (!preferences.notifications) return;
+      void addAlert(uid, alert)
+        .then(() => (getAuth().currentUser?.uid === uid ? presentAlert(alert) : false))
+        .catch(() => undefined);
+    };
+    const seen = deviceAlertState.current;
+    for (const [id, current] of Object.entries(connections)) {
+      const before = seen[id];
+      const device = { deviceId: id, deviceName: current.deviceName ?? pairedRef.current.find((d) => d.deviceId === id)?.name ?? null };
+      const lost = connectionLostAlert(before?.status as ConnectionState['status'] | undefined, current.status, Boolean(current.error), device, Date.now());
+      if (lost) raise(lost);
+      // one battery alert per connection
+      const warned = current.status === 'connected' ? (before?.lowBattery ?? false) : false;
+      const low = current.status === 'connected' ? lowBatteryAlert(current.batteryLevel, warned, device, Date.now()) : null;
+      if (low) raise(low);
+      seen[id] = { status: current.status, lowBattery: warned || Boolean(low) };
+    }
+  }, [uid, connections, preferencesLoaded, preferences.notifications]);
+  useEffect(() => { deviceAlertState.current = {}; }, [uid]);
 
   const startScan = useCallback(async () => {
     setScanError(null);
