@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
   panel: {
     maxHeight: '85%',
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.sm,
   },

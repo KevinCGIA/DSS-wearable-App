@@ -55,9 +55,8 @@ export const colors = {
   accentBorder: palette.blue100,
   accentText: palette.blue700,
   accentGradient: [palette.blue400, palette.blue600] as const,
-  heroGradient: [palette.blue500, palette.blue600] as const,
-  heroRing: ['rgba(255, 255, 255, 0.26)', 'rgba(255, 255, 255, 0.18)', 'rgba(255, 255, 255, 0.11)'] as const,
-  heroGlow: 'rgba(255, 255, 255, 0.08)',
+  // flat header colour; the accent is for pressable and selected things
+  hero: palette.blue900,
 
   live: {
     surface: palette.blue500,

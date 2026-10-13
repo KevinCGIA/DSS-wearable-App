@@ -25,9 +25,7 @@ type Props = {
   first?: boolean;
 };
 
-// One extra biometric for the selected source, in the same layout as the Heart Rate and
-// Steps cards. Live streams show the last 24 hours, spot measurements the last 7 days and
-// running totals today's total.
+// One vital for the selected source: live (24 h), spot (7 days) or running total (today).
 export function VitalCard({ now, vital, units, first = false }: Props) {
   const range =
     vital.kind === "live" ? "24 h" : vital.kind === "spot" ? "7 days" : "Today";
@@ -63,7 +61,7 @@ function display(
   };
 }
 
-// Long units (mmol/L, mmHg) crowd three readouts on a phone; the hero above already shows them.
+// long units don't fit three across; the headline already shows them
 const statUnit = (unit: string) => (unit.length <= 3 ? unit : undefined);
 
 function Hero({
@@ -198,7 +196,7 @@ function SpotBody({
       {vital.count > 1 ? (
         <View style={styles.stats}>
           {paired ? (
-            // Blood pressure: the average pair, plus how many readings it covers
+            // blood pressure: average pair and reading count
             <>
               <StatReadout
                 value={average.value}
@@ -279,7 +277,7 @@ function TotalBody({
   const age = now - vital.latest.timestamp.getTime();
   const today = formatMetric(vital.type, vital.today, units);
   const hasBars = vital.buckets.some((b) => (b.value ?? 0) > 0);
-  // Bars in the shown unit (distance is stored in metres but shown in km or mi)
+  // bars in display units (distance is stored in metres)
   const buckets = vital.buckets.map((b) => ({
     ...b,
     value:
@@ -332,7 +330,7 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", marginTop: spacing.lg },
   valueRow: { flexDirection: "row", alignItems: "baseline", maxWidth: "100%" },
   value: { color: colors.text },
-  unit: { color: colors.accent, marginLeft: spacing.xs },
+  unit: { color: colors.textSecondary, marginLeft: spacing.xs },
   muted: { color: colors.textMuted },
   secondary: { color: colors.textSecondary, textAlign: "center" },
   secondaryLeft: { color: colors.textSecondary, flexShrink: 1 },

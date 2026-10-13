@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, fonts, layout, spacing, type } from '@/theme';
 
 type Props = {
   title: string;
@@ -14,13 +14,11 @@ type Props = {
 export function CardTitle({ title, icon, ionicon, right, style }: Props) {
   return (
     <View style={[styles.row, style]}>
-      <View style={styles.badge}>
-        {ionicon ? (
-          <Ionicons name={ionicon} size={layout.icon.row} color={colors.accentText} />
-        ) : icon ? (
-          <Feather name={icon} size={layout.icon.row} color={colors.accentText} />
-        ) : null}
-      </View>
+      {ionicon ? (
+        <Ionicons name={ionicon} size={layout.icon.action} color={colors.textSecondary} style={styles.icon} />
+      ) : icon ? (
+        <Feather name={icon} size={layout.icon.action} color={colors.textSecondary} style={styles.icon} />
+      ) : null}
       <Text style={[type.subheading, styles.title]} numberOfLines={2}>
         {title}
       </Text>
@@ -31,14 +29,6 @@ export function CardTitle({ title, icon, ionicon, right, style }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
-  badge: {
-    width: layout.iconBadge,
-    height: layout.iconBadge,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  title: { flex: 1, color: colors.text, marginRight: spacing.sm },
+  icon: { marginRight: spacing.sm },
+  title: { flex: 1, color: colors.text, marginRight: spacing.sm, fontFamily: fonts.uiSemiBold },
 });

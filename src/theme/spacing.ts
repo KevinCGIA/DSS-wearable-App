@@ -11,24 +11,28 @@ export const spacing = {
   giant: 56,
 } as const;
 
+// sm: tags. md: controls. lg: banners and fields. xl: cards. pill: truly round shapes.
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 28,
+  sm: 6,
+  md: 10,
+  lg: 12,
+  xl: 14,
+  sheet: 20,
   pill: 999,
 } as const;
 
 export const layout = {
   screenPadding: spacing.xl,
   hitSlop: { top: 8, bottom: 8, left: 8, right: 8 },
-  controlHeight: 54,
+  controlHeight: 50,
   tabBarHeight: 64,
   minTouch: 44,
   rowHeight: 52,
   // Two-line rows and rows with an avatar.
   rowHeightTall: 64,
   iconBadge: 32,
+  // leading icon column, so labels line up
+  rowIcon: 24,
   avatar: 44,
   avatarLarge: 96,
   statusDot: 12,
@@ -47,17 +51,16 @@ export const layout = {
   // Icon sizes: inline with text, rows and card titles, chevrons and buttons, tabs, back.
   icon: { inline: 14, row: 16, action: 18, tab: 20, nav: 24 },
   miniChartHeight: 80,
-  heroRingCenterY: 56,
-  heroRingInset: 84,
 } as const;
 
 export const elevation = {
+  // flat: border only, no shadow
   card: {
     shadowColor: '#0E1B2A',
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   hero: {
     shadowColor: '#14499A',

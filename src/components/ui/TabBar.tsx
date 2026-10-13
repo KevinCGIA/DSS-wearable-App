@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabKey } from '@/navigation/routes';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, fonts, layout, spacing, type } from '@/theme';
 
 const tabs: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: 'grid' },
@@ -32,15 +32,19 @@ export function TabBar({ active, onChange }: Props) {
           <Pressable
             key={tab.key}
             onPress={() => onChange(tab.key)}
-            style={styles.tab}
+            style={[styles.tab, selected && styles.tabActive]}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             accessibilityState={{ selected }}
           >
-            <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+            <View style={styles.iconWrap}>
               <Feather name={tab.icon} size={layout.icon.tab} color={tint} />
             </View>
-            <Text style={[type.caption, { color: tint }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            <Text
+              style={[type.caption, { color: tint }, selected && styles.labelActive]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -51,6 +55,7 @@ export function TabBar({ active, onChange }: Props) {
 }
 
 export const tabBarBaseHeight = layout.tabBarHeight;
+const INDICATOR = 2;
 
 const styles = StyleSheet.create({
   bar: {
@@ -62,15 +67,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.divider,
-    paddingTop: spacing.md,
+    borderTopColor: colors.border,
   },
-  tab: { flex: 1, alignItems: 'center', minHeight: layout.minTouch },
-  iconWrap: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
-    marginBottom: spacing.xs,
+  // selected tab: a rule along the top edge
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    minHeight: layout.minTouch,
+    paddingTop: spacing.md - INDICATOR,
+    borderTopWidth: INDICATOR,
+    borderTopColor: 'transparent',
   },
-  iconWrapActive: { backgroundColor: colors.accentSurface },
+  tabActive: { borderTopColor: colors.accent },
+  iconWrap: { paddingVertical: spacing.xs, marginBottom: spacing.xs },
+  labelActive: { fontFamily: fonts.uiMedium },
 });
