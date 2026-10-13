@@ -80,11 +80,11 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   sm: { height: layout.minTouch, paddingHorizontal: spacing.md },
   md: { height: layout.minTouch },
@@ -95,5 +95,5 @@ const styles = StyleSheet.create({
   inactiveText: { opacity: 0.4 },
   inactive: { backgroundColor: colors.disabledSurface, borderColor: colors.disabledSurface },
   pressedPrimary: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed },
-  pressedSoft: { backgroundColor: colors.accentSurface },
+  pressedSoft: { backgroundColor: colors.surfaceSunken },
 });

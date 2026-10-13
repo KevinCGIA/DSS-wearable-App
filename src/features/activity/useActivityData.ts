@@ -5,7 +5,7 @@ import { VITAL_METRICS } from '@/lib/biometrics/metrics';
 import { connectionsOf } from '@/features/devices/connections';
 import { addSampleDay, addSensorReading } from '@/lib/sensors/readings';
 import { addSampleSleep, useSampleSleep } from '@/lib/sensors/testExtras';
-import { SENSOR_UID, useSensorHistories, useSensorHistory } from '@/lib/sensors/useSensorReadings';
+import { SENSOR_UID, useReadingNotice, useSensorHistories, useSensorHistory } from '@/lib/sensors/useSensorReadings';
 import { isSameDay } from '@/lib/time';
 import { useNow } from '@/lib/useNow';
 import { useActivityFocus } from './ActivityFocusProvider';
@@ -24,6 +24,7 @@ export function useActivityData() {
   const steps = useSensorHistory('steps', WINDOW_HOURS);
   const vitals = useSensorHistories(VITAL_TYPES, WINDOW_HOURS);
   const { preferences } = usePreferences();
+  const notice = useReadingNotice();
   const sample = useSampleSleep();
   const { selected, select, scrollRequest, clearScrollRequest } = useActivityFocus();
 
@@ -87,6 +88,7 @@ export function useActivityData() {
     loading: heartRate.loading || steps.loading || vitals.loading,
     error: heartRate.error ?? steps.error ?? vitals.error,
     units: preferences.units,
+    notice,
     view,
     scrollRequest,
     onSelect: select,

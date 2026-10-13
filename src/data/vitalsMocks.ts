@@ -2,7 +2,7 @@ import type { SensorReading, SensorType } from '@/data/types';
 import { STORED_UNITS } from '@/lib/biometrics/metrics';
 import { sampleVitals } from '@/lib/biometrics/sampleData';
 
-// Previews only: the dev sample day of extra vitals, as if one device reported them all.
+// Previews only: sample vitals attributed to one device
 export function mockVitalReadings(device: { id: string; name: string }): Partial<Record<SensorType, SensorReading[]>> {
   const out: Partial<Record<SensorType, SensorReading[]>> = {};
   sampleVitals(Date.now()).forEach((s, i) => {

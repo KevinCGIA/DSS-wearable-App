@@ -29,4 +29,8 @@ export const accountService: AccountService = {
     await wait(700);
     return previewProfile?.email ?? mockProfile.email;
   },
+  async deleteAccount() {
+    await wait(700);
+    throw Object.assign(new Error('account/preview'), { code: 'account/preview' });
+  },
 };

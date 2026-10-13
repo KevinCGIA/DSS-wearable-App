@@ -26,6 +26,8 @@ type Props = {
   initiallyExpanded?: boolean;
   refreshing: boolean;
   stepsToday: number;
+  // show "--" instead of 0 while loading
+  stepsLoading?: boolean;
   activity: DailyActivityExtras;
   units: Units;
   onRefresh: () => void;
@@ -49,6 +51,7 @@ export function DeviceActivityCard({
   initiallyExpanded,
   refreshing,
   stepsToday,
+  stepsLoading = false,
   activity,
   units,
   onRefresh,
@@ -111,14 +114,14 @@ export function DeviceActivityCard({
           <Pressable
             onPress={toggle}
             style={({ pressed }) => [styles.activity, pressed && styles.pressed]}
-            accessibilityLabel={`Today's activity: ${stepsToday} steps`}
+            accessibilityLabel={stepsLoading ? "Today's activity: loading" : `Today's activity: ${stepsToday} steps`}
             {...toggleA11y(expanded)}
           >
             <View style={styles.eyebrowRow}>
               <Text style={[type.overline, styles.eyebrow]}>TODAY'S ACTIVITY</Text>
               <ExpandChevron expanded={expanded} />
             </View>
-            <ActivityRow label="Steps" value={stepsToday.toLocaleString()} />
+            <ActivityRow label="Steps" value={stepsLoading ? '--' : stepsToday.toLocaleString()} />
             <ActivityRow
               label="Distance"
               value={distance !== null ? distance.toFixed(1) : '--'}

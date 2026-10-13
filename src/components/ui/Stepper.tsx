@@ -91,12 +91,14 @@ const styles = StyleSheet.create({
   button: {
     width: layout.minTouch,
     height: layout.minTouch,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSurface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonOff: { backgroundColor: colors.surfaceSunken },
-  buttonPressed: { backgroundColor: colors.accentBorder },
+  buttonOff: { backgroundColor: colors.surfaceSunken, borderColor: 'transparent' },
+  buttonPressed: { backgroundColor: colors.surfaceSunken },
   error: { color: colors.danger, marginTop: spacing.xs },
 });

@@ -10,6 +10,7 @@ export type StackRoute =
   | 'preferences'
   | 'add-device'
   | 'device-detail'
+  | 'export-data'
   | 'previews';
 
 export type Navigation = {

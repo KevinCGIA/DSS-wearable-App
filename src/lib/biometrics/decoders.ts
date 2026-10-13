@@ -1,7 +1,5 @@
-// Decoders for standard Bluetooth health measurements. Formats follow the Bluetooth SIG
-// GATT Specification Supplement (public YAML: bitbucket.org/bluetooth-SIG/public, gss/).
-// Every decoder takes the base64 value ble-plx delivers and returns null for malformed or
-// truncated packets instead of throwing. No imports so tests can load this file directly.
+// Decoders for the standard Bluetooth health measurements (GATT Specification Supplement).
+// Input is the base64 value from ble-plx. Malformed packets return null.
 
 class Reader {
   private offset = 0;
@@ -61,8 +59,7 @@ function toBytes(base64: string): Uint8Array | null {
   }
 }
 
-// IEEE 11073-20601 SFLOAT (medfloat16): 4-bit signed exponent, 12-bit signed mantissa.
-// NaN, NRes and ±infinity come back as null.
+// IEEE 11073 SFLOAT: 4-bit exponent, 12-bit mantissa. Special values return null.
 export function sfloat(raw: number): number | null {
   const mantissaRaw = raw & 0x0fff;
   if ([0x07ff, 0x0800, 0x07fe, 0x0802, 0x0801].includes(mantissaRaw)) return null;
@@ -72,7 +69,7 @@ export function sfloat(raw: number): number | null {
   return round(mantissa * Math.pow(10, exponent));
 }
 
-// IEEE 11073-20601 FLOAT (medfloat32): 8-bit signed exponent, 24-bit signed mantissa.
+// IEEE 11073 FLOAT: 8-bit exponent, 24-bit mantissa
 export function float32(raw: number): number | null {
   const mantissaRaw = raw & 0x00ffffff;
   if ([0x007fffff, 0x00800000, 0x007ffffe, 0x00800002, 0x00800001].includes(mantissaRaw)) return null;
@@ -86,8 +83,7 @@ function round(value: number) {
   return Math.round(value * 1e6) / 1e6;
 }
 
-// Date Time characteristic (7 octets: year, month, day, hours, minutes, seconds). A zero
-// year, month or day means "not known".
+// Date Time characteristic (7 bytes). Zero year, month or day = unknown.
 function dateTime(reader: Reader): Date | null {
   const year = reader.uint16();
   const month = reader.uint8();
@@ -106,13 +102,13 @@ const LB_TO_KG = 0.45359237;
 const INCH_TO_M = 0.0254;
 const KPA_TO_MMHG = 7.50061683;
 
-// ----- Heart Rate Measurement (0x2A37) -----
+// Heart Rate Measurement (0x2A37)
 
 export type HeartRateMeasurement = {
   bpm: number | null;
-  // Accumulated since the sensor last reset it (kilojoules on the wire)
+  // running total (kJ on the wire)
   energyKcal: number | null;
-  // Oldest first, in milliseconds
+  // ms, oldest first
   rrIntervalsMs: number[];
 };
 
@@ -139,8 +135,7 @@ export function decodeHeartRateMeasurement(base64: string): HeartRateMeasurement
   return { bpm: bpm > 0 ? bpm : null, energyKcal, rrIntervalsMs };
 }
 
-// RMSSD (root mean square of successive differences) over RR intervals, the standard
-// short-term HRV measure. Needs at least 3 intervals; implausible intervals are dropped.
+// RMSSD over RR intervals. Needs 3 or more; out-of-range intervals are dropped.
 export function rmssd(rrIntervalsMs: number[]): number | null {
   const valid = rrIntervalsMs.filter((rr) => rr >= 300 && rr <= 2000);
   if (valid.length < 3) return null;
@@ -149,7 +144,7 @@ export function rmssd(rrIntervalsMs: number[]): number | null {
   return Math.round(Math.sqrt(sum / (valid.length - 1)) * 10) / 10;
 }
 
-// ----- Temperature Measurement (0x2A1C) -----
+// Temperature Measurement (0x2A1C)
 
 export type TemperatureMeasurement = { celsius: number; timestamp: Date | null };
 
@@ -165,7 +160,7 @@ export function decodeTemperatureMeasurement(base64: string): TemperatureMeasure
   return { celsius: Math.round(celsius * 100) / 100, timestamp };
 }
 
-// ----- Blood Pressure Measurement (0x2A35) -----
+// Blood Pressure Measurement (0x2A35)
 
 export type BloodPressureMeasurement = {
   systolic: number;
@@ -201,7 +196,7 @@ export function decodeBloodPressureMeasurement(base64: string): BloodPressureMea
   };
 }
 
-// ----- Pulse Oximeter: PLX Continuous (0x2A5F) and Spot-Check (0x2A5E) -----
+// Pulse Oximeter: PLX Continuous (0x2A5F) and Spot-Check (0x2A5E)
 
 export type PulseOximetryMeasurement = { spo2: number; pulse: number | null; timestamp: Date | null };
 
@@ -228,13 +223,13 @@ export function decodePlxSpotCheck(base64: string): PulseOximetryMeasurement | n
   return { spo2, pulse: pulse === null ? null : Math.round(pulse), timestamp };
 }
 
-// ----- Running Speed and Cadence Measurement (0x2A53) -----
+// Running Speed and Cadence Measurement (0x2A53)
 
 export type RscMeasurement = {
   speedKmh: number;
   cadence: number;
   strideLengthM: number | null;
-  // Accumulated by the sensor
+  // running total
   totalDistanceM: number | null;
   running: boolean;
 };
@@ -265,7 +260,7 @@ export function decodeRscMeasurement(base64: string): RscMeasurement | null {
   };
 }
 
-// ----- Weight Measurement (0x2A9D) -----
+// Weight Measurement (0x2A9D)
 
 export type WeightMeasurement = {
   kg: number;
@@ -302,7 +297,7 @@ export function decodeWeightMeasurement(base64: string): WeightMeasurement | nul
   };
 }
 
-// ----- Body Composition Measurement (0x2A9C) -----
+// Body Composition Measurement (0x2A9C)
 
 export type BodyCompositionMeasurement = {
   bodyFatPercent: number;
@@ -316,7 +311,7 @@ export function decodeBodyCompositionMeasurement(base64: string): BodyCompositio
   if (!bytes || bytes.length < 4) return null;
   const reader = new Reader(bytes);
   const flags = reader.uint16();
-  // Multiple Packet Measurement (bit 12): this decoder handles single packets only
+  // bit 12 = multi-packet, not handled
   if (flags & 0x1000) return null;
   const imperial = (flags & 0x0001) !== 0;
   const mass = (raw: number) => (imperial ? raw * 0.01 * LB_TO_KG : raw * 0.005);
@@ -336,7 +331,7 @@ export function decodeBodyCompositionMeasurement(base64: string): BodyCompositio
   return { bodyFatPercent: fatRaw / 10, musclePercent, weightKg, timestamp };
 }
 
-// ----- Glucose Measurement (0x2A18) -----
+// Glucose Measurement (0x2A18)
 
 export type GlucoseMeasurement = {
   sequenceNumber: number;
@@ -364,8 +359,7 @@ export function decodeGlucoseMeasurement(base64: string): GlucoseMeasurement | n
     if (!reader.has(3)) return null;
     const value = sfloat(reader.uint16());
     if (value !== null && value > 0) {
-      // Bit 2 picks the unit family. Devices usually send base SI units (kg/L or mol/L)
-      // with a negative exponent; some send mg/dL or mmol/L directly.
+      // bit 2 = unit family; values may be base SI (kg/L, mol/L) or mg/dL / mmol/L
       if (flags & 0x04) mmolPerL = value < 1 ? value * 1000 : value;
       else mmolPerL = (value < 1 ? value * 100000 : value) / MG_DL_PER_MMOL_L;
       mmolPerL = Math.round(mmolPerL * 10) / 10;
@@ -374,7 +368,7 @@ export function decodeGlucoseMeasurement(base64: string): GlucoseMeasurement | n
   return { sequenceNumber, mmolPerL, timestamp };
 }
 
-// Record Access Control Point request: "Report stored records" (0x01), "All records" (0x01)
+// RACP: report stored records, all records
 export const RACP_REPORT_ALL_RECORDS = btoaBytes([0x01, 0x01]);
 
 function btoaBytes(bytes: number[]) {

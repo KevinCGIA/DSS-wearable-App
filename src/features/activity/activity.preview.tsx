@@ -172,6 +172,15 @@ export const activityPreview: PreviewEntry = {
         );
       },
     },
+    {
+      label: 'Long recording (display limit note)',
+      render: () => (
+        <Preview
+          {...deviceReadings(mockDeviceA, 0, 6842)}
+          extra={{ notice: 'Showing your most recent readings. Older readings are saved, but there are too many to show here.' }}
+        />
+      ),
+    },
     { label: 'Loading', render: () => <Preview extra={{ loading: true }} /> },
     {
       label: 'Error',

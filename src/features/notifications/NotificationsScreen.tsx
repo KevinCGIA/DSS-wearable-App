@@ -11,6 +11,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import type { AlertItem } from '@/data/types';
+import { ALERT_TITLES } from '@/lib/alerts/deviceAlert';
 import { formatShortDate, isSameDay } from '@/lib/time';
 import { colors, layout, radius, spacing, type } from '@/theme';
 
@@ -64,7 +65,7 @@ export function NotificationsScreen({
       hero={
         <HeroHeader
           title="Notifications"
-          subtitle="Heart rate alerts from your thresholds."
+          subtitle="Heart rate alerts from your thresholds, and alerts about your wearables."
           onBack={onBack}
           right={
             alerts.length > 0 ? (
@@ -85,7 +86,7 @@ export function NotificationsScreen({
           <EmptyState
             icon="bell"
             title="No alerts yet"
-            message="When your heart rate goes above or below your thresholds, alerts will show here."
+            message="Alerts show here when your heart rate goes above or below your thresholds, or a wearable disconnects or runs low on battery."
             actionLabel="Set alert thresholds"
             onAction={onOpenAlertThresholds}
           />
@@ -120,28 +121,43 @@ export function NotificationsScreen({
   );
 }
 
+type RowLook = { title: string; icon: keyof typeof Feather.glyphMap; high: boolean; unit: string | null };
+
+// red: high heart rate. amber: everything else.
+const looks: Record<AlertItem['type'], RowLook> = {
+  HR_HIGH: { title: ALERT_TITLES.HR_HIGH, icon: 'arrow-up', high: true, unit: 'BPM' },
+  HR_LOW: { title: ALERT_TITLES.HR_LOW, icon: 'arrow-down', high: false, unit: 'BPM' },
+  DEVICE_DISCONNECTED: { title: ALERT_TITLES.DEVICE_DISCONNECTED, icon: 'bluetooth', high: false, unit: null },
+  BATTERY_LOW: { title: ALERT_TITLES.BATTERY_LOW, icon: 'battery', high: false, unit: '%' },
+};
+
 function AlertRow({ alert, divider }: { alert: AlertItem; divider: boolean }) {
-  const high = alert.type === 'HR_HIGH';
+  // fallback for alert types from a newer version
+  const look = looks[alert.type] ?? looks.DEVICE_DISCONNECTED;
+  const { high } = look;
+  const value = look.unit ? `${alert.value} ${look.unit}, ` : '';
   return (
     <View
       style={[styles.row, divider && styles.divider]}
       accessible
-      accessibilityLabel={`${high ? 'High' : 'Low'} heart rate alert, ${alert.value} BPM, ${alert.message}, at ${formatTime(alert.timestamp)}`}
+      accessibilityLabel={`${look.title} alert, ${value}${alert.message}, at ${formatTime(alert.timestamp)}`}
     >
       <View style={[styles.badge, high ? styles.badgeHigh : styles.badgeLow]}>
-        <Feather name={high ? 'arrow-up' : 'arrow-down'} size={layout.icon.row} color={high ? colors.danger : colors.warning} />
+        <Feather name={look.icon} size={layout.icon.row} color={high ? colors.danger : colors.warning} />
       </View>
       <View style={styles.text}>
-        <Text style={[type.bodyStrong, styles.title]}>{high ? 'High heart rate' : 'Low heart rate'}</Text>
+        <Text style={[type.bodyStrong, styles.title]}>{look.title}</Text>
         <Text style={[type.caption, styles.muted]} numberOfLines={2}>
           {alert.message}
         </Text>
       </View>
       <View style={styles.meta}>
-        <View style={styles.valueRow}>
-          <Text style={[type.statSmall, high ? styles.valueHigh : styles.valueLow]}>{alert.value}</Text>
-          <Text style={[type.unit, styles.muted, styles.unitGap]}>BPM</Text>
-        </View>
+        {look.unit ? (
+          <View style={styles.valueRow}>
+            <Text style={[type.statSmall, high ? styles.valueHigh : styles.valueLow]}>{alert.value}</Text>
+            <Text style={[type.unit, styles.muted, styles.unitGap]}>{look.unit}</Text>
+          </View>
+        ) : null}
         <Text style={[type.caption, styles.muted]}>{formatTime(alert.timestamp)}</Text>
       </View>
     </View>

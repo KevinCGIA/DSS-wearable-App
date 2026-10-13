@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Sheet } from '@/components/ui/Sheet';
 import { colors, spacing, type } from '@/theme';
 
@@ -25,6 +25,15 @@ const states = [
   { label: 'FAILED', text: "Couldn't reach the watch. Check Bluetooth, move closer and tap to retry." },
 ];
 
+const backgroundNotes = [
+  'Readings keep saving while the app is in the background or your phone is locked, as long as a wearable stays connected.',
+  ...(Platform.OS === 'android'
+    ? ['A "Recording" notification stays in your notification bar while this is on. Tap it to come back to the app.']
+    : []),
+  'Closing the app from the recent apps screen stops recording until you open it again.',
+  'Recording uses extra battery. Keep your phone charging for overnight sessions.',
+];
+
 export function HelpSheet({ visible, onClose }: Props) {
   return (
     <Sheet visible={visible} title="Help" onClose={onClose}>
@@ -41,6 +50,14 @@ export function HelpSheet({ visible, onClose }: Props) {
         <View key={state.label} style={styles.state}>
           <Text style={[type.overline, styles.stateLabel]}>{state.label}</Text>
           <Text style={[type.body, styles.text]}>{state.text}</Text>
+        </View>
+      ))}
+
+      <Text style={[type.subheading, styles.heading, styles.section]}>Recording in the background</Text>
+      {backgroundNotes.map((note) => (
+        <View key={note} style={styles.step}>
+          <Text style={[type.bodyStrong, styles.number]}>•</Text>
+          <Text style={[type.body, styles.text]}>{note}</Text>
         </View>
       ))}
     </Sheet>

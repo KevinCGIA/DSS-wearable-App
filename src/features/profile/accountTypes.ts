@@ -8,5 +8,7 @@ export type AccountService = {
   saveProfilePicture: (uri: string) => Promise<string | void>;
   changeEmail: (newEmail: string) => Promise<void>;
   changePassword: () => Promise<string>;
+  // deletes the user's data, then the account
+  deleteAccount: () => Promise<void>;
   subscribeToUser?: (listener: () => void) => () => void;
 };

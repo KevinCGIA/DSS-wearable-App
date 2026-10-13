@@ -84,3 +84,15 @@ test("a running total shows today's increase only, using yesterday's last value 
   assert.equal(distance.kind, 'total');
   assert.equal(distance.today, 1200);
 });
+
+test('a small dip in a running total is not a reset (two overlapping sample runs)', () => {
+  const start = now - 2 * HOUR;
+  const a = [100, 110, 120, 130];
+  const b = [160, 171, 178, 190]; // a second run, well ahead of the first
+  const readings = a.flatMap((v, i) => [
+    reading('energy', v, start + i * 20 * 60000, null),
+    reading('energy', b[i], start + i * 20 * 60000 + 1000, null),
+  ]);
+  const total = totalsByBucket(readings, start, now, HOUR).reduce((sum, bucket) => sum + bucket.value, 0);
+  assert.equal(total, 90); // 100 -> 190, not hundreds
+});

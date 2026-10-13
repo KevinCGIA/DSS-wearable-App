@@ -18,6 +18,7 @@ export type SettingsScreenProps = {
   onOpenAlertThresholds: () => void;
   onOpenNotifications: () => void;
   onOpenPreferences: () => void;
+  onOpenExport: () => void;
   onLogout: () => void;
   onOpenPreviews?: () => void;
 };
@@ -34,6 +35,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
         <ListRow icon="bell" label="Alert Thresholds" onPress={props.onOpenAlertThresholds} />
         <ListRow icon="inbox" label="Notifications" onPress={props.onOpenNotifications} divider />
         <ListRow icon="sliders" label="Preferences" onPress={props.onOpenPreferences} divider />
+      </Card>
+
+      <SectionLabel title="Your data" />
+      <Card padding={0}>
+        <ListRow icon="download" label="Export Data" hint="Save your readings as a spreadsheet file" onPress={props.onOpenExport} />
       </Card>
 
       {onOpenPreviews ? (

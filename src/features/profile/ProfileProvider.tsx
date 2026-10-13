@@ -28,7 +28,13 @@ export function ProfileProvider({ displayName, children }: { displayName: string
     setError(null);
     setProfile(null);
     try {
-      const loaded = await withDeadline(accountService.loadProfile(displayName));
+      const load = () => withDeadline(accountService.loadProfile(displayName));
+      // retry once on a timeout before showing an error
+      const loaded = await load().catch((e: unknown) => {
+        const timedOut = typeof e === 'object' && e !== null && 'code' in e && e.code === 'operation/timeout';
+        if (!timedOut || version !== request.current) throw e;
+        return load();
+      });
       if (version === request.current) setProfile(loaded);
     } catch (e) {
       if (version === request.current) setError(`Failed to load profile: ${describeAuthError(e)}`);

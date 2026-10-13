@@ -32,8 +32,7 @@ export type BleContextValue = {
   pausedDevices: string[];
   supportsTestControls?: boolean;
   ensureBluetoothReady?: () => void;
-  // Real backend only: scans until a device with this name is found (NFC pairing on iOS,
-  // which can't connect by Bluetooth address). Resolves null if none is found.
+  // Native only: scan for a device by name (NFC pairing on iOS). Null if not found.
   findDeviceByName?: (name: string) => Promise<ScannedDevice | null>;
 };
 

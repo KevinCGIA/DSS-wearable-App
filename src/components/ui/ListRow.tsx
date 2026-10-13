@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, layout, spacing, type } from '@/theme';
 
 type Props = {
   label: string;
@@ -37,8 +37,8 @@ export function ListRow({
   const body = (
     <>
       {icon ? (
-        <View style={[styles.badge, destructive && styles.badgeDanger]}>
-          <Feather name={icon} size={layout.icon.row} color={destructive ? colors.danger : colors.accentText} />
+        <View style={styles.icon}>
+          <Feather name={icon} size={layout.icon.action} color={destructive ? colors.danger : colors.textSecondary} />
         </View>
       ) : null}
       <View style={styles.text}>
@@ -86,16 +86,7 @@ const styles = StyleSheet.create({
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   disabled: { opacity: 0.5 },
   pressed: { backgroundColor: colors.surfaceSunken },
-  badge: {
-    width: layout.iconBadge,
-    height: layout.iconBadge,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  badgeDanger: { backgroundColor: colors.dangerSurface },
+  icon: { width: layout.rowIcon, alignItems: 'center', marginRight: spacing.md },
   text: { flex: 1 },
   hint: { color: colors.textMuted, marginTop: spacing.xxs },
   value: { color: colors.textMuted, marginLeft: spacing.md, flexShrink: 1 },

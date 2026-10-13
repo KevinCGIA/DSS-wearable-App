@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   valueRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { color: colors.text },
   muted: { color: colors.textMuted },
-  unit: { color: colors.accent, marginLeft: spacing.xs },
+  unit: { color: colors.textSecondary, marginLeft: spacing.xs },
   message: { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   error: { color: colors.danger },
   normal: { color: colors.vital.calm },

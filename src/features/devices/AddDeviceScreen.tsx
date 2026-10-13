@@ -33,7 +33,7 @@ export type AddDeviceScreenProps = {
   onSetAutoConnect: (enabled: boolean) => void;
   onBack: () => void;
   onOpenSettings?: () => void;
-  // Every connected or connecting device, so each shows as Current (several devices at once)
+  // connected or connecting devices, shown as Current
   activeDeviceIds?: string[];
   // Real devices only; Previews leave it out
   nfc?: NfcPairingCardProps;

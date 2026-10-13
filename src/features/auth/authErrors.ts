@@ -5,18 +5,22 @@ const messages: Record<string, string> = {
   'auth/invalid-email': "That email address doesn't look right. Check it and try again.",
   'auth/missing-email': 'Enter your email address to continue.',
   'auth/user-disabled': 'This account has been disabled. Contact support to reactivate it.',
-  'auth/user-not-found': "We couldn't find an account with that email. Try registering instead.",
-  'auth/wrong-password': "That password doesn't match this account. Try again.",
+  // same message for a wrong email and a wrong password
+  'auth/user-not-found': "That email and password don't match. Try again.",
+  'auth/wrong-password': "That email and password don't match. Try again.",
   'auth/invalid-credential': "That email and password don't match. Try again.",
   'auth/invalid-login-credentials': "That email and password don't match. Try again.",
   'auth/email-already-in-use': 'That email is already registered. Log in instead.',
-  'auth/weak-password': 'Pick a password with at least 6 characters.',
+  'auth/weak-password': 'Pick a password with at least 8 characters, including a letter and a number.',
+  'auth/requires-recent-login': 'For your security, log out, log in again, then try this within a few minutes.',
+  'account/preview': "This isn't available in preview mode.",
   'auth/missing-password': 'Enter your password to continue.',
   'auth/too-many-requests': 'Too many attempts. Wait a moment before trying again.',
   'auth/network-request-failed': 'No connection. Check your network and try again.',
   'auth/operation-not-allowed': 'Email sign-in is turned off for this project.',
   'auth/google-unavailable': 'Google sign-in arrives with the shared Firebase setup. Use email for now.',
   'firebase/not-configured': 'The app is not connected to Firebase yet.',
+  'firestore/unavailable': 'No connection. Check your network and try again.',
 };
 
 export function describeAuthError(error: unknown): string {
@@ -53,6 +57,15 @@ export function isValidEmail(email: string): boolean {
   return EMAIL.test(email.trim());
 }
 
+export const MIN_PASSWORD_LENGTH = 8;
+
+// new passwords only; existing accounts are unaffected
+export function passwordError(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'Include at least one letter and one number.';
+  return null;
+}
+
 export function validateAuthInput(mode: AuthMode, values: AuthFormValues, units: Units = 'metric'): AuthFieldErrors {
   const errors: AuthFieldErrors = {};
 
@@ -64,9 +77,8 @@ export function validateAuthInput(mode: AuthMode, values: AuthFormValues, units:
     return errors;
   }
 
-  if (values.password.length < 6) {
-    errors.password = 'Use at least 6 characters.';
-  }
+  const password = passwordError(values.password);
+  if (password) errors.password = password;
   if (values.confirmPassword !== values.password) {
     errors.confirmPassword = 'Passwords do not match.';
   }

@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     maxWidth: layout.chipMaxWidth,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,

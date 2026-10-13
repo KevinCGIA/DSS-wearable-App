@@ -1,7 +1,6 @@
 import { TextStyle } from 'react-native';
 
-// IBM Plex Sans everywhere. Numbers use the 600/700 weights with tabular figures,
-// so digits keep the same width as values change.
+// IBM Plex Sans. Numbers are semibold with tabular figures so digits don't shift.
 export const fonts = {
   ui: 'IBMPlexSans_400Regular',
   uiMedium: 'IBMPlexSans_500Medium',
@@ -30,11 +29,11 @@ type Variant =
   | 'overline';
 
 export const type: Record<Variant, TextStyle> = {
-  hero: { fontFamily: fonts.numericBold, fontSize: 76, lineHeight: 84, letterSpacing: -1.5, fontVariant: tabular },
-  statLarge: { fontFamily: fonts.numericBold, fontSize: 40, lineHeight: 46, letterSpacing: -0.6, fontVariant: tabular },
-  statMedium: { fontFamily: fonts.numericBold, fontSize: 28, lineHeight: 34, letterSpacing: -0.4, fontVariant: tabular },
+  hero: { fontFamily: fonts.numeric, fontSize: 68, lineHeight: 76, letterSpacing: -2, fontVariant: tabular },
+  statLarge: { fontFamily: fonts.numeric, fontSize: 38, lineHeight: 44, letterSpacing: -0.8, fontVariant: tabular },
+  statMedium: { fontFamily: fonts.numeric, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, fontVariant: tabular },
   statSmall: { fontFamily: fonts.numeric, fontSize: 20, lineHeight: 26, letterSpacing: -0.2, fontVariant: tabular },
-  title: { fontFamily: fonts.uiBold, fontSize: 28, lineHeight: 36, letterSpacing: -0.4 },
+  title: { fontFamily: fonts.uiSemiBold, fontSize: 26, lineHeight: 34, letterSpacing: -0.5 },
   heading: { fontFamily: fonts.uiSemiBold, fontSize: 20, lineHeight: 28, letterSpacing: -0.2 },
   subheading: { fontFamily: fonts.uiMedium, fontSize: 16, lineHeight: 22 },
   body: { fontFamily: fonts.ui, fontSize: 15, lineHeight: 22 },
@@ -45,7 +44,7 @@ export const type: Record<Variant, TextStyle> = {
   // Chart axis and value labels (numbers and times).
   axis: { fontFamily: fonts.numeric, fontSize: 12, lineHeight: 16, fontVariant: tabular },
   // Section labels and in-card eyebrows (uppercase text).
-  overline: { fontFamily: fonts.uiMedium, fontSize: 13, lineHeight: 18, letterSpacing: 0.6 },
+  overline: { fontFamily: fonts.uiSemiBold, fontSize: 12, lineHeight: 16, letterSpacing: 0.9 },
 };
 
 export type TextScale = 'default' | 'large' | 'xlarge';

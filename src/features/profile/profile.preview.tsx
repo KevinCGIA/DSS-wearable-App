@@ -20,6 +20,8 @@ const base: ProfileScreenProps = {
   emailError: undefined,
   accountBusy: null,
   accountNotice: null,
+  deleteNotice: null,
+  onDeleteAccount: noop,
   onRetryProfile: noop,
   onChangeForm: noop,
   onChooseProfilePicture: noop,
@@ -80,5 +82,19 @@ export const profilePreview: PreviewEntry = {
         />
       ),
     },
+    {
+      label: 'Delete account: sign in again first',
+      render: () => (
+        <ProfileScreen
+          {...base}
+          deleteNotice={{
+            tone: 'error',
+            message:
+              'Your account was not deleted. For your security, log out, log in again, then try this within a few minutes.',
+          }}
+        />
+      ),
+    },
+    { label: 'Deleting account', render: () => <ProfileScreen {...base} accountBusy="delete" /> },
   ],
 };

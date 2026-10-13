@@ -2,8 +2,7 @@ import type { SensorReading, SensorType } from '@/data/types';
 import { type MetricDefinition, VITAL_METRICS } from '@/lib/biometrics/metrics';
 import { averageByBucket, type Bucket, HOUR_MS } from '@/lib/trends';
 
-// Builds a card per extra biometric (beyond heart rate, steps and sleep) for one source.
-// Only metrics the source has actually reported get a card; nothing is estimated.
+// Cards for the vitals a source has reported (beyond heart rate, steps and sleep).
 
 const DAY_MS = 24 * HOUR_MS;
 
@@ -12,11 +11,11 @@ export type VitalStats = { low: number; average: number; high: number; secondary
 
 type Base = { metric: MetricDefinition; type: SensorType; latest: VitalValue };
 
-// A stream: latest value + the last 24 hours as 30-minute averages
+// latest value + 24 h of 30-minute averages
 export type LiveVital = Base & { kind: 'live'; stats: VitalStats; buckets: Bucket[]; start: number; end: number };
-// Occasional measurements: latest + last 7 days
+// latest + last 7 days
 export type SpotVital = Base & { kind: 'spot'; stats: VitalStats; recent: VitalValue[]; count: number };
-// A device running total: today's increase + per-hour bars
+// today's increase + hourly bars
 export type TotalVital = Base & { kind: 'total'; today: number; buckets: Bucket[]; start: number; end: number };
 
 export type VitalView = LiveVital | SpotVital | TotalVital;
@@ -33,9 +32,8 @@ function stats(values: number[], secondary: number[] = []): VitalStats {
   };
 }
 
-// Device running totals (energy, distance) accumulate since the device last reset them,
-// not since midnight: a rise adds the difference, a drop means the device reset and the new
-// value is counted. Each device is handled on its own, like steps.
+// Running totals reset whenever the device resets them, not at midnight. Count only growth
+// past the highest value seen; a drop to under half is a reset. Per device, like steps.
 export function totalsByBucket(readings: SensorReading[], start: number, end: number, bucketMs: number): Bucket[] {
   const buckets: Bucket[] = [];
   for (let t = start; t < end; t += bucketMs) buckets.push({ start: t, end: Math.min(t + bucketMs, end), value: 0 });
@@ -45,8 +43,17 @@ export function totalsByBucket(readings: SensorReading[], start: number, end: nu
     byDevice.set(key, [...(byDevice.get(key) ?? []), r]);
   }
   for (const group of byDevice.values()) {
+    let high = group[0].value;
     for (let i = 1; i < group.length; i += 1) {
-      const delta = group[i].value >= group[i - 1].value ? group[i].value - group[i - 1].value : group[i].value;
+      const value = group[i].value;
+      let delta = 0;
+      if (value > high) {
+        delta = value - high;
+        high = value;
+      } else if (value < high / 2) {
+        delta = value;
+        high = value;
+      }
       const index = Math.floor((group[i].timestamp.getTime() - start) / bucketMs);
       if (index >= 0 && index < buckets.length) buckets[index].value = (buckets[index].value ?? 0) + delta;
     }
@@ -101,7 +108,7 @@ export function buildVitals(readings: VitalReadings, now: number): VitalView[] {
     if (metric.kind === 'total') {
       const start = startOfDay(now);
       const end = Math.max(now, last.timestamp.getTime() + 1);
-      // Readings from before midnight give today's first reading something to compare with
+      // include yesterday so today's first reading has a baseline
       const sinceYesterday = own.filter((r) => r.timestamp.getTime() >= start - DAY_MS);
       const buckets = totalsByBucket(sinceYesterday, start, end, HOUR_MS);
       const today = buckets.reduce((sum, b) => sum + (b.value ?? 0), 0);

@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   plot: { flexDirection: 'row', alignItems: 'stretch' },
   column: { flex: 1, alignItems: 'center' },
   value: { color: colors.textMuted, marginBottom: spacing.xs },
-  barTrack: { flex: 1, width: 12, justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: radius.pill, minHeight: 6 },
+  barTrack: { flex: 1, width: 14, justifyContent: 'flex-end' },
+  bar: { width: '100%', borderTopLeftRadius: radius.sm / 2, borderTopRightRadius: radius.sm / 2, minHeight: 2 },
   axis: { color: colors.textMuted, marginTop: spacing.sm },
 });

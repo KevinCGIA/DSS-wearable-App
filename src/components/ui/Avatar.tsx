@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  initialsBase: { backgroundColor: colors.accentSurface, borderColor: colors.accentBorder },
-  initials: { fontFamily: fonts.uiBold, color: colors.accentText },
+  initialsBase: { backgroundColor: colors.surfaceSunken, borderColor: colors.border },
+  initials: { fontFamily: fonts.uiSemiBold, color: colors.textSecondary },
   placeholder: { color: colors.textMuted },
   dot: {
     position: 'absolute',

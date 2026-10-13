@@ -9,6 +9,7 @@ import { BleProvider } from '@/features/devices/BleProvider';
 import { AddDeviceContainer } from '@/features/devices/AddDeviceContainer';
 import { DeviceDetailContainer } from '@/features/devices/DeviceDetailContainer';
 import { DevicesContainer } from '@/features/devices/DevicesContainer';
+import { ExportContainer } from '@/features/export/ExportContainer';
 import { NotificationsContainer } from '@/features/notifications/NotificationsContainer';
 import { PreferencesContainer } from '@/features/preferences/PreferencesContainer';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
@@ -121,6 +122,7 @@ export function RootNavigator({ displayName, onSignOut }: Props) {
                     onOpenAlertThresholds={() => navigation.push('alert-thresholds')}
                     onOpenNotifications={() => navigation.push('notifications')}
                     onOpenPreferences={() => navigation.push('preferences')}
+                    onOpenExport={() => navigation.push('export-data')}
                     onOpenPreviews={__DEV__ ? () => navigation.push('previews') : undefined}
                   />
                 ) : null}
@@ -161,6 +163,8 @@ function renderStackRoute(route: StackRoute, navigation: Navigation, selectedDev
       return <AddDeviceContainer onBack={navigation.back} />;
     case 'device-detail':
       return selectedDevice ? <DeviceDetailContainer deviceId={selectedDevice} onBack={navigation.back} /> : null;
+    case 'export-data':
+      return <ExportContainer onBack={navigation.back} />;
     case 'previews':
       return __DEV__ ? <PreviewsScreen entries={previewEntries} onBack={navigation.back} /> : null;
   }

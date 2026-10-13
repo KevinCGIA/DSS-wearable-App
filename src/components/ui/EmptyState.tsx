@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
-import { colors, layout, radius, spacing, type } from '@/theme';
+import { colors, fonts, spacing, type } from '@/theme';
 
 type Props = {
   icon: keyof typeof Feather.glyphMap;
@@ -16,9 +16,7 @@ type Props = {
 export function EmptyState({ icon, title, message, actionLabel, onAction, style }: Props) {
   return (
     <View style={[styles.wrap, style]}>
-      <View style={styles.icon}>
-        <Feather name={icon} size={22} color={colors.accentText} />
-      </View>
+      <Feather name={icon} size={26} color={colors.textMuted} style={styles.icon} />
       <Text style={[type.subheading, styles.title]}>{title}</Text>
       {message ? <Text style={[type.body, styles.message]}>{message}</Text> : null}
       {actionLabel && onAction ? (
@@ -36,16 +34,8 @@ export function EmptyState({ icon, title, message, actionLabel, onAction, style 
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', paddingVertical: spacing.xl },
-  icon: {
-    width: layout.emptyStateIcon,
-    height: layout.emptyStateIcon,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: { color: colors.text, textAlign: 'center' },
+  icon: { marginBottom: spacing.md },
+  title: { color: colors.text, textAlign: 'center', fontFamily: fonts.uiSemiBold },
   message: { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs },
   action: { marginTop: spacing.lg },
 });

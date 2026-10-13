@@ -1,28 +1,14 @@
-// Reading and writing NFC tags that tell the app which Bluetooth wearable
-// to connect to ('tap to pair'). NFC itself can't stream live sensor data
-// (range is a few centimetres), so wearables use it to start a Bluetooth
-// connection, which is what this supports.
-//
-// Two tag formats are understood:
-//
-// 1. Bluetooth LE out-of-band (OOB) pairing records, the Bluetooth SIG /
-//    NFC Forum standard some NFC-pairable devices carry: an NDEF record of
-//    MIME type 'application/vnd.bluetooth.le.oob' holding the device's
-//    Bluetooth address and name.
-// 2. This app's own pairing tags: a URI record
-//    'dsswearables://pair?id=<bluetooth id>&name=<device name>', which the
-//    app can write to any blank NDEF sticker for a connected device.
-//
-// Kept free of React Native imports so it can be unit tested.
+// NFC pairing tags: which Bluetooth wearable to connect to.
+// Formats: Bluetooth LE OOB records (application/vnd.bluetooth.le.oob) and this app's own
+// URI tags (dsswearables://pair?id=...&name=...). No React Native imports, so it is unit testable.
 
 export type PairingInfo = {
-  // Bluetooth address / ID. Only usable directly on Android: iOS can't
-  // connect by address, so it finds the device by name instead.
+  // Bluetooth address. Android only: iOS connects by name.
   deviceId: string | null;
   name: string | null;
 };
 
-// The parts of an NDEF record this module needs
+// NDEF record fields used here
 export type TagRecord = {
   tnf: number;
   type: number[] | string;
@@ -48,8 +34,7 @@ export function buildPairingUri(info: { deviceId: string; name: string }) {
   );
 }
 
-// Finds the first record that describes a wearable, or null if the tag
-// isn't a pairing tag
+// First record describing a wearable, or null
 export function parsePairingRecords(records: TagRecord[]): PairingInfo | null {
   for (const record of records) {
     const type = typeToString(record.type);
@@ -127,9 +112,7 @@ function parseBleOob(payload: number[]): PairingInfo | null {
   return deviceId || name ? { deviceId, name } : null;
 }
 
-// NFC Forum URI record: first byte is a prefix code (0 = none), the rest is
-// the URI. This app's custom scheme has no standard prefix, so only prefix
-// code 0 can be a pairing tag.
+// URI record: byte 0 is a prefix code. Our scheme has none, so only code 0 matches.
 function decodeUriPayload(payload: number[]): string | null {
   if (payload.length < 2 || payload[0] !== 0x00) {
     return null;

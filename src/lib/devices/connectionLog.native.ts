@@ -19,6 +19,17 @@ const notify = () => listeners.forEach((listener) => listener(current?.events ??
 const notifyError = () => errorListeners.forEach((listener) => listener(error));
 const keyOf = (uid: string) => `dss:connection-log:v1:${uid}`;
 
+// While a wearable is connected the app keeps recording in the background, so background
+// time counts. With nothing connected, leaving the screen is "background" for the stats.
+let recording = false;
+let syncAppState: (() => void) | null = null;
+const appAlive = () => AppState.currentState === 'active' || recording;
+export function setConnectionLogRecording(active: boolean) {
+  if (recording === active) return;
+  recording = active;
+  syncAppState?.();
+}
+
 function save(session: Session) {
   if (!session.ready) return Promise.resolve();
   const snapshot: SavedConnectionLog = { events: session.events, updatedAt: session.updatedAt, foreground: session.foreground };
@@ -41,7 +52,7 @@ export function logConnectionEvent(event: NewEvent) {
 }
 
 export function startConnectionLog(uid: string, onError: (message: string) => void) {
-  const session: Session = { uid, events: [], active: true, ready: false, foreground: AppState.currentState === 'active', updatedAt: Date.now(), saving: Promise.resolve(), onError };
+  const session: Session = { uid, events: [], active: true, ready: false, foreground: appAlive(), updatedAt: Date.now(), saving: Promise.resolve(), onError };
   current = session; error = null; notify(); notifyError();
   const loading = (async () => {
     await closing.get(uid);
@@ -59,18 +70,21 @@ export function startConnectionLog(uid: string, onError: (message: string) => vo
     error = cause instanceof Error ? cause.message : "Couldn't load connection history.";
     notifyError(); onError(error);
   });
-  const app = AppState.addEventListener('change', (state) => {
+  const sync = () => {
     if (!session.active || current !== session) return;
-    if (state === 'background' || state === 'inactive') {
-      if (session.foreground) logConnectionEvent({ type: 'app_background', deviceId: null });
-    } else if (state === 'active' && !session.foreground) logConnectionEvent({ type: 'app_foreground', deviceId: null });
-  });
+    const alive = appAlive();
+    if (!alive && session.foreground) logConnectionEvent({ type: 'app_background', deviceId: null });
+    else if (alive && !session.foreground) logConnectionEvent({ type: 'app_foreground', deviceId: null });
+  };
+  syncAppState = sync;
+  const app = AppState.addEventListener('change', sync);
   const heartbeat = setInterval(() => {
     if (session.active && session.foreground) { session.updatedAt = Date.now(); void save(session); }
   }, 30000);
   return () => {
     if (session.foreground) logConnectionEvent({ type: 'app_background', deviceId: null });
     session.active = false; app.remove(); clearInterval(heartbeat);
+    if (syncAppState === sync) syncAppState = null;
     const closed = loading.then(() => save(session)).catch(() => undefined);
     closing.set(uid, closed);
     if (current === session) { current = null; notify(); }

@@ -1,4 +1,4 @@
-# Android testing: unified DSS app (branch `ui-changes`)
+# Android testing: unified DSS app
 
 For anyone testing the app on Android. Test on a **physical Android phone**: the emulator has no Bluetooth.
 
@@ -89,6 +89,10 @@ The app now collects every standard Bluetooth health measurement a device provid
 ### 6a. Screens only (no second phone, 2 minutes)
 Activity tab → Development card → **Add 24h of Sample Data**. This adds a day of every measurement as **Test data**.
 
+Two things that look like bugs but aren't:
+- **Give it time to load.** After opening the app, saved readings take a few seconds to arrive (longer on an emulator). Until then the Dashboard shows a spinner and **"--"**, and Activity shows "Loading your data…". Check the numbers after they settle.
+- **Sample sleep is not saved.** The sample night disappears when the app restarts (tap Add 24h of Sample Data again to bring it back). Everything else is saved.
+
 - [ ] **Activity:** a **Test data** chip is selected. Heart Rate, Steps and Sleep are filled. Below Sleep, **More vitals** has a card each for Heart Rate Variability, Blood Oxygen, Blood Pressure (as "120/80"), Body Temperature, Blood Glucose, Weight, BMI, Body Fat, Energy Burned and Distance.
 - [ ] **Dashboard:** Steps, Distance and Active Calories show numbers (Floors stays "--"). A **Vitals** card appears at the bottom; tap it to expand; **Open in Activity ›** opens the Activity tab at More vitals.
 - [ ] **Units:** Settings → Preferences → Imperial. Temperature shows °F, weight lb, glucose mg/dL, distance mi. Switch back to Metric.
@@ -126,9 +130,53 @@ Also check:
 - **Steps and sleep over Bluetooth.** A steps/sleep monitor (service `183E`) connects and shows "Steps & sleep (not supported yet)" on its Devices card. Why, and how to add it: `STEPS_AND_SLEEP_HANDOVER.md`.
 - **Floors:** no Bluetooth device reports it, so it always shows "--".
 - Recording in the background or with the screen locked.
-- "Open in Activity ›" does not scroll to the section in the **web** preview (phones are what matter here; report it if it fails on a phone).
 
-## 7. How to report
+## 7. Background recording, alerts, export and account checks (branch `feature/hardening`)
+These need a new build (`npx expo run:android`), because a small native service was added.
+
+### 7a. Background recording (physical phone + a fake heart-rate device from section 2)
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Connect the fake heart-rate device. | Android asks to allow notifications (first time only). A **"Recording from 1 wearable"** notification appears and stays. |
+| 2 | Press Home, wait 3 minutes while changing the BPM on the other phone a few times, then open the app. | The Heart Rate chart in Activity has no gap for those 3 minutes. Firebase console: `reading_batches` has documents for each minute. |
+| 3 | Lock the phone for 10 minutes with the device still sending, then unlock. | Same: no gap. |
+| 4 | With the app in the background, set the BPM above your Maximum threshold. | A "High heart rate" notification arrives while the app is still in the background. |
+| 5 | Tap the Recording notification. | The app opens. |
+| 6 | Disconnect the device in the app. | The Recording notification disappears within a few seconds. |
+| 7 | Connect again, then swipe the app away from the recent apps screen. | Recording stops (expected). Reopen: the time the app was closed is not counted as a drop-out in that device's stats. |
+| 8 | Optional, overnight: record with the phone charging. Note the phone model. | Recording continues all night. If it stops, note the time and model in `BUGS.md` (some phones need the app exempted from battery optimisation). |
+
+### 7b. Device alerts
+| # | Steps | Expected |
+|---|---|---|
+| 1 | With a device connected, turn the fake device off (or walk it out of range) and leave it off. | After the app gives up reconnecting (about 30 seconds), a **"Wearable disconnected"** notification, and the same alert in Settings → Notifications. |
+| 2 | Turn it off and back on within a few seconds. | It reconnects by itself and **no** alert is raised. |
+| 3 | Tap Disconnect yourself. | No alert. |
+| 4 | If your fake device has a Battery service: set it to `14` (hex, = 20 %) or lower, then connect. | A **"Wearable battery low"** alert, once per connection. |
+| 5 | Settings → Preferences → turn Alert notifications off, then repeat 1. | No notification and no new alert. |
+
+### 7c. Export
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Settings → Export Data → 24 hours → Export CSV, after recording or adding sample data. | The phone's share sheet opens with a file named `dss-readings-<date>-<time>.csv`. The screen then says "Exported N readings." |
+| 2 | Send the file to yourself and open it in a spreadsheet. | Columns: `time_utc, time_local, metric, type, value, unit, device, device_id, source`. One row per reading, oldest first. Test data rows say "Test data" and `test`. |
+| 3 | Choose a range with nothing saved. | "No readings were saved in …" and no share sheet. |
+| 4 | Turn on Airplane mode and export. | An error message; no crash. |
+
+### 7d. Account and sign-in
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Register with the password `abc123`, then `abcdefgh`, then `abc12345`. | The first two are refused ("at least 8 characters", "a letter and a number"); the third is accepted. |
+| 2 | Log in with a wrong password, then with an email that isn't registered. | The **same** message both times ("That email and password don't match"). |
+| 3 | **Use a throwaway account.** Profile → Delete Account → Cancel. | Nothing happens. |
+| 4 | Same account, signed in more than 5 minutes ago: Delete Account → Delete Account. | "Your account was not deleted… log out, log in again, then try this within a few minutes." Nothing is deleted. |
+| 5 | Log out, log in, then Delete Account → Delete Account straight away. | The app returns to the sign-in screen. Firebase console: the user is gone from Authentication, and `users/{uid}` and everything under it is gone from Firestore. Logging in again fails. |
+
+### 7e. Loading and long recordings
+- [ ] Open the app from closed: while saved readings load, the Dashboard shows a spinner in Heart Rate and **"--"** for Steps (not 0), and Activity shows "Loading your data…". Numbers appear within a few seconds.
+- [ ] After recording one device for more than a day and a half, Activity may show a blue note: "Showing your most recent readings. Older readings are saved…". The charts must still show data. This is expected, not an error.
+
+## 8. How to report
 1. Create a branch from `ui-changes` called `android-testing` (or `android-testing-<your name>`).
 2. Add rows to the bug table in `BUGS.md`: **Screen | Bug | Steps | Platform/device | Tester | Status**, plus Pass/Fail for the A11 and B1 checks.
 3. Push your branch and open a **pull request into `ui-changes`**.

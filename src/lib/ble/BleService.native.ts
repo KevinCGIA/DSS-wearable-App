@@ -69,12 +69,11 @@ export type ConnectionState = {
   rssi?: number | null;
   modelNumber?: string | null;
   firmwareRevision?: string | null;
-  // Health data this device provides (from its services, plus anything it has sent)
+  // what the device measures
   measures?: DeviceMeasure[];
 };
 
-// One decoded value from a device. timestamp is set when the device recorded when it was
-// measured (spot measurements); otherwise the value is "now".
+// timestamp is set only when the device reported when it measured the value
 export type MetricSample = { type: SensorType; value: number; timestamp?: Date };
 
 const uuid16 = (short: string) => `0000${short}-0000-1000-8000-00805f9b34fb`;
@@ -91,10 +90,10 @@ const CHARACTERISTICS = {
   RECORD_ACCESS_CONTROL_POINT: uuid16('2a52'),
 };
 
-// HRV (RMSSD) is calculated from the RR intervals received over this window
+// window of RR intervals used for HRV
 const HRV_WINDOW_MS = 30000;
 
-// Device clocks are often unset; ignore measurement times that can't be right
+// device clocks are often unset; ignore implausible times
 function measuredAt(timestamp: Date | null): Date | undefined {
   if (!timestamp) return undefined;
   const time = timestamp.getTime();
@@ -254,9 +253,8 @@ export class BleService {
 
   // A stale iOS peripheral UUID can be rediscovered only when both the
   // advertised name and service match; ambiguous results need user selection.
-  // Scans until a device matching `matches` is found, then stops. Resolves null if none is
-  // found before the scan times out. Used for NFC pairing on iOS, which can't connect by
-  // Bluetooth address and so has to find the device by name.
+  // Scans until `matches` finds a device or the scan times out (null). Used for NFC
+  // pairing on iOS, which can't connect by address.
   async findDevice(matches: (device: ScannedDevice) => boolean): Promise<ScannedDevice | null> {
     return new Promise((resolve, reject) => {
       let found: ScannedDevice | null = null;
@@ -314,7 +312,7 @@ export class BleService {
     return () => { this.heartRateListeners.delete(listener); };
   }
 
-  // Every decoded health value other than heart rate (see onHeartRate), per device
+  // decoded values other than heart rate
   onMetrics(listener: (samples: MetricSample[], deviceId: string, name: string | null) => void) {
     this.metricListeners.add(listener);
     return () => { this.metricListeners.delete(listener); };
@@ -433,7 +431,7 @@ class DeviceConnection {
     if (samples.length) this.metricListeners.forEach((listener) => listener(samples));
   }
 
-  // Adds measures a device turned out to send (e.g. HRV only once RR intervals arrive)
+  // measures discovered from data, e.g. HRV once RR intervals arrive
   private noteMeasures(found: DeviceMeasure[]) {
     const current = this.connection.measures ?? [];
     if (found.every((m) => current.includes(m))) return;
@@ -639,10 +637,8 @@ class DeviceConnection {
       });
   }
 
-  // Subscribes to every standard health measurement the device offers (heart rate, pulse
-  // oximeter, thermometer, blood pressure, running speed & cadence, weight scale, body
-  // composition, glucose) and returns what it measures. Characteristics a device doesn't
-  // implement just report an error to their callback, which is ignored.
+  // Subscribes to every supported health characteristic and returns what the device
+  // measures. Characteristics it lacks just error, which is ignored.
   private async startHealthMonitors(deviceId: string, token: number): Promise<DeviceMeasure[]> {
     this.stopHeartRateMonitor();
 
@@ -654,7 +650,7 @@ class DeviceConnection {
     const monitor = (service: string, characteristic: string, handle: (value: string) => MetricSample[] | void) => {
       this.healthSubscriptions.push(
         this.getManager().monitorCharacteristicForDevice(deviceId, service, characteristic, (error, value) => {
-          // Errors mean the link dropped, monitoring stopped, or the device lacks this one
+          // link dropped, monitoring stopped, or not supported
           if (this.isStale(token) || error || !value?.value) return;
           const samples = handle(value.value);
           if (samples) this.emitMetrics(samples);
@@ -680,7 +676,7 @@ class DeviceConnection {
           if (this.rrBuffer.length > 300) this.rrBuffer = this.rrBuffer.slice(-300);
           if (Date.now() - this.rrWindowStart >= HRV_WINDOW_MS) {
             const hrv = rmssd(this.rrBuffer);
-            // Keep the newest interval so the next window's first difference is real
+            // keep the newest interval for the next window
             this.rrBuffer = this.rrBuffer.slice(-1);
             this.rrWindowStart = Date.now();
             if (hrv !== null) {
@@ -699,7 +695,7 @@ class DeviceConnection {
         if (!m) return;
         const at = measuredAt(m.timestamp);
         const samples: MetricSample[] = [{ type: 'spo2', value: m.spo2, timestamp: at }];
-        // Pulse from an oximeter is heart rate too, unless the device has a Heart Rate service
+        // oximeter pulse counts as heart rate when there's no Heart Rate service
         if (m.pulse !== null && !has(GATT.HEART_RATE_SERVICE)) {
           const pulse = m.pulse;
           this.heartRateListeners.forEach((listener) => listener(pulse));
@@ -721,7 +717,7 @@ class DeviceConnection {
       monitor(SERVICE_UUIDS.BLOOD_PRESSURE, CHARACTERISTICS.BLOOD_PRESSURE_MEASUREMENT, (value) => {
         const m = decodeBloodPressureMeasurement(value);
         if (!m) return;
-        // Both halves share one time so they stay paired, even without a device clock
+        // one timestamp for both halves so they stay paired
         const at = measuredAt(m.timestamp) ?? new Date();
         return [
           { type: 'bp_systolic', value: m.systolic, timestamp: at },
@@ -784,8 +780,7 @@ class DeviceConnection {
         if (!m || m.mmolPerL === null) return;
         return [{ type: 'glucose', value: m.mmolPerL, timestamp: measuredAt(m.timestamp) ?? new Date() }];
       });
-      // Glucose meters only send stored records when asked through the Record Access
-      // Control Point, whose responses are indications that must be enabled first
+      // glucose meters send stored records only on request (RACP, via indications)
       monitor(SERVICE_UUIDS.GLUCOSE, CHARACTERISTICS.RECORD_ACCESS_CONTROL_POINT, () => undefined);
       setTimeout(() => {
         if (this.isStale(token)) return;
@@ -879,9 +874,7 @@ function toScannedDevice(device: Device): ScannedDevice | null {
     ) ?? false;
   const name = device.name ?? device.localName;
 
-  // Skip anonymous beacons and trackers so the list stays readable, but keep unnamed
-  // heart rate sensors: phone-based heart rate emulators and some straps leave the name
-  // out to fit the small advertising packet
+  // Skip unnamed devices, except heart rate sensors: emulators and some straps omit the name.
   if ((!name && !isHeartRateDevice) || device.rssi === null) {
     return null;
   }

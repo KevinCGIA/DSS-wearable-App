@@ -12,7 +12,19 @@ export type AccountDependencies = {
   changeEmail: (email: string) => Promise<void>;
   changePassword: () => Promise<string>;
   subscribeToUser: (listener: () => void) => () => void;
+  // last sign-in time (ms)
+  lastSignIn: () => Promise<number | null>;
+  // Everything under users/{uid} in Firestore
+  deleteData: (uid: string) => Promise<void>;
+  deleteUser: () => Promise<void>;
+  // data kept on this phone
+  eraseLocal: (uid: string) => void;
+  now?: () => number;
 };
+
+// Firebase only deletes recently signed-in accounts. Check first so data isn't removed
+// while the account stays.
+export const RECENT_LOGIN_MS = 4 * 60 * 1000;
 
 function error(code: string) {
   return Object.assign(new Error(code), { code });
@@ -79,6 +91,17 @@ export function createNativeAccountService(deps: AccountDependencies): AccountSe
     },
     changeEmail: deps.changeEmail,
     changePassword: deps.changePassword,
+    async deleteAccount() {
+      const current = user();
+      const signedInAt = await deps.lastSignIn();
+      const now = (deps.now ?? Date.now)();
+      if (signedInAt === null || now - signedInAt > RECENT_LOGIN_MS) throw error('auth/requires-recent-login');
+      assertUser(current.uid);
+      await deps.deleteData(current.uid);
+      assertUser(current.uid);
+      await deps.deleteUser();
+      deps.eraseLocal(current.uid);
+    },
     subscribeToUser: deps.subscribeToUser,
   };
 }

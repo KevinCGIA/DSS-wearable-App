@@ -147,7 +147,7 @@ export function devicesFixture(now: number, { live = [], keep, copies = [] }: Op
     pausedDevices: [],
     now,
   });
-  // What each mock device measures, so previews show the Measures row
+  // mock measures for previews
   const withMeasures = (d: TestedDevice): TestedDevice => ({ ...d, measures: orderMeasures(MEASURES[d.name] ?? ['heart_rate']) });
   return { ...model, connected: model.connected.map(withMeasures), previous: model.previous.map(withMeasures) };
 }

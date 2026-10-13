@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import type { UserProfile } from '@/data/types';
 import { describeAuthError, isValidEmail } from '@/features/auth/authErrors';
+import { useBle } from '@/features/devices/BleProvider';
 import { usePreferences } from '@/features/preferences/PreferencesProvider';
 import {
   formatMeasure,
@@ -26,7 +28,7 @@ import { withDeadline } from '@/lib/asyncDeadline';
 export type ProfileForm = { name: string; height: string; weight: string };
 export type ProfileFormErrors = Partial<Record<keyof ProfileForm, string>>;
 export type ProfileNotice = { tone: 'success' | 'error' | 'info'; message: string };
-export type AccountBusy = 'email' | 'password' | null;
+export type AccountBusy = 'email' | 'password' | 'delete' | null;
 
 const toForm = (p: UserProfile, units: Units): ProfileForm => ({
   name: p.name,
@@ -37,6 +39,7 @@ const toForm = (p: UserProfile, units: Units): ProfileForm => ({
 export function useProfileData() {
   const { profile, loading: profileLoading, error: profileError, reload, update } = useProfile();
   const { units } = usePreferences().preferences;
+  const ble = useBle();
 
   const [form, setForm] = useState<ProfileForm>({ name: '', height: '', weight: '' });
   const [formErrors, setFormErrors] = useState<ProfileFormErrors>({});
@@ -47,6 +50,7 @@ export function useProfileData() {
   const [emailError, setEmailError] = useState<string | undefined>();
   const [accountBusy, setAccountBusy] = useState<AccountBusy>(null);
   const [accountNotice, setAccountNotice] = useState<ProfileNotice | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState<ProfileNotice | null>(null);
 
   // Fill the form once the profile has loaded (or reloaded after Retry).
   useEffect(() => {
@@ -157,6 +161,33 @@ export function useProfileData() {
     }
   };
 
+  const runDeleteAccount = async () => {
+    setDeleteNotice(null);
+    setAccountBusy('delete');
+    try {
+      // stop recording so nothing new is saved meanwhile
+      const active = Object.entries(ble.connections).filter(([, c]) => c.status !== 'disconnected');
+      await Promise.all(active.map(([id]) => ble.disconnect(id)));
+      if (active.length) await new Promise((resolve) => setTimeout(resolve, 1500));
+      await accountService.deleteAccount();
+      // deletion signs the user out; the app returns to sign-in
+    } catch (error) {
+      setDeleteNotice({ tone: 'error', message: `Your account was not deleted. ${describeAuthError(error)}` });
+      setAccountBusy(null);
+    }
+  };
+
+  const deleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This permanently deletes your account, your profile and every saved reading. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Account', style: 'destructive', onPress: () => void runDeleteAccount() },
+      ],
+    );
+  };
+
   return {
     units,
     profile,
@@ -171,6 +202,8 @@ export function useProfileData() {
     emailError,
     accountBusy,
     accountNotice,
+    deleteNotice,
+    onDeleteAccount: deleteAccount,
     onRetryProfile: reload,
     onChangeForm: changeForm,
     onChooseProfilePicture: chooseProfilePicture,
